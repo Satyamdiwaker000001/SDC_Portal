@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Cinematic Vignette - Darkens the screen corners */
+  .vignette {
+    background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%);
+  }
+
+  /* Animated Border "Beam" Effect */
+  @keyframes border-beam {
+    100% { offset-distance: 100%; }
+  }
+
+  .border-beam-path {
+    offset-path: rect(0 auto auto 0 round 30px);
+    animation: border-beam 4s linear infinite;
+  }
+
+  /* Deep Glass Reflection */
+  .glass-reflection {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+  }
+}
