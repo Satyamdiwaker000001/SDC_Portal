@@ -1,11 +1,31 @@
 @import "tailwindcss";
 
+@layer base {
+  html, body, *, ::placeholder, input, button, select {
+    cursor: none !important;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+  }
+}
+
 @layer utilities {
+<<<<<<< main
   /* Cinematic Vignette - Darkens the screen corners */
   .vignette {
     background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%);
+=======
+  .tactical-skew {
+    @apply -skew-x-12;
+>>>>>>> local
   }
+  .tactical-border {
+    @apply border-2 border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)];
+  }
+  .shadow-glow {
+    @apply shadow-[0_0_20px_rgba(34,211,238,0.3)];
+  }
+}
 
+<<<<<<< main
   /* Animated Border "Beam" Effect */
   @keyframes border-beam {
     100% { offset-distance: 100%; }
@@ -20,4 +40,13 @@
   .glass-reflection {
     background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
   }
+=======
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #020617; }
+::-webkit-scrollbar-thumb { background: #22d3ee; }
+
+::selection {
+  background-color: #22d3ee;
+  color: #000;
+>>>>>>> local
 }
