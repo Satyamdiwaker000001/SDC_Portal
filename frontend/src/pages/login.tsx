@@ -7,7 +7,7 @@
 // cSpell:ignore RBMI SCANLINE
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, ShieldCheck, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, User } from 'lucide-react';
 
 import clickSfx from "../sounds/click.mp3";
 import typeSfx from "../sounds/typing.mp3";
@@ -46,7 +46,7 @@ const CrosshairCursor = () => {
 
   return (
     <motion.div 
-      className="pointer-events-none fixed top-0 left-0 z-[9999] flex items-center justify-center" 
+      className="pointer-events-none fixed top-0 left-0 z-9999 flex items-center justify-center" 
       style={{ x, y, translateX: '-50%', translateY: '-50%' }}
     >
       <AnimatePresence mode="wait">
