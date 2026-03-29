@@ -1,86 +1,14 @@
 @import "tailwindcss";
 
-@layer base {
-  html, body, *, ::placeholder, input, button, select {
-    cursor: none !important;
-    font-family: 'JetBrains Mono', 'Inter', monospace;
-  }
 
-  /* Global Dark Mode Consistency */
-  body {
-    @apply bg-[#020617] text-slate-200 overflow-x-hidden;
-  }
-}
-
-@layer utilities {
-  /* Cinematic Vignette - Darkens the screen corners */
-  .vignette {
-    background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%); 
-  }
-
-  /* Tactical Geometry */
-  .tactical-skew {
-    @apply -skew-x-12;
-  }
-
-  .tactical-border {
-    @apply border-2 border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)];  
-  }
-
-  /* Neon Glow Effects */
-  .shadow-glow {
-    @apply shadow-[0_0_20px_rgba(34,211,238,0.3)];
-  }
-
-  /* Deep Glass Reflection for Cards */
-  .glass-reflection {
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
-  }
-}
-
-/* --- TACTICAL ANIMATIONS --- */
-
-/* Animated Border "Beam" Effect */
-@keyframes border-beam {
-  100% { offset-distance: 100%; }
-}
-
-.border-beam-path {
-  offset-path: rect(0 auto auto 0 round 30px);
-  animation: border-beam 4s linear infinite;
-}
-
-/* Custom Tactical Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: #020617;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #22d3ee;
-  border-radius: 10px;
-}
-
-/* Neon Text Selection */
-::selection {
-  background-color: #22d3ee;
-  color: #000;
-}
-
+/* cspell:disable */
 /* Hide scrollbar for Chrome, Safari and Opera */
-*::-webkit-scrollbar {
+::-webkit-scrollbar {
   display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
-* {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-body {
-  overflow: hidden; /* Prevent any accidental scrolling */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
