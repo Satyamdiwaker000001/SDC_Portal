@@ -110,7 +110,7 @@ export const SDC_Project = () => {
           /* --- LIST VIEW --- */
           <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             <div className="bg-black border border-white/5 overflow-hidden rounded-sm relative">
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-linear-to-r from-transparent via-sky-500/20 to-transparent" />
+              <div className="absolute top-0 left-0 w-full h-`[1px] `bg-linear-to-r from-transparent via-sky-500/20 to-transparent" />
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-zinc-900/50 text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]">
@@ -123,7 +123,7 @@ export const SDC_Project = () => {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {sortedProjects.map((project) => (
-                    <tr key={project.id} className={`group transition-all ${project.status === 'LIVE' ? 'bg-emerald-500/[0.02]' : 'hover:bg-white/[0.02]'}`}>
+                    <tr key={project.id} className={`group transition-all ${project.status === 'LIVE' ? `bg-emerald-500/[0.02]` : 'hover:bg-white/[0.02]'}`}>
                       <td className="p-4 text-center">
                         {project.status === 'PENDING' ? (
                           <button onClick={() => toggleSelect(project.id)} className="text-zinc-700 hover:text-sky-400">
