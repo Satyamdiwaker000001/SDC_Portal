@@ -12,3 +12,8 @@ html {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
 }
+
+@keyframes scrollX {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
