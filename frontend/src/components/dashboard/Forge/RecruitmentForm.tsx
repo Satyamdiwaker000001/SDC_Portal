@@ -1,19 +1,23 @@
-import { useState } from 'react';
+/* cspell:disable */
+import { useState, useRef } from 'react'; 
 import { 
-  UserPlus, Key, Mail, X, FileSpreadsheet, Calendar, 
-  User, Code2, RefreshCw, CheckCircle2, AlertTriangle, ChevronDown 
-} from 'lucide-react';
+  Mail, X, Calendar, User, RefreshCw, ChevronDown, FileSpreadsheet, Cpu, UploadCloud, Zap 
+} from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
-
-// cSpell:ignore Satyam Diwaker ABCDEFGHJKMNPQRSTUVWXYZ
-type EntryMode = 'MANUAL' | 'BULK';
 
 interface FormProps { onClose: () => void; }
 
 export const RecruitmentForm = ({ onClose }: FormProps) => {
-  const [tab, setTab] = useState<EntryMode>('MANUAL');
+  const [activeTab, setActiveTab] = useState<'manual' | 'bulk'>('manual');
   const [password, setPassword] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const [roles, setRoles] = useState(['WEB_DEV', 'SOC_L1', 'APP_DEV', 'DATA_SEC']);
+  const [newRole, setNewRole] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+
   const generateSecurePass = () => {
     const charset = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz0123456789!@#$%^&*";
     let retVal = "";
@@ -21,126 +25,190 @@ export const RecruitmentForm = ({ onClose }: FormProps) => {
     setPassword(retVal);
   };
 
+  const handleAddRole = () => {
+    if (newRole.trim() && !roles.includes(newRole.toUpperCase())) {
+      setRoles(prev => [...prev, newRole.toUpperCase()]);
+      setNewRole('');
+    }
+  };
+
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-      className="relative w-full max-w-4xl bg-slate-950/95 border-2 border-cyan-500/30 backdrop-blur-3xl rounded-none shadow-[0_0_100px_rgba(0,0,0,1)]"
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full bg-[#050505] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden"
+      style={{ clipPath: 'polygon(0 0, 98% 0, 100% 2%, 100% 100%, 2% 100%, 0 98%)' }}
     >
-      {/* HUD Header */}
-      <div className="flex justify-between items-center px-8 py-5 border-b-2 border-cyan-500/10 bg-linear-to-r from-cyan-500/10 to-transparent">
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-cyan-500 text-black skew-x-12 shadow-[0_0_15px_rgba(34,211,238,0.5)]">
-            <UserPlus size={20} className="-skew-x-12" />
+      {/* --- HEADER --- */}
+      <div className="flex justify-between items-center px-8 py-5 border-b border-white/5 bg-zinc-900/20">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Cpu size={18} className="text-sky-400" />
+            <h2 className="text-sm font-black text-white uppercase tracking-tighter">FORGE_CORE_v4.5</h2>
           </div>
-          <h2 className="text-xl font-black italic text-white uppercase tracking-tighter">Forge_Protocol_v4.5</h2>
-        </div>
-        <button onClick={onClose} className="p-1 text-slate-500 hover:text-cyan-400 transition-all cursor-none border border-white/5 hover:border-cyan-500/40">
-          <X size={28} />
-        </button>
-      </div>
-
-      {/* Mode Selector */}
-      <div className="flex p-6">
-        <div className="flex bg-slate-900 border border-white/5 p-1">
-          {(['MANUAL', 'BULK'] as EntryMode[]).map((m) => (
-            <button key={m} onClick={() => setTab(m)} className={`px-6 py-2 text-[9px] font-black tracking-widest transition-all cursor-none ${tab === m ? 'bg-cyan-500 text-black shadow-glow' : 'text-slate-500 hover:text-white'}`}>
-              {m === 'MANUAL' ? 'SINGLE_LINK' : 'DATA_INJECTION'}
+          
+          <div className="flex bg-black p-1 border border-white/10 rounded-sm">
+            <button 
+              onClick={() => setActiveTab('manual')}
+              className={`px-6 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'manual' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              MANUAL_AGENT
             </button>
-          ))}
+            <button 
+              onClick={() => setActiveTab('bulk')}
+              className={`px-6 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'bulk' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              BULK_PACKET
+            </button>
+          </div>
         </div>
+        <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors"><X size={20} /></button>
       </div>
 
-      <div className="px-8 pb-8">
+      {/* --- MAIN CONTENT AREA: Added min-height to prevent jumping --- */}
+      <div className="px-10 py-10 min-h-[500px]"> 
         <AnimatePresence mode="wait">
-          {tab === 'MANUAL' ? (
-            <motion.div key="manual" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div className="space-y-1">
-                  <label className="text-[8px] font-black text-cyan-500/60 uppercase tracking-[0.3em] ml-1 italic">Operative_Ident</label>
-                  <div className="relative group">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-cyan-500" size={16} />
-                    <input type="text" className="w-full bg-slate-950 border border-white/10 rounded-none py-3 pl-12 text-xs font-black text-white outline-none focus:border-cyan-500 focus:bg-cyan-500/2" placeholder="NAME" />
+          {activeTab === 'manual' ? (
+            <motion.div 
+              key="manual" 
+              initial={{ opacity: 0, x: -10 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: 10 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start"
+            >
+              {/* LEFT SIDE */}
+              <div className="space-y-8">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-sky-400 uppercase tracking-widest ml-1">Operative_Ident</label>
+                    <div className="relative border-b border-white/10 focus-within:border-sky-500 transition-colors">
+                      <User className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-700" size={16} />
+                      <input type="text" className="w-full bg-transparent py-3 pl-8 text-xs font-bold text-white outline-none placeholder:text-zinc-800" placeholder="ENTER FULL NAME" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-sky-400 uppercase tracking-widest ml-1">Network_Mail</label>
+                    <div className="relative border-b border-white/10 focus-within:border-sky-500 transition-colors">
+                      <Mail className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-700" size={16} />
+                      <input type="email" className="w-full bg-transparent py-3 pl-8 text-xs font-bold text-white outline-none placeholder:text-zinc-800" placeholder="OPERATIVE@SDC.COM" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-sky-400 uppercase tracking-widest ml-1">Deployment_Date</label>
+                    <div className="relative border-b border-white/10 focus-within:border-sky-500 transition-colors">
+                      <Calendar className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-700" size={16} />
+                      <input type="date" className="w-full bg-transparent py-3 pl-8 text-[10px] font-bold text-zinc-500 outline-none scheme-dark uppercase" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[8px] font-black text-cyan-500/60 uppercase tracking-[0.3em] ml-1 italic">Network_Mail</label>
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-cyan-500" size={16} />
-                    <input type="email" className="w-full bg-slate-950 border border-white/10 rounded-none py-3 pl-12 text-xs font-black text-white outline-none focus:border-cyan-500" placeholder="EMAIL" />
+                <div className="p-6 bg-sky-500/5 border-l-2 border-sky-400 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Access_Key_Gen</label>
+                    <button onClick={generateSecurePass} className="flex items-center gap-2 text-[8px] font-black text-sky-400 hover:text-white transition-colors">
+                      <RefreshCw size={10} /> REGENERATE
+                    </button>
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[8px] font-black text-cyan-500/60 uppercase tracking-[0.3em] ml-1 italic">Specialization</label>
-                  <div className="relative group">
-                    <Code2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                    <select className="w-full bg-slate-950 border border-white/10 py-3 pl-12 text-[10px] font-black text-white outline-none appearance-none cursor-none uppercase tracking-widest focus:border-cyan-500">
-                      <option>Web_Developer</option>
-                      <option>App_Developer</option>
-                      <option>Cyber_Security</option>
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
+                  <div className="text-lg font-mono font-black text-white tracking-[0.4em] uppercase">
+                    {password || <span className="text-zinc-800">awaiting_key...</span>}
                   </div>
                 </div>
               </div>
 
+              {/* RIGHT SIDE */}
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={12} />
-                    <input type="date" className="w-full bg-slate-950 border border-white/10 py-3 pl-8 pr-2 text-[9px] font-black text-white outline-none focus:border-emerald-500" />
+                <div className="space-y-4">
+                  <label className="text-[9px] font-black text-sky-400 uppercase tracking-widest ml-1">Sector_Role_Registry</label>
+                  <div className="flex gap-1">
+                    <input 
+                      type="text" 
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      placeholder="QUICK_ADD_ROLE..."
+                      className="flex-1 bg-zinc-950 border border-white/5 px-4 py-3 text-[10px] font-bold text-sky-400 outline-none focus:border-sky-500/30"
+                    />
+                    <button onClick={handleAddRole} className="px-5 bg-sky-500 text-black font-black text-sm hover:bg-white transition-all">+</button>
                   </div>
+
+                  {/* CUSTOM DROPDOWN THAT PUSHES CONTENT */}
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={12} />
-                    <input type="date" className="w-full bg-slate-950 border border-white/10 py-3 pl-8 pr-2 text-[9px] font-black text-white outline-none focus:border-red-500" />
+                    <div 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
+                      className="w-full bg-zinc-900/50 border border-white/5 py-4 px-5 text-[10px] font-bold flex justify-between items-center cursor-pointer text-white hover:bg-zinc-800 transition-all"
+                    >
+                      <span className="tracking-widest">{selectedRole || 'SELECT_ASSIGNED_ROLE'}</span>
+                      <ChevronDown size={16} className={`text-sky-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                    
+                    <AnimatePresence>
+                      {isDropdownOpen && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }} 
+                          animate={{ height: 'auto', opacity: 1 }} 
+                          exit={{ height: 0, opacity: 0 }} 
+                          className="overflow-hidden bg-zinc-950 border-x border-b border-white/10"
+                        >
+                          <div className="max-h-32 overflow-y-auto custom-scrollbar">
+                            {roles.map((role) => (
+                              <div key={role} onClick={() => { setSelectedRole(role); setIsDropdownOpen(false); }} className="px-5 py-3 text-[9px] text-zinc-400 hover:bg-white hover:text-black font-black cursor-pointer transition-all border-b border-white/5 last:border-0">{role}</div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
 
-                <div className="p-6 bg-white/2 border-l-4 border-cyan-500 space-y-4">
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pass_Key</label>
-                    <button onClick={generateSecurePass} className="text-[8px] font-black text-cyan-500 hover:text-white uppercase cursor-none border border-cyan-500/20 px-2 py-1">
-                      <RefreshCw size={10} className="inline mr-1" /> GENERATE
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Key className="absolute left-0 top-1/2 -translate-y-1/2 text-cyan-500/40" size={14} />
-                    <input type="text" value={password} readOnly className="w-full bg-slate-950 border-b border-white/10 py-2 pl-6 text-xs font-black text-cyan-400 placeholder:text-slate-800" placeholder="AWAITING_INPUT" />
-                  </div>
+                <div className="pt-4">
+                  <button className="w-full py-6 bg-white text-black font-black text-xs uppercase shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:bg-sky-400 transition-all active:scale-95">
+                    Finalize_Deployment_Protocol
+                  </button>
                 </div>
-
-                <button className="w-full py-4 bg-cyan-500 text-black font-black text-[10px] uppercase cursor-none skew-x-12 hover:bg-white transition-all shadow-[0_0_20px_rgba(34,211,238,0.2)]">
-                   <span className="-skew-x-12 block tracking-[0.2em]">Finalize_Deployment</span>
-                </button>
               </div>
             </motion.div>
           ) : (
-            <motion.div key="bulk" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
-              <div className="border-2 border-dashed border-cyan-500/20 bg-white/1 p-10 flex flex-col items-center justify-center gap-4 group hover:border-cyan-500/50 transition-all cursor-none">
-                <FileSpreadsheet size={40} className="text-cyan-400 group-hover:scale-110 transition-transform" />
-                <div className="text-center">
-                  <h3 className="text-sm font-black text-white italic tracking-widest uppercase">Master_Sync</h3>
-                  <p className="text-[8px] text-slate-500 font-bold uppercase mt-1">Accepting .XLSX / .CSV only</p>
-                </div>
-                <button className="px-8 py-3 bg-white text-black text-[9px] font-black uppercase cursor-none hover:bg-cyan-500 transition-all skew-x-12">
-                  <span className="-skew-x-12 block">Upload_Files</span>
-                </button>
+            /* --- BULK INTERFACE: Sized to match Manual height --- */
+            <motion.div 
+              key="bulk" 
+              initial={{ opacity: 0, x: 10 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              exit={{ opacity: 0, x: -10 }}
+              className="flex flex-col items-center justify-center space-y-8 h-full min-h-[420px]"
+            >
+              <div className="text-center space-y-3">
+                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase">Bulk_Data_Forge</h3>
+                <p className="text-[10px] text-zinc-500 tracking-[0.3em] font-bold uppercase">Upload Operative list in .CSV or .XLSX format</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white/2 border border-white/5 flex items-center gap-3">
-                  <CheckCircle2 className="text-emerald-500" size={16} />
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Integrity_Check_Active</span>
+
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full max-w-xl h-56 border border-dashed border-white/10 bg-zinc-900/20 flex flex-col items-center justify-center gap-6 cursor-pointer hover:border-sky-500/50 hover:bg-sky-500/5 transition-all group relative"
+              >
+                <input type="file" ref={fileInputRef} className="hidden" accept=".csv, .xlsx" onChange={(e) => setFileName(e.target.files?.[0]?.name || null)} />
+                <div className="p-6 bg-white text-black rounded-full group-hover:scale-110 transition-transform shadow-xl">
+                  <UploadCloud size={32} />
                 </div>
-                <div className="p-4 bg-white/2 border border-white/5 flex items-center gap-3">
-                  <AlertTriangle className="text-amber-500" size={16} />
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Col_Map_Verification</span>
+                <div className="text-center px-4">
+                  <span className="text-xs font-black text-white uppercase tracking-[0.2em] block">
+                    {fileName || 'Drop_Data_Packet_Here'}
+                  </span>
                 </div>
+                <div className="absolute bottom-0 left-0 h-1 bg-sky-500 transition-all duration-500" style={{ width: fileName ? '100%' : '0%' }} />
               </div>
+
+              <button className="w-full max-w-sm py-5 bg-white text-black font-black text-xs uppercase shadow-[0_0_40px_rgba(255,255,255,0.1)] hover:bg-sky-400 transition-all flex items-center justify-center gap-3">
+                <FileSpreadsheet size={16} /> Initialise_Batch_Upload
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none -z-10">
+        <Zap size={400} className="text-white" />
+      </div>
+
+      <style>{`.custom-scrollbar::-webkit-scrollbar { width: 3px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #38bdf8; }`}</style>
     </motion.div>
   );
 };

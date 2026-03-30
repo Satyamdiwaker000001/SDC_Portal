@@ -1,19 +1,28 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-// Check karo ki login.tsx small 'l' hai ya capital 'L'
-import Login from './pages/login.tsx'; 
-import Dashboard from './pages/dashboard.tsx';
+/* cspell:disable */
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext"; // Import Provider
+import LandingPage from "./pages/landingpage/landingpage";
+import LoginPage from "./pages/auth/LoginPage";
+import Dashboard from "./pages/dashboard/Dashboard";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Main Entry Point */}
-        <Route path="/" element={<Dashboard />} />
-        
-        {/* Login Route */}
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </BrowserRouter>
+    // Sabse important: AuthProvider se wrap karo
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Protected Dashboard Route */}
+          <Route path="/dashboard" element={<Dashboard />} />
+
+          {/* Fallback: Unknown routes go to home */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
