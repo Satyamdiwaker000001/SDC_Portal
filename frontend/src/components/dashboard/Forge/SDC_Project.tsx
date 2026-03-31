@@ -53,7 +53,7 @@ export const SDC_Project = () => {
   };
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="w-full space-y-8 animate-in fade-in duration-700 pb-20 text-zinc-300">
       
       {/* --- TOP HUD: MINI STATS --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -90,7 +90,7 @@ export const SDC_Project = () => {
               <motion.button 
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                 onClick={makeLiveSelected}
-                className="px-6 py-2.5 bg-emerald-500 text-black font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95"
+                className="px-6 py-2.5 bg-emerald-500 text-black font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95 transition-all"
               >
                 <Play size={12} fill="currentColor" /> Deploy_({selectedIds.length})
               </motion.button>
@@ -107,10 +107,9 @@ export const SDC_Project = () => {
 
       <AnimatePresence mode="wait">
         {view === 'list' ? (
-          /* --- LIST VIEW --- */
           <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             <div className="bg-black border border-white/5 overflow-hidden rounded-sm relative">
-              <div className="absolute top-0 left-0 w-full h-`[1px] `bg-linear-to-r from-transparent via-sky-500/20 to-transparent" />
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-sky-500/20 to-transparent" />
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-zinc-900/50 text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]">
@@ -123,10 +122,10 @@ export const SDC_Project = () => {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {sortedProjects.map((project) => (
-                    <tr key={project.id} className={`group transition-all ${project.status === 'LIVE' ? `bg-emerald-500/[0.02]` : 'hover:bg-white/[0.02]'}`}>
+                    <tr key={project.id} className={`group transition-all ${project.status === 'LIVE' ? 'bg-emerald-500/2' : 'hover:bg-white/2'}`}>
                       <td className="p-4 text-center">
                         {project.status === 'PENDING' ? (
-                          <button onClick={() => toggleSelect(project.id)} className="text-zinc-700 hover:text-sky-400">
+                          <button onClick={() => toggleSelect(project.id)} className="text-zinc-700 hover:text-sky-400 transition-colors">
                             {selectedIds.includes(project.id) ? <CheckSquare size={16} className="text-sky-400" /> : <Square size={16} />}
                           </button>
                         ) : (
@@ -154,15 +153,15 @@ export const SDC_Project = () => {
                         </div>
                       </td>
                       <td className="p-4 text-right">
-                         <div className="flex items-center justify-end gap-4">
-                            <div className="text-right">
-                               <p className="text-[7px] font-black text-zinc-700 uppercase">Stamp</p>
-                               <p className="text-[9px] font-mono text-zinc-500">{project.date}</p>
-                            </div>
-                            <button onClick={() => deleteProject(project.id)} className="p-2 text-zinc-800 hover:text-red-500 hover:bg-red-500/5 transition-all">
-                              <Trash2 size={14} />
-                            </button>
-                         </div>
+                        <div className="flex items-center justify-end gap-4">
+                          <div className="text-right">
+                            <p className="text-[7px] font-black text-zinc-700 uppercase">Stamp</p>
+                            <p className="text-[9px] font-mono text-zinc-500">{project.date}</p>
+                          </div>
+                          <button onClick={() => deleteProject(project.id)} className="p-2 text-zinc-800 hover:text-red-500 hover:bg-red-500/5 transition-all rounded-sm">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -171,7 +170,6 @@ export const SDC_Project = () => {
             </div>
           </motion.div>
         ) : (
-          /* --- ADD VIEW --- */
           <motion.div key="add" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="max-w-3xl mx-auto space-y-6">
             <div className="flex bg-black border border-white/10 p-1 w-fit rounded-sm self-center mx-auto">
               <button onClick={() => setAddMode('manual')} className={`px-8 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${addMode === 'manual' ? 'bg-white text-black' : 'text-zinc-600 hover:text-white'}`}>SINGLE_INPUT</button>
