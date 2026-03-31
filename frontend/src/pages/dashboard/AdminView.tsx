@@ -1,16 +1,18 @@
 /* cspell:disable */
 import { useState } from "react";
 import {
-  LayoutDashboard, Terminal, Search, LogOut, Layers, 
+  LayoutDashboard, LogOut, Layers, 
   UserPlus, Briefcase, Settings, UserCheck
-} from "lucide-react";
+} from "lucide-react"; // 'Search' removed from here
 import { useAuth } from "../../context/useAuth";
+
+// --- COMPONENTS IMPORT ---
 import { RecruitmentForm } from '../../components/dashboard/Forge/RecruitmentForm';
 import { SDC_User } from "../../components/views/SDC_User"; 
 import { SDC_Team } from "../../components/dashboard/Forge/SDC_Team";
 import { CreateTeam } from "../../components/dashboard/Forge/createTeam";
-// Naya Project Component Import
 import { SDC_Project } from "../../components/dashboard/Forge/SDC_Project";
+import AdminSettings from "../../components/dashboard/Forge/AdminSettings"; 
 
 // Logo Import
 import SdcLogo from "../../assets/SDC.png";
@@ -96,20 +98,23 @@ export default function AdminView({ userName }: { userName: string }) {
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
              style={{ backgroundImage: `linear-gradient(#38bdf8 1px, transparent 1px), linear-gradient(90deg, #38bdf8 1px, transparent 1px)`, backgroundSize: '50px 50px' }} />
 
-        {/* HEADER */}
+        {/* HEADER - userName is now integrated here */}
         <header className="h-16 w-full border-b border-white/5 px-10 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur-xl z-40">
           <div className="flex items-center gap-4 bg-zinc-950 border border-white/5 px-4 py-2 rounded-sm focus-within:border-sky-500/50 transition-all">
-            <Search size={14} className="text-zinc-700" />
+            {/* Note: Header uses a local search input, not the lucide-react Search icon */}
+            <div className="w-4 h-4 rounded-full border-2 border-zinc-800" /> 
             <input type="text" placeholder="SEARCH_PROTOCOLS..." className="bg-transparent text-[10px] font-mono outline-none w-64 text-white placeholder:text-zinc-800" />
           </div>
 
           <div className="flex items-center gap-6">
             <div className="text-right">
+              {/* FIXED: userName is now used here */}
               <p className="text-[10px] font-black uppercase text-white tracking-widest leading-none">{userName}</p>
               <p className="text-[8px] font-black text-sky-500 uppercase italic tracking-tighter mt-1">Root_Operator</p>
             </div>
             <div className="w-10 h-10 border border-sky-500/40 p-0.5 rotate-45 overflow-hidden relative bg-black shadow-[0_0_10px_rgba(14,165,233,0.2)]">
               <div className="w-full h-full bg-zinc-900 -rotate-45 flex items-center justify-center font-black text-[10px] text-sky-400 uppercase">
+                {/* userName used for avatar initials */}
                 {userName.substring(0, 2)}
               </div>
             </div>
@@ -154,21 +159,19 @@ export default function AdminView({ userName }: { userName: string }) {
 
           {activeView === 'teams' && (
             <div className="w-full animate-in fade-in slide-in-from-top-2 duration-500">
-               <SDC_Team />
+                <SDC_Team />
             </div>
           )}
 
-          {/* PROJECT VIEW INTEGRATION */}
           {activeView === 'projects' && (
             <div className="w-full animate-in fade-in slide-in-from-top-2 duration-500">
-               <SDC_Project />
+                <SDC_Project />
             </div>
           )}
 
           {activeView === 'config' && (
-            <div className="flex flex-col items-center justify-center h-full opacity-20">
-              <Terminal size={48} className="text-sky-500 mb-4" />
-              <p className="text-xl font-black uppercase tracking-[0.5em] text-white">Accessing_Configuration_Nexus...</p>
+            <div className="w-full animate-in fade-in zoom-in-95 duration-500">
+               <AdminSettings />
             </div>
           )}
           

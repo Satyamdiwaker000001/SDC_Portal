@@ -27,11 +27,23 @@ export default function LoginPage() {
 
     setTimeout(() => {
       const cleanEmail = email.trim().toLowerCase();
+      
+      // --- MOCK AUTH LOGIC WITH 3 USERS ---
       if (cleanEmail === "admin@sdc.com") {
+        // Full Admin Access
         login("Satyam Admin", "admin");
-      } else {
-        login("Satyam Dev", "developer");
+      } 
+      else if (cleanEmail === "leader@sdc.com") {
+        // Developer with Leader (Commander) privileges
+        // In your system, we use 'dev-01' as the mock ID for leader features
+        login("Satyam Leader", "developer");
+      } 
+      else {
+        // Standard Developer Member
+        // Any other email will act as a normal team member
+        login("Satyam Member", "developer");
       }
+
       setIsAccessing(false);
       navigate("/dashboard");
     }, 1500);
@@ -40,11 +52,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen w-full bg-[#020203] text-white flex items-center justify-center p-6 relative overflow-hidden font-sans antialiased">
       
-      {/* 1. Static Grid HUD Overlay (No Motion) */}
+      {/* 1. Static Grid HUD Overlay */}
       <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none" 
            style={{ backgroundImage: `linear-gradient(#0ea5e9 1px, transparent 1px), linear-gradient(90deg, #0ea5e9 1px, transparent 1px)`, backgroundSize: '60px 60px' }} />
 
-      {/* 2. Side Status Logs (Static) */}
+      {/* 2. Side Status Logs */}
       <div className="absolute top-10 left-10 z-10 opacity-30 pointer-events-none hidden xl:block font-mono text-[8px] text-sky-400 space-y-2 uppercase tracking-widest">
         <div className="flex items-center gap-2 mb-4 border-b border-sky-500/20 pb-2">
             <Network size={12} /> UPLINK_ESTABLISHED
@@ -68,7 +80,6 @@ export default function LoginPage() {
           <div className="bg-black/90 p-10 md:p-14 relative overflow-hidden" 
                style={{ clipPath: 'polygon(0 0, 96% 0, 100% 4%, 100% 100%, 4% 100%, 0 96%)' }}>
             
-            {/* HUD Corner Accents */}
             <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-sky-500/50" />
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-sky-500/50" />
 
@@ -89,7 +100,7 @@ export default function LoginPage() {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ADMIN@SDC.COM"
+                    placeholder="OPERATIVE_ID"
                     className="w-full bg-zinc-950/50 border-l-2 border-zinc-800 p-4 pl-14 text-white placeholder:text-zinc-900 focus:border-sky-500 focus:bg-sky-500/5 focus:outline-none transition-all font-bold text-sm"
                     required
                   />
@@ -126,11 +137,14 @@ export default function LoginPage() {
               </button>
             </form>
             
-            <div className="mt-10 flex justify-between items-center opacity-30">
-               <div className="flex gap-1">
-                  <Terminal size={12} /> <span className="text-[8px] font-mono uppercase tracking-widest text-sky-500">Node:agra_01</span>
+            <div className="mt-10 flex justify-between items-center opacity-30 text-[8px] font-mono uppercase tracking-[0.2em] text-sky-500">
+               <div className="flex items-center gap-1">
+                  <Terminal size={12} /> <span>Node:agra_01</span>
                </div>
-               <Cpu size={14} className="text-sky-500" />
+               <div className="flex items-center gap-3">
+                 <span>Auth_Mode: Mock</span>
+                 <Cpu size={14} />
+               </div>
             </div>
           </div>
         </div>
