@@ -65,8 +65,8 @@ export const RecruitmentForm = ({ onClose }: FormProps) => {
         <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors"><X size={20} /></button>
       </div>
 
-      {/* --- MAIN CONTENT AREA: Added min-height to prevent jumping --- */}
-      <div className="px-10 py-10 min-h-[500px]"> 
+      {/* --- MAIN CONTENT AREA --- */}
+      <div className="px-10 py-10 min-h-125"> 
         <AnimatePresence mode="wait">
           {activeTab === 'manual' ? (
             <motion.div 
@@ -130,7 +130,6 @@ export const RecruitmentForm = ({ onClose }: FormProps) => {
                     <button onClick={handleAddRole} className="px-5 bg-sky-500 text-black font-black text-sm hover:bg-white transition-all">+</button>
                   </div>
 
-                  {/* CUSTOM DROPDOWN THAT PUSHES CONTENT */}
                   <div className="relative">
                     <div 
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
@@ -167,13 +166,12 @@ export const RecruitmentForm = ({ onClose }: FormProps) => {
               </div>
             </motion.div>
           ) : (
-            /* --- BULK INTERFACE: Sized to match Manual height --- */
             <motion.div 
               key="bulk" 
               initial={{ opacity: 0, x: 10 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: -10 }}
-              className="flex flex-col items-center justify-center space-y-8 h-full min-h-[420px]"
+              className="flex flex-col items-center justify-center space-y-8 h-full min-h-105"
             >
               <div className="text-center space-y-3">
                 <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase">Bulk_Data_Forge</h3>

@@ -12,62 +12,64 @@ const FoundersSection = forwardRef<HTMLElement>((_, ref) => {
   return (
     <section 
       ref={ref} 
-      className="relative w-full min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center pt-48 pb-24 px-8 overflow-hidden"
+      className="relative w-full min-h-screen bg-[#020203] flex flex-col items-center justify-center pt-20 pb-24 px-8 overflow-hidden"
     >
+      {/* LAYER 1: Deep Radial Depth - Lightened for better performance */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#0ea5e904,transparent_75%)] pointer-events-none" />
+
       <div className="relative z-10 w-full max-w-6xl">
         
-        {/* --- TACTICAL HEADER (Orange) --- */}
+        {/* TACTICAL HEADER - Simplified Shadows */}
         <div className="text-center mb-24 founders-header">
-          <div className="inline-flex items-center gap-3 px-4 py-2 border border-orange-500/30 bg-orange-500/5 text-orange-500 text-[10px] font-black uppercase tracking-[0.4em] mb-6"
-               style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}>
-            <Shield size={14} fill="currentColor" /> Architectural_Core
+          <div className="inline-flex items-center gap-3 px-6 py-2 border border-sky-500/30 bg-sky-500/5 text-sky-500 text-[10px] font-black uppercase tracking-[0.4em] mb-6 shadow-sm">
+             <Shield size={14} fill="currentColor" /> Architectural_Core
           </div>
           <h2 className="text-7xl font-black italic text-white uppercase tracking-tighter leading-none">
-            THE <span className="text-orange-500 drop-shadow-[0_0_20px_rgba(249,115,22,0.4)]">ARCHITECTS</span>
+            THE <span className="text-sky-500">ARCHITECTS</span>
           </h2>
-          <p className="font-mono text-zinc-500 uppercase tracking-[0.4em] text-[10px] mt-6 opacity-60">
-            [ Founders_Protocol: <span className="text-orange-500">ACTIVE</span> ] // Sector_Level: 01
+          <p className="font-mono text-zinc-600 uppercase tracking-[0.4em] text-[10px] mt-6 opacity-60">
+            [ Founders_Protocol: <span className="text-sky-400">ACTIVE</span> ] // Sector_Level: 01
           </p>
         </div>
 
-        {/* --- FOUNDER CARDS GRID --- */}
+        {/* FOUNDER CARDS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {TEAM.map((member) => (
             <div 
               key={member.id} 
-              className="founder-card group transition-transform duration-500 hover:-translate-y-2"
-              style={{ clipPath: 'polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%)' }}
+              className="founder-card group will-change-transform transform-gpu transition-transform duration-500 hover:-translate-y-2"
             >
-              <div className="bg-zinc-900/50 border border-zinc-800 p-2 group-hover:border-orange-500/50 transition-all duration-500 shadow-[20px_20px_60px_rgba(0,0,0,0.8)]">
+              {/* REMOVED: clip-path from outer div to stop rendering lag */}
+              <div className="bg-[#0c0c0e] border border-white/5 p-2 group-hover:border-sky-500/30 transition-colors duration-500 rounded-sm">
                 
                 {/* Avatar Area */}
-                <div className="aspect-[3/4] bg-black border border-zinc-800 flex items-center justify-center text-zinc-800 group-hover:text-orange-900 transition-colors relative overflow-hidden">
+                <div className="aspect-[3/4] bg-[#050505] border border-white/5 flex items-center justify-center text-zinc-800 group-hover:text-sky-900 transition-colors relative overflow-hidden">
                     <Users size={80} strokeWidth={0.5} />
-                    <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    {/* Subtle hover overlay instead of heavy filters */}
+                    <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     
-                    {/* Corner Accent */}
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-orange-500/0 group-hover:border-orange-500/40 transition-all" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-transparent group-hover:border-sky-500/40 transition-colors duration-500" />
                 </div>
                 
                 {/* Info Area */}
-                <div className="p-8 text-center bg-black/40">
-                  <h3 className="text-2xl font-black uppercase italic text-white leading-none tracking-tight group-hover:text-orange-500 transition-colors">
+                <div className="p-8 text-center bg-black/20">
+                  <h3 className="text-2xl font-black uppercase italic text-white leading-none tracking-tight group-hover:text-sky-500 transition-colors duration-500">
                     {member.name}
                   </h3>
-                  <p className="text-[10px] font-bold text-orange-500/60 uppercase tracking-[0.3em] mt-3 italic">
+                  <p className="text-[10px] font-bold text-sky-500/60 uppercase tracking-[0.3em] mt-3 italic">
                     {member.role}
                   </p>
                   
                   {/* Buttons */}
-                  <div className="flex justify-center items-center gap-4 mt-10 pt-8 border-t border-zinc-800/50">
-                    <button className="p-3 bg-zinc-800 text-zinc-500 hover:bg-orange-500 hover:text-black transition-all">
+                  <div className="flex justify-center items-center gap-4 mt-10 pt-8 border-t border-white/5">
+                    <button className="p-3 bg-white/5 text-zinc-500 hover:bg-sky-500 hover:text-black transition-colors duration-300">
                       <Linkedin size={18} />
                     </button>
+                    {/* Button with simple rounded corners instead of clip-path */}
                     <button 
-                      className="px-8 py-3 bg-orange-500 text-black text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white active:scale-95 shadow-[0_5px_15px_rgba(249,115,22,0.2)]"
-                      style={{ clipPath: 'polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%)' }}
+                      className="px-8 py-3 bg-sky-500 text-black text-[10px] font-black uppercase tracking-widest transition-all duration-300 hover:bg-white active:scale-95 rounded-sm"
                     >
-                      <span className="flex items-center gap-2">PROFILE <ExternalLink size={14} /></span>
+                      <span className="flex items-center gap-2 italic">PROFILE <ExternalLink size={14} /></span>
                     </button>
                   </div>
                 </div>
@@ -77,12 +79,12 @@ const FoundersSection = forwardRef<HTMLElement>((_, ref) => {
         </div>
       </div>
 
-      {/* --- BACKGROUND DECOR (Orange Ghost Zap) --- */}
-      <div className="absolute -bottom-20 -left-20 opacity-5 pointer-events-none">
-        <Zap size={400} className="text-orange-500 rotate-12" strokeWidth={1} />
+      {/* BACKGROUND DECOR - Static with minimal opacity */}
+      <div className="absolute -bottom-20 -left-20 opacity-[0.01] pointer-events-none">
+        <Zap size={400} className="text-sky-500 rotate-12" strokeWidth={1} />
       </div>
       
-      <div className="absolute top-1/2 -right-20 w-64 h-64 bg-orange-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 -right-20 w-64 h-64 bg-sky-500/5 blur-[120px] pointer-events-none" />
     </section>
   );
 });
