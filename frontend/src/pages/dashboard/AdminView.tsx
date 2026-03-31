@@ -8,11 +8,14 @@ import {
 import type { LucideIcon } from "lucide-react"; 
 
 import { useAuth } from "../../context/useAuth";
+
+// --- COMPONENTS IMPORT ---
 import { RecruitmentForm } from '../../components/dashboard/Forge/RecruitmentForm';
 import { SDC_User } from "../../components/views/SDC_User"; 
 import { SDC_Team } from "../../components/dashboard/Forge/SDC_Team";
 import { CreateTeam } from "../../components/dashboard/Forge/createTeam";
 import { SDC_Project } from "../../components/dashboard/Forge/SDC_Project";
+import AdminSettings from "../../components/dashboard/Forge/AdminSettings"; 
 
 import SdcLogo from "../../assets/SDC.png";
 
@@ -87,7 +90,8 @@ export default function AdminView() {
         {/* --- HEADER --- */}
         <header className="h-16 w-full border-b border-white/5 px-10 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur-xl z-40">
           <div className="flex items-center gap-4 bg-zinc-950 border border-white/5 px-4 py-2 rounded-sm focus-within:border-sky-500/50 transition-all">
-            <Search size={14} className="text-zinc-700" />
+            {/* Note: Header uses a local search input, not the lucide-react Search icon */}
+            <div className="w-4 h-4 rounded-full border-2 border-zinc-800" /> 
             <input type="text" placeholder="SEARCH_PROTOCOLS..." className="bg-transparent text-[10px] font-mono outline-none w-64 text-white placeholder:text-zinc-800" />
           </div>
 

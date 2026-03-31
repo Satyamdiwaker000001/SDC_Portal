@@ -36,6 +36,7 @@ export default function LoginPage() {
       
       // Role-based logic consistent with Admin/User dash
       if (cleanEmail === "admin@sdc.com") {
+        // Full Admin Access
         login("Satyam Admin", "admin");
         navigate("/dashboard/admin");
       } 
@@ -47,6 +48,7 @@ export default function LoginPage() {
         login("SDC Member", "developer");
         navigate("/dashboard/developer");
       }
+
       setIsAccessing(false);
     }, 1500);
   };
@@ -103,7 +105,7 @@ export default function LoginPage() {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ADMIN@SDC.COM"
+                    placeholder="OPERATIVE_ID"
                     className="w-full bg-zinc-950/50 border-l-2 border-zinc-800 p-4 pl-14 text-white placeholder:text-zinc-900 focus:border-sky-500 focus:bg-sky-500/5 focus:outline-none transition-all font-bold text-sm"
                     required
                   />

@@ -97,6 +97,25 @@ export default function DeveloperView({ userName }: { userName: string }) {
     { label: "Active_Tasks", value: currentUserId === "dev-01" ? "05" : "02", icon: <Cpu size={18}/>, color: "text-blue-400", glow: "shadow-blue-500/20" },
   ];
 
+  const projectsDB = [
+    {
+      id: "SDC-PRJ-2026-04",
+      projectName: "PhishGuard_AI_Engine",
+      squadName: "NEBULA_STRIKE",
+      progress: 68,
+      team: [
+        { id: 'dev-01', name: 'Satyam Leader', role: 'Full Stack', isLeader: true },
+        { id: 'dev-member', name: 'Satyam Member', role: 'Frontend', isLeader: false },
+      ],
+      initialTasks: [
+        { id: 't1', title: 'DB Schema Design', desc: 'Create relational model', assignedTo: 'dev-01', status: 'COMPLETED' as const },
+        { id: 't2', title: 'UI Implementation', desc: 'React context setup', assignedTo: 'dev-member', status: 'PENDING' as const },
+      ]
+    }
+  ];
+
+  const activeProjectData = projectsDB.find(p => p.id === selectedProjectId);
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#020203] text-zinc-300 font-sans selection:bg-sky-500/30">
       
@@ -150,7 +169,6 @@ export default function DeveloperView({ userName }: { userName: string }) {
               </div>
             </div>
           </div>
-        </header>
 
         {/* VIEWPORT */}
         <div className="p-10 flex-1 overflow-y-auto custom-scrollbar relative z-10">
