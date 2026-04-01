@@ -3,17 +3,17 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { AuthProvider } from "./context/AuthContext";
 import LandingPage from "./pages/landingpage/landingpage";
 import LoginPage from "./pages/auth/LoginPage";
-import AdminView from "./pages/dashboard/AdminView"; // Import AdminView
-import DeveloperView from "./pages/dashboard/DeveloperView"; // Import DeveloperView
-import { useAuth } from "./context/useAuth"; // Hook for ProtectedRoute check
+import AdminView from "./pages/dashboard/AdminView"; 
+import DeveloperView from "./pages/dashboard/DeveloperView"; 
+import Projects from "./pages/ProjectsView/Projects"; // New Import
+import About from "./pages/about/About"; // New Import
+import { useAuth } from "./context/useAuth"; 
+import RecruitmentForm from "./components/public/RecruitmentForm";
 
-// --- SIMPLE PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ children, roleRequired }: { children: React.ReactNode, roleRequired?: string }) => {
   const { user } = useAuth();
-  
   if (!user) return <Navigate to="/login" replace />;
   if (roleRequired && user.role !== roleRequired) return <Navigate to="/" replace />;
-  
   return <>{children}</>;
 };
 
@@ -22,13 +22,14 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Routes */}
+          {/* Public_Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/apply" element={<RecruitmentForm />} />
+          <Route path="/projects" element={<Projects />} /> 
+          <Route path="/about" element={<About />} />
 
-          {/* FIXED: Nested Dashboard Routes 
-              Ab /dashboard/admin aur /dashboard/developer dono valid honge
-          */}
+          {/* Dashboard_Routes */}
           <Route path="/dashboard">
             <Route 
               path="admin" 
@@ -48,7 +49,7 @@ function App() {
             />
           </Route>
 
-          {/* Fallback: Unknown routes go to home */}
+          {/* System_Fallback */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>

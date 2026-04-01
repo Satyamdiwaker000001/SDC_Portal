@@ -1,24 +1,41 @@
 /* cspell:disable */
 import { useState, useEffect } from "react";
-import { ChevronRight, Target, Info, ShieldCheck } from "lucide-react";
+import { ChevronRight, Target, Info, ShieldCheck, Zap } from "lucide-react";
 import logo from "../../assets/SDC.png"; 
 import { useNavigate, Link } from "react-router-dom";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isRecruitmentLive, setIsRecruitmentLive] = useState(false);
 
-  // --- LOGIC: Track Scroll for Theme Switch ---
+  // --- LOGIC: Track Scroll & Recruitment Status ---
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 20);
     };
+
+    const checkRecruitmentStatus = () => {
+      const status = localStorage.getItem("SDC_RECRUITMENT_STATUS");
+      setIsRecruitmentLive(status === "LIVE");
+    };
+
+    // Initial checks
+    handleScroll();
+    checkRecruitmentStatus();
+
+    // Event Listeners
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("storage", checkRecruitmentStatus); // Sync across tabs
+    
+    // Interval check as a fallback for same-tab updates
+    const interval = setInterval(checkRecruitmentStatus, 1000);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("storage", checkRecruitmentStatus);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleLoginRedirect = () => {
@@ -47,8 +64,8 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* --- CENTER: Nav Links (Perfectly Centered) --- */}
-      <div className="flex-1 hidden md:flex items-center justify-center gap-14">
+      {/* --- CENTER: Nav Links --- */}
+      <div className="flex-1 hidden md:flex items-center justify-center gap-10">
         {[
           { label: "Projects", path: "/projects", icon: Target },
           { label: "About_Us", path: "/about", icon: Info }
@@ -67,6 +84,20 @@ export default function Navbar() {
             </span>
           </Link>
         ))}
+
+        {/* DYNAMIC RECRUITMENT BUTTON: Only shows when Admin toggles GO_LIVE */}
+        {isRecruitmentLive && (
+          <Link 
+            to="/apply" 
+            className="group flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.4em] text-emerald-400 hover:text-white transition-all duration-300 animate-pulse hover:animate-none"
+          >
+            <Zap size={14} className="fill-emerald-500/20" />
+            <span className="relative">
+              Join_SDC
+              <span className="absolute -bottom-1 left-0 w-full h-px bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+            </span>
+          </Link>
+        )}
       </div>
       
       {/* --- RIGHT SIDE: Tactical Button --- */}

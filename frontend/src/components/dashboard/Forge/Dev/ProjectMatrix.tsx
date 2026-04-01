@@ -1,12 +1,12 @@
 /* cspell:disable */
 import { useState, useMemo } from 'react';
 import { 
-  Star, Terminal as TerminalIcon, Plus, Send, 
-  User as UserIcon, Box 
+  Star, Plus, Send, User as UserIcon, 
+  Box, Github, Cpu, Link2, Edit3, Globe, Info 
 } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- STRICT INTERFACES ---
+// --- INTERFACES ---
 type TaskStatus = 'PENDING' | 'AWAITING_APPROVAL' | 'COMPLETED';
 
 interface Task {
@@ -27,30 +27,38 @@ interface Member {
 interface ProjectData {
   id: string;
   projectName: string;
+  description?: string; 
   team: Member[];
   roadmap: string[];
   initialTasks: Task[];
+  techStack?: string[];
+  githubUrl?: string; 
+  websiteUrl?: string; 
 }
 
 interface MatrixProps {
   currentUserId: string;
   projectData: ProjectData;
-  onToggleTerminal: () => void;
   addNotification: (msg: string, type: string) => void;
 }
 
 export const ProjectMatrix = ({ 
   currentUserId, 
   projectData, 
-  onToggleTerminal, 
   addNotification 
 }: MatrixProps) => {
   const [tasks, setTasks] = useState<Task[]>(projectData.initialTasks);
   const [roadmap, setRoadmap] = useState<string[]>(projectData.roadmap);
   
+  const [techStack, setTechStack] = useState<string[]>(projectData.techStack || []);
+  const [githubUrl, setGithubUrl] = useState(projectData.githubUrl || '');
+  const [websiteUrl, setWebsiteUrl] = useState(projectData.websiteUrl || '');
+  const [description, setDescription] = useState(projectData.description || '');
+  
+  const [isEditingMeta, setIsEditingMeta] = useState(false);
+  const [newTech, setNewTech] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [isAddingMod, setIsAddingMod] = useState(false);
-  
   const [newModName, setNewModName] = useState('');
   const [taskTitle, setTaskTitle] = useState('');
   const [selectedModule, setSelectedModule] = useState(roadmap[0] || '');
@@ -69,6 +77,13 @@ export const ProjectMatrix = ({
     addNotification(`Module [${newModName}] Deployed`, "SYSTEM");
   };
 
+  const handleAddTech = () => {
+    if (!newTech || techStack.includes(newTech)) return;
+    setTechStack([...techStack, newTech]);
+    setNewTech('');
+    addNotification(`Stack Updated: ${newTech}`, "FORGE");
+  };
+
   const handleAssign = () => {
     if (!taskTitle || !assigneeId || !selectedModule) return;
     const newTask: Task = { 
@@ -81,81 +96,145 @@ export const ProjectMatrix = ({
     setTasks([...tasks, newTask]);
     setTaskTitle('');
     setIsAssigning(false);
-    addNotification(`Directive Transmitted to ${assigneeId}`, "FORGE");
+    addNotification(`Directive Transmitted`, "FORGE");
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* HUD Header */}
-      <div className="bg-zinc-900/40 border border-white/5 p-8 rounded-sm flex flex-col lg:flex-row justify-between gap-10">
-        <div className="flex-1">
-           <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter mb-4">{projectData.projectName}</h2>
-           <button onClick={onToggleTerminal} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 border border-white/5 text-[9px] font-black text-zinc-500 hover:text-sky-400 tracking-widest uppercase">
-             <TerminalIcon size={12} /> Sync_Terminal
-           </button>
-        </div>
-        
-        <div className="w-full lg:w-72 space-y-2">
-          <div className="flex justify-between items-center border-b border-white/5 pb-2 mb-4">
-             <p className="text-[9px] font-black text-sky-500 uppercase tracking-widest">Roadmap</p>
-             {isLeader && (
-               <button onClick={() => setIsAddingMod(!isAddingMod)} className="text-[8px] font-black text-zinc-500 hover:text-white uppercase">
-                 {isAddingMod ? '[X]' : '+ Add_Module'}
-               </button>
-             )}
-          </div>
-          
-          {isAddingMod && (
-            <div className="flex gap-2 mb-4">
-               <input autoFocus value={newModName} onChange={e => setNewModName(e.target.value)} placeholder="MOD_ID" className="flex-1 bg-black border border-sky-500/30 p-2 text-[10px] text-white outline-none" />
-               <button onClick={handleAddModule} className="bg-sky-500 text-black px-2 text-[8px] font-black uppercase">Deploy</button>
-            </div>
-          )}
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-full">
+      
+      {/* --- HUD HEADER --- */}
+      <div className="bg-zinc-900/40 border border-white/5 p-6 md:p-8 rounded-sm space-y-6 relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row justify-between gap-8">
+          <div className="flex-1 min-w-0">
+             <h2 className="text-3xl md:text-4xl font-black italic text-white uppercase tracking-tighter mb-3 wrap-break-word">
+               {projectData.projectName}
+             </h2>
+             
+             {/* Mission Briefing Display */}
+             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tight mb-6 leading-relaxed border-l-2 border-sky-500/30 pl-4 italic wrap-break-word max-w-2xl">
+               {description || "NO_MISSION_BRIEFING_SYNCED"}
+             </p>
 
-          <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-            {roadmap.map(mod => (
-              <div key={mod} className="text-[10px] font-black uppercase text-zinc-400 bg-zinc-950/50 p-3 border border-white/5 flex items-center gap-3">
-                 <Box size={12} className="text-sky-500/40" /> {mod}
-              </div>
-            ))}
+             <div className="flex flex-wrap gap-3">
+               {githubUrl && (
+                 <a href={githubUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 border border-white/10 text-zinc-500 hover:text-white text-[9px] font-black tracking-widest uppercase transition-all">
+                   <Github size={12} /> Repo_Source
+                 </a>
+               )}
+
+               {websiteUrl && (
+                 <a href={websiteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-sky-500 text-black text-[9px] font-black tracking-widest uppercase hover:bg-white transition-all">
+                   <Globe size={12} /> Live_Uplink
+                 </a>
+               )}
+
+               {isLeader && (
+                 <button onClick={() => setIsEditingMeta(!isEditingMeta)} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 text-[9px] font-black text-zinc-400 hover:text-white transition-all uppercase">
+                   <Edit3 size={12} /> {isEditingMeta ? 'Close_Config' : 'Project_Config'}
+                 </button>
+               )}
+             </div>
           </div>
+
+          <div className="w-full lg:w-72 shrink-0">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2 mb-4 uppercase tracking-widest">
+                <p className="text-[9px] font-black text-sky-500">Roadmap</p>
+                {isLeader && (
+                  <button onClick={() => setIsAddingMod(!isAddingMod)} className="text-[8px] font-black text-zinc-600 hover:text-white">
+                    {isAddingMod ? '[X]' : '+ New_Mod'}
+                  </button>
+                )}
+            </div>
+            {isAddingMod && (
+              <div className="flex gap-2 mb-4 animate-in slide-in-from-right-2">
+                 <input autoFocus value={newModName} onChange={e => setNewModName(e.target.value)} placeholder="MOD_ID" className="flex-1 bg-black border border-sky-500/30 p-2 text-[10px] text-white outline-none" />
+                 <button onClick={handleAddModule} className="bg-sky-500 text-black px-2 text-[8px] font-black uppercase">Add</button>
+              </div>
+            )}
+            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+              {roadmap.map(mod => (
+                <div key={mod} className="text-[9px] font-black uppercase text-zinc-400 bg-zinc-950/50 p-2 border border-white/5 flex items-center gap-2">
+                   <Box size={10} className="text-sky-500/40" /> {mod}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* --- CONFIGURATION PANEL (LEADER ONLY) --- */}
+        <AnimatePresence>
+          {isLeader && isEditingMeta && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-white/5 pt-6 space-y-6">
+              <div className="grid grid-cols-1 gap-4">
+                 <div className="space-y-2">
+                    <label className="text-[8px] font-black text-sky-500 uppercase tracking-widest flex items-center gap-2"><Info size={10}/> Mission_Briefing</label>
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="PROJECT DESCRIPTION..." className="w-full bg-black border border-white/10 p-3 text-[10px] text-white outline-none focus:border-sky-500 transition-all resize-none h-20" />
+                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-sky-500 uppercase tracking-widest flex items-center gap-2"><Link2 size={10}/> Repository_Link</label>
+                  <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)} placeholder="HTTPS://GITHUB.COM/..." className="w-full bg-black border border-white/10 p-3 text-[10px] text-white outline-none focus:border-sky-500 transition-all font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-sky-500 uppercase tracking-widest flex items-center gap-2"><Globe size={10}/> Deployment_Link</label>
+                  <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="HTTPS://PROJECT.LIVE" className="w-full bg-black border border-white/10 p-3 text-[10px] text-white outline-none focus:border-sky-500 transition-all font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-sky-500 uppercase tracking-widest flex items-center gap-2"><Cpu size={10}/> Tech_Stack</label>
+                  <div className="flex gap-2">
+                    <input value={newTech} onChange={e => setNewTech(e.target.value)} placeholder="ADD TECH" className="flex-1 bg-black border border-white/10 p-3 text-[10px] text-white outline-none focus:border-sky-500 font-mono" />
+                    <button onClick={handleAddTech} className="bg-sky-500 text-black px-4 hover:bg-white transition-all"><Plus size={14} /></button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* TECH STACK DISPLAY */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          {techStack.map(tech => (
+            <span key={tech} className="px-2 py-1 bg-zinc-950 border border-white/10 text-[8px] font-black text-zinc-400 uppercase tracking-tighter">
+              {tech}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Leader Assignment Panel */}
+      {/* --- COMMANDER FORGE --- */}
       {isLeader && (
-        <section className="bg-sky-500/5 border-l-4 border-sky-500 p-6 rounded-sm space-y-6">
+        <section className="bg-sky-500/5 border-l-4 border-sky-500 p-6 space-y-6 rounded-sm">
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-black text-sky-400 uppercase tracking-widest flex items-center gap-2"><Plus size={14} /> COMMANDER_FORGE</h3>
+            <h3 className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-2"><Plus size={12} /> Commander_Forge</h3>
             <button onClick={() => setIsAssigning(!isAssigning)} className="px-4 py-1.5 bg-sky-500 text-black text-[9px] font-black uppercase hover:bg-white transition-all">
               {isAssigning ? 'Abort' : 'Create_Directive'}
             </button>
           </div>
-          
           <AnimatePresence>
             {isAssigning && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <p className="text-[8px] font-black text-zinc-600 uppercase ml-1">Select_Module</p>
+                    <p className="text-[8px] font-black text-zinc-600 uppercase ml-1">Module_Nexus</p>
                     <div className="flex flex-wrap gap-2">
                        {roadmap.map(mod => (
-                         <button key={mod} onClick={() => setSelectedModule(mod)} className={`px-3 py-1.5 text-[9px] font-black uppercase border transition-all ${selectedModule === mod ? 'bg-sky-500 text-black border-sky-500' : 'border-white/10 text-zinc-500'}`}>{mod}</button>
+                         <button key={mod} onClick={() => setSelectedModule(mod)} className={`px-3 py-1.5 text-[8px] font-black uppercase border transition-all ${selectedModule === mod ? 'bg-sky-500 text-black border-sky-500' : 'border-white/10 text-zinc-500'}`}>{mod}</button>
                        ))}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[8px] font-black text-zinc-600 uppercase ml-1">Select_Operative</p>
+                    <p className="text-[8px] font-black text-zinc-600 uppercase ml-1">Assign_Operative</p>
                     <div className="flex flex-wrap gap-2">
                       {projectData.team.map((m: Member) => (
-                        <button key={m.id} onClick={() => setAssigneeId(m.id)} className={`px-3 py-2 text-[9px] font-black uppercase border transition-all ${assigneeId === m.id ? 'bg-sky-500 text-black' : 'border-white/10 text-zinc-500'}`}>{m.name}</button>
+                        <button key={m.id} onClick={() => setAssigneeId(m.id)} className={`px-3 py-1.5 text-[8px] font-black uppercase border transition-all ${assigneeId === m.id ? 'bg-sky-500 text-black border-sky-500' : 'border-white/10 text-zinc-500'}`}>{m.name}</button>
                       ))}
                     </div>
                   </div>
                 </div>
-                <input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} placeholder="DIRECTIVE_TITLE..." className="w-full bg-black border border-white/10 p-4 text-[11px] text-white outline-none focus:border-sky-500" />
-                <button onClick={handleAssign} className="w-full py-4 bg-white text-black font-black text-[10px] uppercase flex items-center justify-center gap-3 hover:bg-sky-400">
-                  <Send size={14} /> Transmit_Command
+                <input value={taskTitle} onChange={e => setTaskTitle(e.target.value)} placeholder="DIRECTIVE_TITLE..." className="w-full bg-black border border-white/10 p-4 text-[10px] text-white outline-none focus:border-sky-500" />
+                <button onClick={handleAssign} className="w-full py-4 bg-white text-black font-black text-[9px] uppercase flex items-center justify-center gap-3 hover:bg-sky-400 transition-all shadow-lg">
+                  <Send size={14} /> Transmit_Directive
                 </button>
               </motion.div>
             )}
@@ -163,32 +242,35 @@ export const ProjectMatrix = ({
         </section>
       )}
 
-      {/* Team Matrix */}
-      <div className="space-y-4">
+      {/* --- TEAM MATRIX --- */}
+      <div className="space-y-3">
         {projectData.team.map((dev: Member) => {
           const devTasks = tasks.filter((t: Task) => t.assignedTo === dev.id);
           const isExpanded = expandedDev === dev.id;
           return (
-            <div key={dev.id} className={`bg-zinc-900/20 border transition-all ${dev.id === currentUserId ? 'border-sky-500/30' : 'border-white/5'} rounded-sm overflow-hidden`}>
-              <button onClick={() => setExpandedDev(isExpanded ? null : dev.id)} className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-all">
-                <div className="flex items-center gap-4">
-                  <UserIcon size={16} className={dev.id === currentUserId ? 'text-sky-400' : 'text-zinc-700'} />
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${dev.id === currentUserId ? 'text-white' : 'text-zinc-500'}`}>{dev.name} {dev.id === currentUserId && '(YOU)'}</p>
+            <div key={dev.id} className={`bg-zinc-900/20 border transition-all ${dev.id === currentUserId ? 'border-sky-500/30 shadow-[0_0_10px_rgba(14,165,233,0.05)]' : 'border-white/5'} rounded-sm overflow-hidden`}>
+              <button onClick={() => setExpandedDev(isExpanded ? null : dev.id)} className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-all text-left">
+                <div className="flex items-center gap-4 min-w-0">
+                  <UserIcon size={14} className={dev.id === currentUserId ? 'text-sky-400' : 'text-zinc-700'} />
+                  <p className={`text-[9px] font-black uppercase tracking-widest truncate ${dev.id === currentUserId ? 'text-white' : 'text-zinc-500'}`}>{dev.name} {dev.id === currentUserId && '(YOU)'}</p>
                 </div>
-                {dev.isLeader && <Star size={12} className="text-yellow-500 fill-yellow-500 animate-pulse" />}
+                <div className="flex items-center gap-3 shrink-0">
+                  {dev.isLeader && <Star size={10} className="text-yellow-500 fill-yellow-500" />}
+                  <span className="text-[7px] font-black text-zinc-800 bg-zinc-950 px-2 py-0.5 border border-white/5 uppercase tracking-tighter">{dev.role}</span>
+                </div>
               </button>
               
               <AnimatePresence>
                 {isExpanded && (
-                  <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="border-t border-white/5 bg-black/20 p-4 space-y-2">
+                  <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="border-t border-white/5 bg-black/20 p-4 space-y-2 overflow-hidden">
                     {devTasks.length === 0 && <p className="text-[8px] text-zinc-800 uppercase p-4 italic text-center">No active protocols.</p>}
                     {devTasks.map((t: Task) => (
-                      <div key={t.id} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-white/5 hover:border-sky-500/30 transition-all group">
-                        <div>
+                      <div key={t.id} className="flex items-start justify-between p-3 bg-zinc-950/50 border border-white/5 hover:border-sky-500/20 transition-all group">
+                        <div className="min-w-0 flex-1 pr-4">
                            <p className="text-[7px] font-black text-sky-500 uppercase tracking-tighter mb-1">{t.moduleName}</p>
-                           <p className={`text-[10px] font-black uppercase ${t.status === 'COMPLETED' ? 'text-zinc-600 line-through' : 'text-zinc-200'}`}>{t.title}</p>
+                           <p className={`text-[9px] font-black uppercase wrap-break-word leading-relaxed ${t.status === 'COMPLETED' ? 'text-zinc-600 line-through' : 'text-zinc-200'}`}>{t.title}</p>
                         </div>
-                        <span className={`text-[7px] font-black px-2 py-1 border ${t.status === 'COMPLETED' ? 'border-emerald-500/30 text-emerald-500' : 'border-zinc-800 text-zinc-700'}`}>{t.status}</span>
+                        <span className={`text-[7px] font-black px-2 py-1 border shrink-0 mt-1 ${t.status === 'COMPLETED' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5' : 'border-zinc-800 text-zinc-700'}`}>{t.status}</span>
                       </div>
                     ))}
                   </motion.div>
