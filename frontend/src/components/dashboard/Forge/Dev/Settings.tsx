@@ -2,23 +2,36 @@
 import { useState, useRef } from 'react';
 import { 
   Cpu, ShieldCheck, Save, Globe, 
-  Github, Edit3, Loader2, Camera 
+  Github, Edit3, Loader2, Camera, Linkedin 
 } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function DevSettings() {
-  const [isEditing, setIsEditing] = useState(true);
+// --- PROPS INTERFACE ---
+interface DevSettingsProps {
+  profile: {
+    alias: string;
+    designation: string;
+    github: string;
+    linkedin: string; // Added LinkedIn
+    portfolio: string;
+    bio: string;
+    avatar: string;
+  };
+  setProfile: React.Dispatch<React.SetStateAction<{
+    alias: string;
+    designation: string;
+    github: string;
+    linkedin: string; // Added LinkedIn
+    portfolio: string;
+    bio: string;
+    avatar: string;
+  }>>;
+}
+
+export default function DevSettings({ profile, setProfile }: DevSettingsProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [profile, setProfile] = useState({
-    alias: "Satyam Diwaker",
-    designation: "Full Stack Developer",
-    github: "github.com/satyam-diwaker",
-    portfolio: "https://sdc-portfolio.vercel.app",
-    bio: "Core system operative specializing in threat detection ecosystem (PhishGuard) and full-stack architecture.",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Satyam" 
-  });
 
   const [skills, setSkills] = useState(['NestJS', 'TypeScript', 'Python', 'React', 'Docker']);
   const [newSkill, setNewSkill] = useState('');
@@ -46,13 +59,11 @@ export default function DevSettings() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
-      
       <div className="flex items-end justify-between border-b border-white/5 pb-6">
         <div>
           <p className="text-[10px] font-black text-sky-500 uppercase tracking-[0.4em] mb-2">Nexus_Control_Panel</p>
           <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter">Account_Settings</h2>
         </div>
-        
         {!isEditing ? (
           <button onClick={() => setIsEditing(true)} className="flex items-center gap-3 px-6 py-2 bg-zinc-900 border border-white/10 text-white text-[10px] font-black uppercase hover:bg-sky-500 hover:text-black transition-all">
             <Edit3 size={14} /> Edit_Profile
@@ -84,8 +95,10 @@ export default function DevSettings() {
                       <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">{profile.alias}</h3>
                       <p className="text-sky-500 text-[10px] font-black uppercase tracking-[0.3em]">{profile.designation}</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 text-zinc-500 text-[11px] font-mono">
+                    {/* View Mode Links */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/5 text-zinc-500 text-[11px] font-mono">
                       <div className="flex items-center gap-3"><Github size={14} /> {profile.github}</div>
+                      <div className="flex items-center gap-3"><Linkedin size={14} className="text-sky-600" /> LinkedIn_Profile</div>
                       <div className="flex items-center gap-3"><Globe size={14} /> {profile.portfolio}</div>
                     </div>
                     <div className="pt-4">
@@ -114,6 +127,8 @@ export default function DevSettings() {
                   <input type="text" name="alias" value={profile.alias} onChange={handleInputChange} placeholder="Alias" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
                   <input type="text" name="designation" value={profile.designation} onChange={handleInputChange} placeholder="Rank" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
                   <input type="text" name="github" value={profile.github} onChange={handleInputChange} placeholder="GitHub" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
+                  {/* LinkedIn Input added */}
+                  <input type="text" name="linkedin" value={profile.linkedin} onChange={handleInputChange} placeholder="LinkedIn URL" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
                   <input type="text" name="portfolio" value={profile.portfolio} onChange={handleInputChange} placeholder="Portfolio" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
                 </div>
                 <textarea name="bio" value={profile.bio} onChange={handleInputChange} placeholder="Bio..." className="w-full bg-black border border-white/10 p-4 h-32 text-[11px] font-bold text-white outline-none focus:border-sky-500 resize-none" />

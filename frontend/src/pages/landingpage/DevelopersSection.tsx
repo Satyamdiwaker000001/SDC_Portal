@@ -1,6 +1,6 @@
 /* cspell:disable */
 import { useState, useEffect, forwardRef } from "react";
-import { Users, Cpu, Zap, Fingerprint, Activity, History } from "lucide-react"; 
+import { Users, Cpu, Zap, Fingerprint, Activity, History, ShieldCheck } from "lucide-react"; 
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 interface Operative {
@@ -9,21 +9,42 @@ interface Operative {
   role: string;
   status: "ACTIVE" | "FORMER";
   tech: string[];
-  stats: { hp: number; mp: number };
+  stats: { integrity: number; efficiency: number };
+}
+
+// Interface for Raw Data from LocalStorage
+interface RawRegistryData {
+  id?: string;
+  name: string;
+  role?: string;
+  status?: "ACTIVE" | "FORMER";
+  tech?: string | string[];
 }
 
 const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
   const [operatives] = useState<Operative[]>(() => {
     const defaultDevs: Operative[] = [
-      { id: "SDC-2026-01", name: "SATYAM DIWAKER", role: "SYSTEM_LEAD", status: "ACTIVE", tech: ["NESTJS", "TS", "PYTHON"], stats: { hp: 95, mp: 88 } },
-      { id: "SDC-HIST-01", name: "LEGACY_OPERATIVE", role: "ARCHITECT_EMERITUS", status: "FORMER", tech: ["C++", "ASSEMBLY"], stats: { hp: 100, mp: 100 } },
+      { id: "SDC-2026-01", name: "SATYAM DIWAKER", role: "SYSTEM_LEAD", status: "ACTIVE", tech: ["NESTJS", "TS", "PYTHON"], stats: { integrity: 98, efficiency: 95 } },
+      { id: "SDC-HIST-01", name: "LEGACY_OPERATIVE", role: "ARCHITECT_EMERITUS", status: "FORMER", tech: ["C++", "ASSEMBLY"], stats: { integrity: 100, efficiency: 100 } },
     ];
 
     if (typeof window !== "undefined") {
       const storedUsers = localStorage.getItem('sdc_users_registry');
       if (storedUsers) {
-        const parsedUsers = JSON.parse(storedUsers);
-        return [...defaultDevs, ...parsedUsers];
+        try {
+          const parsedUsers: RawRegistryData[] = JSON.parse(storedUsers);
+          const formattedUsers: Operative[] = parsedUsers.map((u) => ({
+            id: u.id || `SDC-REG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+            name: (u.name || "UNKNOWN").toUpperCase(),
+            role: (u.role || "OPERATIVE").toUpperCase(),
+            status: u.status || "ACTIVE",
+            tech: Array.isArray(u.tech) ? u.tech : (u.tech?.split(',') || ["CORE_NODE"]),
+            stats: { integrity: 90, efficiency: 85 } 
+          }));
+          return [...defaultDevs, ...formattedUsers];
+        } catch {
+          return defaultDevs;
+        }
       }
     }
     return defaultDevs;
@@ -32,10 +53,8 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
   const [activeTab, setActiveTab] = useState<"ACTIVE" | "FORMER">("ACTIVE");
   const [inspectedDev, setInspectedDev] = useState<string | null>(null);
 
-  // --- UX IMPROVEMENT: Auto-adjust scroll on Click ---
   const handleInspect = (id: string) => {
     setInspectedDev(id);
-    // Scroll the section into view so the modal is centered correctly
     if (ref && 'current' in ref && ref.current) {
       ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -70,7 +89,6 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
   return (
     <section 
       ref={ref} 
-      // FIXED: Removed border-t (top line) to prevent layout visual glitch
       className="relative w-full min-h-screen bg-[#020203] flex flex-col items-center justify-start py-32 px-8 overflow-hidden select-none touch-none z-40"
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -88,18 +106,17 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
           </h2>
         </div>
 
-        {/* Tab Selection */}
         <div className="flex justify-center mb-20 gap-4">
           <button 
             onClick={() => setActiveTab("ACTIVE")}
-            className={`flex items-center gap-3 px-8 py-3 font-black text-[10px] uppercase tracking-[0.3em] transition-all border ${activeTab === 'ACTIVE' ? 'bg-sky-500 text-black border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.3)]' : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-sky-500/50 hover:text-sky-500'}`}
+            className={`flex items-center gap-3 px-8 py-3 font-black text-[10px] uppercase tracking-[0.3em] transition-all border ${activeTab === 'ACTIVE' ? 'bg-sky-500 text-black border-sky-500 shadow-[0_0_20px_#0ea5e944]' : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-sky-500/50 hover:text-sky-500'}`}
             style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}
           >
             <Activity size={14} /> Active_Operatives
           </button>
           <button 
             onClick={() => setActiveTab("FORMER")}
-            className={`flex items-center gap-3 px-8 py-3 font-black text-[10px] uppercase tracking-[0.3em] transition-all border ${activeTab === 'FORMER' ? 'bg-sky-500 text-black border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.3)]' : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-sky-500/50 hover:text-sky-500'}`}
+            className={`flex items-center gap-3 px-8 py-3 font-black text-[10px] uppercase tracking-[0.3em] transition-all border ${activeTab === 'FORMER' ? 'bg-sky-500 text-black border-sky-500 shadow-[0_0_20px_#0ea5e944]' : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-sky-500/50 hover:text-sky-500'}`}
             style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}
           >
             <History size={14} /> Former_Legends
@@ -119,7 +136,6 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="relative group active:scale-95 transition-transform cursor-crosshair"
-                // TRIGGER: Combined set and scroll
                 onMouseDown={(e) => { e.preventDefault(); handleInspect(dev.id); }}
                 onTouchStart={(e) => { e.preventDefault(); handleInspect(dev.id); }}
               >
@@ -130,7 +146,7 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
                         <Users size={60} strokeWidth={0.5} className="text-zinc-800 group-hover:text-sky-500" />
                         <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-sky-500" />
                     </div>
-                    <h3 className="text-xl font-black italic text-white uppercase tracking-tighter">{dev.name}</h3>
+                    <h3 className="text-xl font-black italic text-white uppercase tracking-tighter text-center wrap-break-word w-full">{dev.name}</h3>
                     <p className="text-[9px] font-mono text-sky-500 uppercase tracking-widest mt-1">{dev.role}</p>
                   </div>
                 </div>
@@ -140,24 +156,29 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
         </motion.div>
       </div>
 
-      {/* --- INSPECTION MODAL --- */}
       <AnimatePresence>
         {inspectedDev && (() => {
           const devData = operatives.find(d => d.id === inspectedDev);
-          return devData && (
+          if (!devData) return null;
+
+          return (
             <>
-              <motion.div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md" variants={overlayVariants} initial="hidden" animate="visible" exit="hidden" />
+              <motion.div 
+                className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md" 
+                variants={overlayVariants} initial="hidden" animate="visible" exit="hidden" 
+              />
               <motion.div 
                 className="fixed z-101 w-[95%] max-w-2xl bg-[#0a0a0a] border-2 border-sky-500 shadow-[0_0_100px_rgba(14,165,233,0.3)] overflow-hidden"
                 style={{ clipPath: 'polygon(0 0, 100% 0, 100% 95%, 95% 100%, 0 100%)' }}
                 variants={cardVariants} initial="hidden" animate="visible" exit="exit"
               >
                 <div className="px-6 py-2 bg-sky-500 text-black flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">OPERATIVE_ID_VERIFIED</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">OPERATIVE_ID_VERIFIED // {devData.status}</span>
                   <Cpu size={14} />
                 </div>
+                
                 <div className="p-8 flex flex-col md:flex-row gap-8">
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col items-center gap-4 shrink-0">
                     <div className="w-48 h-60 bg-black border-2 border-sky-500 flex items-center justify-center relative">
                         <Users size={100} strokeWidth={0.5} className="text-sky-950" />
                         <motion.div 
@@ -167,22 +188,38 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
                         />
                     </div>
                   </div>
-                  <div className="flex-1 space-y-6">
+                  
+                  <div className="flex-1 space-y-6 min-w-0 text-[11px]">
                     <div>
-                      <h3 className="text-4xl font-black italic text-white uppercase leading-none">{devData.name}</h3>
+                      <h3 className="text-4xl font-black italic text-white uppercase leading-none wrap-break-word">{devData.name}</h3>
                       <p className="text-sky-500 font-mono text-xs uppercase tracking-[0.3em] mt-2">{devData.role}</p>
+                      <p className="text-zinc-600 font-mono text-[10px] mt-1 tracking-tighter">ID: {devData.id}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 border-t border-zinc-800 pt-6">
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest block">Integrity</span>
-                        <div className="h-1.5 bg-zinc-900 overflow-hidden"><motion.div className="h-full bg-sky-600" initial={{width: 0}} animate={{width: `${devData.stats.hp}%`}} /></div>
+
+                    {devData.status === "ACTIVE" && (
+                      <div className="grid grid-cols-1 gap-4 border-t border-zinc-800 pt-6">
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-1"><ShieldCheck size={8}/> Integrity</span>
+                            <span className="text-[8px] font-mono text-sky-500">{devData.stats.integrity}%</span>
+                          </div>
+                          <div className="h-1 bg-zinc-900 overflow-hidden rounded-full">
+                            <motion.div className="h-full bg-sky-600" initial={{width: 0}} animate={{width: `${devData.stats.integrity}%`}} />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Activity size={8}/> Efficiency</span>
+                            <span className="text-[8px] font-mono text-cyan-400">{devData.stats.efficiency}%</span>
+                          </div>
+                          <div className="h-1 bg-zinc-900 overflow-hidden rounded-full">
+                            <motion.div className="h-full bg-cyan-400" initial={{width: 0}} animate={{width: `${devData.stats.efficiency}%`}} />
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest block">Power_Level</span>
-                        <div className="h-1.5 bg-zinc-900 overflow-hidden"><motion.div className="h-full bg-cyan-400" initial={{width: 0}} animate={{width: `${devData.stats.mp}%`}} /></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
+                    )}
+
+                    <div className="space-y-2 border-t border-zinc-800 pt-4">
                       <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest block italic">Authorized_Stack</span>
                       <div className="flex flex-wrap gap-2">
                         {devData.tech.map((t) => (
@@ -190,9 +227,10 @@ const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
                         ))}
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-zinc-800 flex justify-between items-end opacity-40">
-                       <span className="text-[8px] font-mono text-zinc-600 uppercase italic tracking-widest">Access_Granted // SDC_Registry</span>
-                       <Zap size={20} className="text-sky-500" />
+                    
+                    <div className="pt-4 flex justify-between items-end opacity-40">
+                       <span className="text-[8px] font-mono text-zinc-600 uppercase italic tracking-widest leading-none">System_Uplink // Registry_Verified</span>
+                       <Zap size={16} className="text-sky-500" />
                     </div>
                   </div>
                 </div>
