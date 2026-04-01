@@ -2,9 +2,8 @@
 import { useState } from "react";
 import { 
   Zap, Shield, ChevronRight, HardDrive, 
-  Loader2, Cpu, Terminal, Network, 
-  Eye, EyeOff 
-} from "lucide-react";
+  Loader2, Cpu, Network, Eye, EyeOff 
+} from "lucide-react"; // TerminalIcon removed as it was unused
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth"; 
 
@@ -25,30 +24,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isAccessing, setIsAccessing] = useState(false);
+  // isTerminalOpen state removed as it was unused
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsAccessing(true);
 
-    // Dynamic Auth Simulation
     setTimeout(() => {
       const cleanEmail = email.trim().toLowerCase();
       
-      // Role-based logic consistent with Admin/User dash
       if (cleanEmail === "admin@sdc.com") {
-        // Full Admin Access
         login("Satyam Admin", "admin");
         navigate("/dashboard/admin");
       } 
       else if (cleanEmail === "leader@sdc.com") {
-        login("Satyam Leader", "developer");
+        login("Satyam Leader", "developer"); 
         navigate("/dashboard/developer");
       } 
       else {
         login("SDC Member", "developer");
         navigate("/dashboard/developer");
       }
-
       setIsAccessing(false);
     }, 1500);
   };
@@ -56,7 +52,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen w-full bg-[#020203] text-white flex items-center justify-center p-6 relative overflow-hidden font-sans antialiased selection:bg-sky-500/30">
       
-      {/* Background Decor (Sky Blue Grid) */}
+      {/* Background Decor */}
       <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none" 
            style={{ backgroundImage: `linear-gradient(#0ea5e9 1px, transparent 1px), linear-gradient(90deg, #0ea5e9 1px, transparent 1px)`, backgroundSize: '60px 60px' }} />
 
@@ -83,7 +79,6 @@ export default function LoginPage() {
           <div className="bg-[#020203]/95 p-10 md:p-14 relative overflow-hidden" 
                style={{ clipPath: 'polygon(0 0, 96% 0, 100% 4%, 100% 100%, 4% 100%, 0 96%)' }}>
             
-            {/* Corner Accents */}
             <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-sky-500/50" />
             <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-sky-500/50" />
 
@@ -97,7 +92,6 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleLogin} className="space-y-8">
-              {/* Identity Input */}
               <div className="space-y-2 group">
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em] ml-1">Operator_Identity</label>
                 <div className="relative">
@@ -105,7 +99,7 @@ export default function LoginPage() {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="OPERATIVE_ID"
+                    placeholder="ADMIN@SDC.COM"
                     className="w-full bg-zinc-950/50 border-l-2 border-zinc-800 p-4 pl-14 text-white placeholder:text-zinc-900 focus:border-sky-500 focus:bg-sky-500/5 focus:outline-none transition-all font-bold text-sm"
                     required
                   />
@@ -113,7 +107,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password Input with Eye Toggle */}
               <div className="space-y-2 group">
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em] ml-1">Access_Code</label>
                 <div className="relative">
@@ -127,7 +120,6 @@ export default function LoginPage() {
                   />
                   <Zap size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-800 group-focus-within:text-sky-500 transition-colors" />
                   
-                  {/* Eye Toggle */}
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -152,26 +144,14 @@ export default function LoginPage() {
               </button>
             </form>
             
-            {/* Tactical Footer Meta */}
             <div className="mt-12 flex justify-between items-center opacity-30">
                <div className="flex gap-1 items-center">
-                  <Terminal size={12} className="text-sky-500" /> 
                   <span className="text-[8px] font-mono uppercase tracking-widest text-sky-400">Node:agra_01_core</span>
                </div>
-               <div className="flex gap-4">
-                  <Cpu size={14} className="text-sky-500" />
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3].map(i => <div key={i} className="w-1 h-3 bg-sky-500/20" />)}
-                  </div>
-               </div>
+               <Cpu size={14} className="text-sky-500" />
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Decorative Label */}
-      <div className="absolute bottom-10 right-10 opacity-10 hidden md:block">
-        <p className="text-[10px] font-black tracking-[1em] text-white rotate-90 origin-right">INTERNAL_SDC_PROTOCOL</p>
       </div>
     </div>
   );
