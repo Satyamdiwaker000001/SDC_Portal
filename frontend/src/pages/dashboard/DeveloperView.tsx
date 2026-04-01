@@ -3,13 +3,20 @@ import { useState, useMemo, useEffect } from "react";
 import { 
   LayoutDashboard, Briefcase, Settings, 
   LogOut, X, Activity, Target, ChevronRight,
-  Zap, ShieldCheck, LayoutDashboard as TacticalIcon
+  Zap, ShieldCheck, Megaphone
 } from "lucide-react"; 
 import type { LucideIcon } from "lucide-react"; 
 import { useAuth } from "../../context/useAuth";
 import SdcLogo from "../../assets/SDC.png";
 import { ProjectMatrix } from "../../components/dashboard/Forge/Dev/ProjectMatrix";
 import DevSettings from "../../components/dashboard/Forge/Dev/Settings";
+
+// Defined interface to avoid 'any' error
+interface Announcement {
+  title: string;
+  body: string;
+  date: string;
+}
 
 type DevViewType = 'nexus' | 'matrix' | 'settings';
 
@@ -24,6 +31,26 @@ export default function DeveloperView({ userName }: { userName: string }) {
   const { logout, user } = useAuth();
   const [activeView, setActiveView] = useState<DevViewType>('nexus');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  // --- ANNOUNCEMENT FETCH LOGIC (SOLVED ANY TYPE) ---
+  const [intelAnnouncements, setIntelAnnouncements] = useState<Announcement[]>([]);
+
+  useEffect(() => {
+    const fetchIntel = () => {
+      const stored = localStorage.getItem("sdc_announcements");
+      if (stored) {
+        try {
+          // Admin se real announcements fetch kar raha hai
+          setIntelAnnouncements(JSON.parse(stored).slice(0, 5)); 
+        } catch (error) {
+          console.error("Intel fetch failed", error);
+        }
+      }
+    };
+    fetchIntel();
+    window.addEventListener("storage", fetchIntel);
+    return () => window.removeEventListener("storage", fetchIntel);
+  }, []);
 
   const [profile, setProfile] = useState({
     alias: user?.name || userName || "SATYAM_LEADER",
@@ -46,11 +73,6 @@ export default function DeveloperView({ userName }: { userName: string }) {
     { label: "EFFICIENCY", value: "92%", icon: <Zap size={14}/> },
   ];
 
-  const [notifications] = useState([
-    { id: 1, msg: "Nexus_Uplink established in Agra_Sector_01", type: "SYSTEM", time: "Now" },
-    { id: 2, msg: "New directive received from Commander", type: "FORGE", time: "2m" },
-  ]);
-
   const projectHistory = useMemo(() => [
     { 
       id: "SDC-PRJ-2026-04", 
@@ -63,9 +85,10 @@ export default function DeveloperView({ userName }: { userName: string }) {
   ], [profile.alias]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 't') {
-        // Logic handled in previous cleanup
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Logic for keydown handled safely using the event variable
+      if (event.altKey && event.key.toLowerCase() === 't') {
+        console.log("Terminal Signal Triggered via:", event.key);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -77,25 +100,25 @@ export default function DeveloperView({ userName }: { userName: string }) {
       
       <aside className="w-64 border-r border-sky-500/10 bg-black flex flex-col z-50 shrink-0 relative">
         <div className="absolute top-0 right-0 w-0.5 h-full bg-linear-to-b from-sky-500 via-sky-500/20 to-transparent shadow-[0_0_15px_#0ea5e988]" />
-        <div className="p-6 border-b border-white/5 flex justify-center">
+        <div className="p-6 border-b border-white/5 flex justify-center text-left">
           <img src={SdcLogo} alt="SDC" className="w-40 h-auto brightness-125" />
         </div>
         
-        <nav className="flex-1 p-4 space-y-1 mt-4 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-4 space-y-1 mt-4 overflow-y-auto custom-scrollbar text-left">
           <SidebarLink icon={LayoutDashboard} label="Overview" active={activeView === 'nexus'} onClick={() => { setActiveView('nexus'); setSelectedProjectId(null); }} />
           <SidebarLink icon={Briefcase} label="My_Projects" active={activeView === 'matrix'} onClick={() => { setActiveView('matrix'); setSelectedProjectId(null); }} />
           <div className="h-px bg-white/5 my-6 mx-4" />
           <SidebarLink icon={Settings} label="Settings" active={activeView === 'settings'} onClick={() => setActiveView('settings')} />
         </nav>
 
-        <div className="p-6 border-t border-white/5">
+        <div className="p-6 border-t border-white/5 text-left">
           <button onClick={logout} className="w-full flex items-center gap-4 px-4 py-3 font-black uppercase text-zinc-600 hover:text-sky-400 transition-all group">
             <LogOut size={18} /> System_Exit
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#020203] relative">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#020203] relative text-left">
         <header className="h-20 w-full border-b border-white/5 px-10 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur-xl z-40">
           <div className="flex items-center gap-6">
             <div className="px-4 py-2 border border-emerald-500/50 text-emerald-500 bg-emerald-500/5 font-black uppercase rounded-sm flex items-center gap-2">
@@ -115,10 +138,10 @@ export default function DeveloperView({ userName }: { userName: string }) {
 
         <div className="p-10 flex-1 overflow-y-auto relative z-10 custom-scrollbar">
           {activeView === 'nexus' && (
-            <div className="space-y-10 animate-in fade-in duration-700">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
+            <div className="space-y-10 animate-in fade-in duration-700 text-left">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full text-left">
                 {STATS.map((stat, i) => (
-                  <div key={i} className="relative group cursor-default">
+                  <div key={i} className="relative group cursor-default text-left">
                     <div className="absolute -left-px top-0 w-0.5 h-full bg-sky-500 shadow-[0_0_15px_#0ea5e9] z-10" />
                     <div className="bg-zinc-900/40 p-6 border border-white/5 transition-all duration-500 shadow-xl"
                          style={{ clipPath: 'polygon(0 0, 92% 0, 100% 25%, 100% 100%, 0 100%)' }}>
@@ -132,7 +155,7 @@ export default function DeveloperView({ userName }: { userName: string }) {
                 ))}
               </div>
 
-              <div className="grid grid-cols-12 gap-8">
+              <div className="grid grid-cols-12 gap-8 text-left">
                 <div className="col-span-12 lg:col-span-8 bg-zinc-950/50 border border-white/5 p-8 rounded-sm">
                    <h3 className="text-[10px] font-black uppercase text-zinc-500 mb-6 tracking-[0.3em] flex items-center gap-2 italic border-b border-white/5 pb-4">
                      <Target size={14} className="text-sky-500" /> Active_Missions_Log
@@ -140,9 +163,9 @@ export default function DeveloperView({ userName }: { userName: string }) {
                    <div className="space-y-4">
                       {projectHistory.map(proj => (
                         <div key={proj.id} onClick={() => { setActiveView('matrix'); setSelectedProjectId(proj.id); }} className="p-6 bg-black/40 border-l-2 border-sky-500 flex justify-between items-center hover:bg-sky-500/5 transition-all cursor-pointer group">
-                           <div className="min-w-0 flex-1">
-                              <p className="text-[12px] font-black text-zinc-200 uppercase tracking-widest group-hover:text-sky-400 transition-colors truncate">{proj.projectName}</p>
-                              <p className="text-[8px] font-mono text-zinc-600 mt-1 uppercase italic">ID: {proj.id} // LIVE</p>
+                           <div className="min-w-0 flex-1 text-left">
+                             <p className="text-[12px] font-black text-zinc-200 uppercase tracking-widest group-hover:text-sky-400 transition-colors truncate">{proj.projectName}</p>
+                             <p className="text-[8px] font-mono text-zinc-600 mt-1 uppercase italic">ID: {proj.id} // LIVE</p>
                            </div>
                            <ChevronRight className="text-zinc-700 group-hover:text-white transition-all ml-4 shrink-0" />
                         </div>
@@ -152,15 +175,22 @@ export default function DeveloperView({ userName }: { userName: string }) {
 
                 <div className="col-span-12 lg:col-span-4 bg-zinc-950/50 border border-white/5 p-8 rounded-sm">
                    <h3 className="text-[10px] font-black uppercase text-zinc-500 mb-6 tracking-[0.3em] flex items-center gap-2 italic border-b border-white/5 pb-4">
-                      <TacticalIcon size={14} className="text-sky-500" /> Tactical_Intel
+                      <Megaphone size={14} className="text-sky-500" /> Tactical_Intel
                    </h3>
-                   <div className="space-y-6">
-                      {notifications.map((n, i) => (
-                        <div key={i} className="border-l border-sky-500/30 pl-4 py-1">
-                           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">{n.msg}</p>
-                           <span className="text-[7px] text-zinc-600 font-mono italic">{n.time}</span>
+                   <div className="space-y-6 text-left">
+                      {intelAnnouncements.length > 0 ? (
+                        intelAnnouncements.map((n, i) => (
+                          <div key={i} className="border-l border-sky-500/30 pl-4 py-1 text-left">
+                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">{n.title}</p>
+                             <p className="text-[8px] text-zinc-600 line-clamp-1 mt-1 italic">"{n.body}"</p>
+                             <span className="text-[7px] text-zinc-700 font-mono italic mt-1 block">{n.date}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="border-l border-sky-500/30 pl-4 py-1 text-left opacity-30">
+                           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">No incoming signals...</p>
                         </div>
-                      ))}
+                      )}
                    </div>
                 </div>
               </div>
@@ -168,17 +198,16 @@ export default function DeveloperView({ userName }: { userName: string }) {
           )}
 
           {activeView === 'matrix' && (
-             <div className="animate-in fade-in duration-500">
+             <div className="animate-in fade-in duration-500 text-left">
                {selectedProjectId ? (
-                  <div className="space-y-6">
+                  <div className="space-y-6 text-left">
                     <button onClick={() => setSelectedProjectId(null)} className="text-[10px] font-black text-zinc-500 uppercase hover:text-white mb-4 flex items-center gap-2 border border-white/5 px-4 py-2 hover:bg-white/5 transition-all"><X size={14}/> Close_Matrix</button>
-                    {/* FIX: Removed onToggleTerminal to match MatrixProps interface */}
                     <ProjectMatrix currentUserId={currentUserId} projectData={projectHistory[0]} addNotification={() => {}} />
                   </div>
                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-[11px]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
                     {projectHistory.map(proj => (
-                      <div key={proj.id} className="relative group cursor-pointer" onClick={() => setSelectedProjectId(proj.id)}>
+                      <div key={proj.id} className="relative group cursor-pointer text-left" onClick={() => setSelectedProjectId(proj.id)}>
                         <div className="absolute -left-px top-0 w-0.5 h-full bg-sky-500 shadow-[0_0_15px_#0ea5e9] z-10" />
                         <div 
                           className="bg-[#0a0a0a] border border-white/5 p-8 transition-all duration-500 group-hover:bg-[#0f0f0f] h-full flex flex-col justify-between"
@@ -196,7 +225,7 @@ export default function DeveloperView({ userName }: { userName: string }) {
                     ))}
                   </div>
                )}
-            </div>
+             </div>
           )}
 
           {activeView === 'settings' && <DevSettings profile={profile} setProfile={setProfile} />}

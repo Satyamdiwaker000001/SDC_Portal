@@ -1,18 +1,24 @@
+/* cspell:disable */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, ChevronDown, BarChart3 } from 'lucide-react';
+import { X, ChevronDown, BarChart3, Calendar } from 'lucide-react';
 import { useStore } from '../../../store/useStore';
 
 export const ProjectForge = ({ onClose }: { onClose: () => void }) => {
   const [projectName, setProjectName] = useState('');
   const [teamId, setTeamId] = useState('');
+  const [deadline, setDeadline] = useState('');
   const { teams } = useStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (projectName && teamId) {
-      // TODO: Implement project creation in store
-      console.log('Creating project:', { projectName, teamId, progress: 0 });
+    if (projectName && teamId && deadline) {
+      console.log('Creating project:', { 
+        projectName, 
+        teamId, 
+        deadline, 
+        progress: 0 
+      });
       onClose();
     }
   };
@@ -37,7 +43,9 @@ export const ProjectForge = ({ onClose }: { onClose: () => void }) => {
 
       <form onSubmit={handleSubmit} className="p-8 space-y-6">
         <div>
-          <label className="text-[8px] font-black text-emerald-500/60 uppercase tracking-[0.3em] ml-1 italic">Project Name</label>
+          <label className="text-[8px] font-black text-emerald-500/60 uppercase tracking-[0.3em] ml-1 italic flex items-center gap-2">
+            Project Name
+          </label>
           <input
             type="text"
             value={projectName}
@@ -68,16 +76,34 @@ export const ProjectForge = ({ onClose }: { onClose: () => void }) => {
           </div>
         </div>
 
-        <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
-          Initial progress will be set to 0%. Updates can be made from the Project Matrix dashboard.
+        <div>
+          <label className="text-[8px] font-black text-emerald-500/60 uppercase tracking-[0.3em] ml-1 italic flex items-center gap-2">
+            Target Deadline
+          </label>
+          <div className="relative mt-2">
+            <input
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-slate-900 border border-emerald-500/30 text-white text-sm font-black uppercase focus:border-emerald-400 focus:outline-none transition-all scheme-dark"
+            />
+            <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={16} />
+          </div>
+        </div>
+
+        <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded text-[9px] text-emerald-400 font-bold uppercase tracking-wider leading-relaxed">
+          Operational briefing: Initial progress set to 0%. Timeline synchronization required via Project Matrix.
         </div>
 
         <button 
           type="submit" 
-          disabled={!projectName || !teamId}
-          className="w-full py-4 bg-linear-to-r from-emerald-500 to-green-600 text-black font-black uppercase tracking-widest text-lg -skew-x-12 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          disabled={!projectName || !teamId || !deadline}
+          className="w-full py-4 bg-linear-to-r from-emerald-500 to-green-600 text-black font-black uppercase tracking-widest text-lg -skew-x-12 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed transition-all"
         >
-          <span className="skew-x-12 block">Launch Project</span>
+          <span className="flex items-center justify-center gap-2 skew-x-12">
+            Initialize Project
+          </span>
         </button>
       </form>
     </motion.div>
