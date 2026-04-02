@@ -11,7 +11,6 @@ import SdcLogo from "../../assets/SDC.png";
 import { ProjectMatrix } from "../../components/dashboard/Forge/Dev/ProjectMatrix";
 import DevSettings from "../../components/dashboard/Forge/Dev/Settings";
 
-// Defined interface to avoid 'any' error
 interface Announcement {
   title: string;
   body: string;
@@ -32,7 +31,9 @@ export default function DeveloperView({ userName }: { userName: string }) {
   const [activeView, setActiveView] = useState<DevViewType>('nexus');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // --- ANNOUNCEMENT FETCH LOGIC (SOLVED ANY TYPE) ---
+  // --- ADMIN MANAGED DATA (Fetch Personnel ID) ---
+  const personnelId = useMemo(() => localStorage.getItem("SDC_USER_ID") || "SDC-2026-OP-01", []);
+
   const [intelAnnouncements, setIntelAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
@@ -40,7 +41,6 @@ export default function DeveloperView({ userName }: { userName: string }) {
       const stored = localStorage.getItem("sdc_announcements");
       if (stored) {
         try {
-          // Admin se real announcements fetch kar raha hai
           setIntelAnnouncements(JSON.parse(stored).slice(0, 5)); 
         } catch (error) {
           console.error("Intel fetch failed", error);
@@ -86,7 +86,6 @@ export default function DeveloperView({ userName }: { userName: string }) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Logic for keydown handled safely using the event variable
       if (event.altKey && event.key.toLowerCase() === 't') {
         console.log("Terminal Signal Triggered via:", event.key);
       }
@@ -119,18 +118,25 @@ export default function DeveloperView({ userName }: { userName: string }) {
       </aside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#020203] relative text-left">
+        {/* --- TOP BAR SYNCED WITH ADMIN RULES --- */}
         <header className="h-20 w-full border-b border-white/5 px-10 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur-xl z-40">
           <div className="flex items-center gap-6">
             <div className="px-4 py-2 border border-emerald-500/50 text-emerald-500 bg-emerald-500/5 font-black uppercase rounded-sm flex items-center gap-2">
               <Activity size={14} className="animate-pulse" /> Uplink_Active
             </div>
-          </div>
-          <div className="flex items-center gap-6 text-right">
-            <div>
-              <p className="font-black uppercase text-white tracking-widest leading-none">{profile.alias}</p>
-              <p className="text-[9px] font-black text-sky-500 uppercase mt-2 tracking-widest italic">Operative_Field</p>
+            <div className="hidden md:flex items-center gap-2 border-l border-white/10 pl-6 h-6">
+              <ShieldCheck size={14} className="text-sky-500" />
+              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">SEC_VERIFIED: <span className="text-sky-500">AUTH_OP</span></span>
             </div>
-            <div className="w-10 h-10 border-2 border-sky-500/40 p-0.5 rotate-45 bg-zinc-900 overflow-hidden flex items-center justify-center shadow-[0_0_15px_#0ea5e933]">
+          </div>
+          
+          <div className="flex items-center gap-6 text-right">
+            <div className="flex flex-col justify-center">
+              {/* WHITE TEXT ALIAS | BLUE ITALIC PERSONNEL ID */}
+              <p className="font-black uppercase text-white tracking-widest leading-none mb-1">{profile.alias}</p>
+              <p className="text-[8px] font-black text-sky-500 uppercase italic tracking-widest opacity-100 leading-none">ID: {personnelId}</p>
+            </div>
+            <div className="w-10 h-10 border-2 border-sky-500/40 p-0.5 rotate-45 bg-zinc-900 overflow-hidden flex items-center justify-center shadow-[0_0_15px_#0ea5e933] shrink-0">
               <img src={profile.avatar} className="-rotate-45 w-[140%] h-[140%] object-cover" alt="OP" />
             </div>
           </div>
