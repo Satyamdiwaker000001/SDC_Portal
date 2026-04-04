@@ -63,22 +63,22 @@ export default function DevSettings({ profile, setProfile }: DevSettingsProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 text-left">
-      <div className="flex items-end justify-between border-b border-white/5 pb-6">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 text-left font-sans">
+      <div className="flex items-end justify-between border-b-2 border-slate-grey-200/50 pb-6">
         <div>
-          <p className="text-[10px] font-black text-sky-500 uppercase tracking-[0.4em] mb-2">Nexus_Control_Panel</p>
-          <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter text-left">Account_Settings</h2>
+          <p className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest mb-1">Nexus Control Panel</p>
+          <h2 className="text-3xl font-black text-carbon-black-DEFAULT uppercase tracking-tight text-left">Account Settings</h2>
         </div>
         {!isEditing ? (
-          <button onClick={() => setIsEditing(true)} className="flex items-center gap-3 px-6 py-2 bg-zinc-900 border border-white/10 text-white text-[10px] font-black uppercase hover:bg-sky-500 hover:text-black transition-all">
-            <Edit3 size={14} /> Edit_Profile
+          <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-slate-grey-200 text-carbon-black-DEFAULT text-[11px] font-bold uppercase hover:border-sky-500 hover:text-sky-600 transition-all rounded-xl shadow-sm">
+            <Edit3 size={16} /> Edit Profile
           </button>
         ) : (
           <div className="flex gap-4">
-            <button onClick={() => setIsEditing(false)} className="text-zinc-500 text-[10px] font-black uppercase hover:text-white transition-all">Abort</button>
-            <button onClick={handleCommit} disabled={isSaving} className="flex items-center gap-3 px-6 py-2 bg-sky-500 text-black text-[10px] font-black uppercase hover:bg-white transition-all shadow-[0_0_20px_rgba(14,165,233,0.3)]">
-              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              {isSaving ? 'Syncing...' : 'Save_Changes'}
+            <button onClick={() => setIsEditing(false)} className="px-6 py-2.5 bg-slate-grey-100 text-slate-grey-600 border border-slate-grey-200 text-[11px] font-bold uppercase hover:bg-slate-grey-200 transition-all rounded-xl">Abort</button>
+            <button onClick={handleCommit} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white text-[11px] font-bold uppercase hover:bg-sky-600 transition-all rounded-xl shadow-md gaming-clip-btn">
+              {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSaving ? 'Syncing...' : 'Save Changes'}
             </button>
           </div>
         )}
@@ -89,69 +89,69 @@ export default function DevSettings({ profile, setProfile }: DevSettingsProps) {
           <AnimatePresence mode="wait">
             {!isEditing ? (
               <motion.section key="view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="bg-zinc-900/40 border border-white/5 p-8 relative overflow-hidden"
-                style={{ clipPath: 'polygon(0 0, 98% 0, 100% 10%, 100% 100%, 2% 100%, 0 90%)' }}>
+                className="crystal-card p-10 relative overflow-hidden"
+              >
                 <div className="flex flex-col md:flex-row gap-10">
-                  <div className="w-32 h-32 bg-zinc-950 border-2 border-sky-500/20 rotate-45 shrink-0 self-center md:self-start overflow-hidden relative shadow-[0_0_30px_rgba(14,165,233,0.1)]">
-                    <img src={profile.avatar} alt="Avatar" className="-rotate-45 w-[140%] h-[140%] object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                  <div className="w-40 h-40 bg-slate-grey-50 border-4 border-sky-100 rounded-2xl rotate-3 hover:rotate-0 transition-transform duration-500 shrink-0 self-center md:self-start overflow-hidden relative shadow-lg">
+                    <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover absolute top-0 left-0" />
                   </div>
                   <div className="flex-1 space-y-6 text-left">
                     <div>
-                      <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">{profile.alias}</h3>
-                      <div className="flex items-center gap-4 mt-1">
-                        <p className="text-sky-500 text-[10px] font-black uppercase tracking-[0.3em]">{profile.designation}</p>
-                        <span className="text-zinc-600 text-[9px] font-mono border border-white/10 px-2 uppercase">ID: {personnelId}</span>
+                      <h3 className="text-4xl font-black text-carbon-black-DEFAULT uppercase tracking-tight">{profile.alias}</h3>
+                      <div className="flex items-center gap-4 mt-2">
+                        <p className="text-sky-600 text-xs font-black uppercase tracking-widest bg-sky-50 px-3 py-1 rounded-md">{profile.designation}</p>
+                        <span className="text-slate-grey-500 text-[10px] font-bold border border-slate-grey-200 px-2 py-1 rounded-md uppercase">ID: {personnelId}</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/5 text-zinc-500 text-[11px] font-mono">
-                      <div className="flex items-center gap-3"><Github size={14} /> {profile.github || "NOT_LINKED"}</div>
-                      <div className="flex items-center gap-3"><Linkedin size={14} className="text-sky-600" /> LinkedIn_Profile</div>
-                      <div className="flex items-center gap-3"><Globe size={14} /> {profile.portfolio || "NO_PORTFOLIO"}</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t-2 border-slate-grey-100 text-slate-grey-600 text-xs font-semibold">
+                      <div className="flex items-center gap-3"><Github size={16} className="text-carbon-black-DEFAULT" /> {profile.github || "Not Linked"}</div>
+                      <div className="flex items-center gap-3"><Linkedin size={16} className="text-sky-600" /> LinkedIn Profile</div>
+                      <div className="flex items-center gap-3"><Globe size={16} className="text-carbon-black-DEFAULT" /> {profile.portfolio || "No Portfolio"}</div>
                     </div>
-                    <div className="pt-4 text-left">
-                      <p className="text-[9px] font-black text-zinc-600 uppercase mb-2">Mission_Statement</p>
-                      <p className="text-zinc-400 text-sm italic">"{profile.bio}"</p>
+                    <div className="pt-6 text-left">
+                      <p className="text-[10px] font-bold text-slate-grey-400 uppercase tracking-widest mb-2">Mission Statement</p>
+                      <p className="text-slate-grey-600 text-sm italic font-medium leading-relaxed">"{profile.bio}"</p>
                     </div>
                   </div>
                 </div>
               </motion.section>
             ) : (
-              <motion.section key="edit" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-zinc-900/60 border border-sky-500/20 p-8 space-y-8 text-left">
-                <div className="flex items-center gap-8 pb-6 border-b border-white/5">
+              <motion.section key="edit" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="crystal-card p-10 space-y-8 text-left border-2 border-sky-200 border-dashed">
+                <div className="flex items-center gap-8 pb-8 border-b-2 border-slate-grey-100">
                    <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                      <div className="w-24 h-24 bg-black border border-sky-500/50 rotate-45 overflow-hidden relative">
-                         <img src={profile.avatar} className="-rotate-45 w-[140%] h-[140%] object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-50 group-hover:opacity-30 transition-opacity" alt="" />
-                         <div className="absolute inset-0 flex items-center justify-center -rotate-45"><Camera size={20} className="text-sky-400" /></div>
+                      <div className="w-28 h-28 bg-slate-grey-50 border-4 border-slate-grey-200 rounded-2xl overflow-hidden relative shadow-inner">
+                         <img src={profile.avatar} className="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity" alt="" />
+                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20"><Camera size={28} className="text-white drop-shadow-md" /></div>
                       </div>
                       <input type="file" ref={fileInputRef} onChange={handleImageChange} className="hidden" accept="image/*" />
                    </div>
                    <div>
-                      <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1">Update_Operative_Photo</p>
-                      <button onClick={() => fileInputRef.current?.click()} className="mt-3 text-[9px] font-black text-sky-500 hover:text-white transition-colors uppercase underline underline-offset-4">Browse_Local_Files</button>
+                      <p className="text-xs font-bold text-slate-grey-500 uppercase tracking-widest mb-2">Update Operative Photo</p>
+                      <button onClick={() => fileInputRef.current?.click()} className="text-[11px] font-bold text-sky-600 hover:text-sky-700 transition-colors uppercase underline underline-offset-4 decoration-sky-300">Browse Local Files</button>
                    </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* READ ONLY FIELDS (Admin Managed) */}
                   <div className="relative group">
-                    <label className="text-[8px] font-black text-zinc-600 uppercase absolute -top-2 left-3 bg-[#0c0c0e] px-1 z-10 flex items-center gap-1"><Lock size={8}/> Restricted_Alias</label>
-                    <input type="text" value={profile.alias} readOnly className="w-full bg-zinc-950 border border-white/5 p-3 text-[11px] font-bold text-zinc-500 outline-none cursor-not-allowed" />
+                    <label className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest absolute -top-3 left-4 bg-white px-2 z-10 flex items-center gap-1 shadow-[0_4px_0_0_white]"><Lock size={12}/> Restricted Alias</label>
+                    <input type="text" value={profile.alias} readOnly className="w-full bg-slate-grey-50 border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-slate-grey-500 outline-none cursor-not-allowed shadow-none" />
                   </div>
                   <div className="relative group">
-                    <label className="text-[8px] font-black text-zinc-600 uppercase absolute -top-2 left-3 bg-[#0c0c0e] px-1 z-10 flex items-center gap-1"><Lock size={8}/> Restricted_ID</label>
-                    <input type="text" value={personnelId} readOnly className="w-full bg-zinc-950 border border-white/5 p-3 text-[11px] font-bold text-zinc-500 outline-none cursor-not-allowed font-mono" />
+                    <label className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest absolute -top-3 left-4 bg-white px-2 z-10 flex items-center gap-1 shadow-[0_4px_0_0_white]"><Lock size={12}/> Restricted ID</label>
+                    <input type="text" value={personnelId} readOnly className="w-full bg-slate-grey-50 border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-slate-grey-500 outline-none cursor-not-allowed font-mono shadow-none" />
                   </div>
 
                   {/* EDITABLE FIELDS */}
-                  <input type="text" name="designation" value={profile.designation} onChange={handleInputChange} placeholder="Rank / Designation" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
-                  <input type="text" name="github" value={profile.github} onChange={handleInputChange} placeholder="GitHub Handle" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
-                  <input type="text" name="linkedin" value={profile.linkedin} onChange={handleInputChange} placeholder="LinkedIn URL" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
-                  <input type="text" name="portfolio" value={profile.portfolio} onChange={handleInputChange} placeholder="Portfolio URL" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-sky-500" />
+                  <input type="text" name="designation" value={profile.designation} onChange={handleInputChange} placeholder="Rank / Designation" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
+                  <input type="text" name="github" value={profile.github} onChange={handleInputChange} placeholder="GitHub Handle" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
+                  <input type="text" name="linkedin" value={profile.linkedin} onChange={handleInputChange} placeholder="LinkedIn URL" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
+                  <input type="text" name="portfolio" value={profile.portfolio} onChange={handleInputChange} placeholder="Portfolio URL" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
                 </div>
-                <textarea name="bio" value={profile.bio} onChange={handleInputChange} placeholder="Operational Bio..." className="w-full bg-black border border-white/10 p-4 h-32 text-[11px] font-bold text-white outline-none focus:border-sky-500 resize-none" />
+                <textarea name="bio" value={profile.bio} onChange={handleInputChange} placeholder="Operational Bio..." className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 h-32 text-sm font-medium text-carbon-black-DEFAULT outline-none focus:border-sky-500 resize-none transition-colors placeholder:text-slate-grey-400" />
                 
-                <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-sm">
-                  <p className="text-[9px] font-black text-red-500 uppercase flex items-center gap-2"><Lock size={12}/> Security_Note</p>
-                  <p className="text-[10px] text-zinc-500 mt-1 italic">Identity credentials and security keys can only be modified by a Root Administrator.</p>
+                <div className="p-5 bg-red-50 border-l-4 border-red-500 rounded-r-xl rounded-l-sm">
+                  <p className="text-[11px] font-bold text-red-600 uppercase flex items-center gap-2 mb-1"><Lock size={14}/> Security Note</p>
+                  <p className="text-xs text-red-500/80 font-medium">Identity credentials and security keys can only be modified by a Root Administrator.</p>
                 </div>
               </motion.section>
             )}
@@ -159,28 +159,30 @@ export default function DevSettings({ profile, setProfile }: DevSettingsProps) {
         </div>
 
         <div className="space-y-6 text-left">
-          <section className="bg-sky-500/5 border border-sky-500/20 p-8">
-            <h3 className="text-xs font-black text-sky-400 uppercase tracking-widest mb-6 flex items-center gap-3 text-left"><Cpu size={16} /> Skill_Matrix</h3>
+          <section className="crystal-card p-8 border-t-4 border-t-sky-400">
+            <h3 className="text-xs font-bold text-slate-grey-500 uppercase tracking-widest mb-6 flex items-center gap-2"><Cpu size={18} className="text-sky-500" /> Skill Matrix</h3>
             <div className="space-y-4">
               <div className="flex gap-2">
-                <input type="text" value={newSkill} onChange={(e) => setNewSkill(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && newSkill && (setSkills([...skills, newSkill]), setNewSkill(''))} placeholder="ADD_SKILL..." className="flex-1 bg-black border border-white/10 px-3 py-2 text-[10px] font-black text-white outline-none focus:border-sky-400" />
-                <button onClick={() => newSkill && (setSkills([...skills, newSkill]), setNewSkill(''))} className="bg-white text-black px-4 py-2 text-[10px] font-black uppercase hover:bg-sky-400 transition-colors">ADD</button>
+                <input type="text" value={newSkill} onChange={(e) => setNewSkill(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && newSkill && (setSkills([...skills, newSkill]), setNewSkill(''))} placeholder="Add a skill..." className="flex-1 bg-white border-2 border-slate-grey-200 rounded-xl px-4 py-3 text-xs font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
+                <button onClick={() => newSkill && (setSkills([...skills, newSkill]), setNewSkill(''))} className="bg-sky-50 text-sky-600 border border-sky-100 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest hover:bg-sky-500 hover:text-white transition-colors">Add</button>
               </div>
-              <div className="flex flex-wrap gap-2 pt-4">
+              <div className="flex flex-wrap gap-2 pt-2">
                 {skills.map((skill) => (
-                  <motion.div layout key={skill} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 text-[9px] font-black text-zinc-400 uppercase hover:border-sky-500/50 transition-all">
+                  <motion.div layout key={skill} className="flex items-center gap-2 px-3 py-1.5 bg-slate-grey-100 border border-slate-grey-200 rounded-lg text-xs font-bold text-slate-grey-600 hover:bg-white hover:border-sky-300 hover:text-carbon-black-DEFAULT transition-all">
                     {skill}
-                    <button onClick={() => setSkills(skills.filter(s => s !== skill))} className="text-zinc-700 hover:text-red-500 transition-colors">×</button>
+                    <button onClick={() => setSkills(skills.filter(s => s !== skill))} className="text-slate-grey-400 hover:text-red-500 transition-colors">×</button>
                   </motion.div>
                 ))}
               </div>
             </div>
           </section>
-          <section className="bg-emerald-500/5 border border-emerald-500/20 p-6 flex items-center gap-4 text-left">
-            <ShieldCheck className="text-emerald-500" size={20} />
+          <section className="crystal-card p-6 flex items-center gap-5 text-left border-l-4 border-l-emerald-500">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <ShieldCheck className="text-emerald-600" size={20} />
+            </div>
             <div>
-              <p className="text-[10px] font-black text-white uppercase tracking-widest">Verification: ACTIVE</p>
-              <p className="text-[8px] font-bold text-emerald-500/60 uppercase italic">Authenticated_Personnel</p>
+              <p className="text-xs font-black text-carbon-black-DEFAULT uppercase tracking-wider mb-0.5">Verification: Active</p>
+              <p className="text-[10px] font-bold text-slate-grey-400 uppercase tracking-widest">Authenticated Personnel</p>
             </div>
           </section>
         </div>

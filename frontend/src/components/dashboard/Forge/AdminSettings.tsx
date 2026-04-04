@@ -19,24 +19,6 @@ interface MemberProfile {
   status: MemberStatus;
 }
 
-const styles = {
-  container: { padding: '20px', color: '#d4d4d8', minHeight: '100vh', fontFamily: 'sans-serif' },
-  header: { borderBottom: '1px solid rgba(14, 165, 233, 0.2)', color: '#fff', paddingBottom: '15px', marginBottom: '25px', fontSize: '1.2rem', fontWeight: '900', textTransform: 'uppercase' as const, letterSpacing: '0.1em' },
-  tabContainer: { display: 'flex', marginBottom: '25px', gap: '10px' },
-  tab: { padding: '10px 20px', cursor: 'pointer', background: '#09090b', border: '1px solid #27272a', color: '#71717a', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' as const, letterSpacing: '0.1em', transition: 'all 0.3s ease' },
-  activeTab: { borderColor: '#0ea5e9', color: '#fff', backgroundColor: 'rgba(14, 165, 233, 0.1)', boxShadow: '0 0 15px rgba(14, 165, 233, 0.1)' },
-  section: { marginBottom: '30px', padding: '30px', backgroundColor: '#09090b', border: '1px solid #18181b', borderRadius: '4px', position: 'relative' as const },
-  subHeader: { color: '#0ea5e9', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' as const, letterSpacing: '0.2em', marginBottom: '20px', marginTop: 0 },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
-  formGroup: { display: 'flex', flexDirection: 'column' as const, marginBottom: '15px' },
-  label: { fontSize: '9px', fontWeight: '900', color: '#52525b', textTransform: 'uppercase' as const, marginBottom: '8px', letterSpacing: '0.05em' },
-  input: { padding: '12px', backgroundColor: '#020203', border: '1px solid #18181b', color: '#fff', fontSize: '12px', borderRadius: '2px', outline: 'none', transition: 'border-color 0.3s' },
-  button: { padding: '12px 24px', cursor: 'pointer', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' as const, border: 'none', borderRadius: '2px', transition: 'all 0.3s ease' },
-  primaryBtn: { backgroundColor: '#0ea5e9', color: '#000', boxShadow: '0 0 15px rgba(14, 165, 233, 0.2)' },
-  imagePreviewSquare: { width: '100px', height: '100px', borderRadius: '4px', border: '1px dashed #27272a', overflow: 'hidden', backgroundColor: '#020203', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  chip: { backgroundColor: 'rgba(14, 165, 233, 0.05)', border: '1px solid rgba(14, 165, 233, 0.3)', color: '#0ea5e9', padding: '4px 10px', fontSize: '9px', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }
-};
-
 const AdminSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'SYSTEM' | 'RETIRED'>('SYSTEM');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -90,7 +72,7 @@ const AdminSettings: React.FC = () => {
   const handleIdentitySubmit = (e: FormEvent) => {
     e.preventDefault();
     if (adminData.password && adminData.password !== adminData.confirmPassword) {
-      alert("CRITICAL ERROR: Security keys do not match!");
+      alert("System Action Invalid: Authentication keys do not match!");
       return;
     }
     setShowConfirmModal(true);
@@ -101,99 +83,134 @@ const AdminSettings: React.FC = () => {
     if (adminData.photoUrl) localStorage.setItem("SDC_ADMIN_AVATAR", adminData.photoUrl);
     window.dispatchEvent(new Event("admin_settings_updated"));
     setShowConfirmModal(false);
-    alert("SYSTEM: Identity Override Successful.");
+    alert("System Overridden. Identity Update Successful.");
   };
 
   const handleRegistrySubmit = (e: FormEvent) => {
     e.preventDefault();
-    alert("ARCHIVE DEPLOYED: Personnel data moved to Passout Registry.");
+    alert("Record Saved: Personnel data successfully moved to Registry.");
   };
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.header}>Nexus_Settings</h1>
-
-      <div style={styles.tabContainer}>
-        <button style={activeTab === 'SYSTEM' ? { ...styles.tab, ...styles.activeTab } : styles.tab} onClick={() => setActiveTab('SYSTEM')}>Admin_&_Security</button>
-        <button style={activeTab === 'RETIRED' ? { ...styles.tab, ...styles.activeTab } : styles.tab} onClick={() => setActiveTab('RETIRED')}>Passout_Registry</button>
+    <div className="text-carbon-black-600 font-sans text-left">
+      <div className="flex gap-4 mb-8">
+        <button 
+          className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 rounded-xl ${activeTab === 'SYSTEM' ? 'bg-sky-500 text-white shadow-md' : 'bg-white border text-slate-grey-500 border-slate-grey-200 hover:text-carbon-black-DEFAULT hover:border-sky-300'}`} 
+          onClick={() => setActiveTab('SYSTEM')}
+        >
+          Administrator & Security
+        </button>
+        <button 
+          className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 rounded-xl ${activeTab === 'RETIRED' ? 'bg-sky-500 text-white shadow-md' : 'bg-white border text-slate-grey-500 border-slate-grey-200 hover:text-carbon-black-DEFAULT hover:border-sky-300'}`} 
+          onClick={() => setActiveTab('RETIRED')}
+        >
+          Passout Registry
+        </button>
       </div>
 
       {activeTab === 'SYSTEM' && (
         <div className="animate-in fade-in duration-500">
-          <form style={styles.section} onSubmit={handleIdentitySubmit}>
-            <h2 style={styles.subHeader}>Operator_Profile</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginBottom: '25px' }}>
-              <div className="w-20 h-20 rounded-full border-2 border-sky-500 overflow-hidden bg-black flex items-center justify-center">
-                {adminData.photoUrl ? <img src={adminData.photoUrl} alt="Admin" className="w-full h-full object-cover" /> : <span className="text-zinc-600 text-[10px]">{adminData.name.substring(0,2)}</span>}
+          <form className="crystal-card p-8" onSubmit={handleIdentitySubmit}>
+            <h2 className="text-xl font-black uppercase text-carbon-black-DEFAULT tracking-tight mb-8 flex items-center gap-2 border-b-2 border-slate-grey-200/50 pb-4">
+               Operator Profile
+            </h2>
+            <div className="flex items-center gap-8 mb-8">
+              <div className="w-24 h-24 rounded-full border-4 border-sky-100 overflow-hidden bg-slate-grey-50 flex items-center justify-center shadow-lg">
+                {adminData.photoUrl ? <img src={adminData.photoUrl} alt="Admin" className="w-full h-full object-cover" /> : <span className="text-slate-grey-400 font-bold text-xl">{adminData.name.substring(0,2)}</span>}
               </div>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Update_Avatar</label>
-                <input type="file" accept="image/*" onChange={handleAdminPhoto} className="text-[10px] text-zinc-500" />
+              <div className="flex flex-col">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-grey-500 mb-2">Update Avatar</label>
+                <input type="file" accept="image/*" onChange={handleAdminPhoto} className="text-sm font-semibold text-slate-grey-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-sky-50 file:text-sky-600 hover:file:bg-sky-100 transition-colors" />
               </div>
             </div>
-            <div style={styles.grid}>
-              <div style={styles.formGroup}><label style={styles.label}>Operator_Alias</label><input type="text" style={styles.input} value={adminData.name} onChange={(e) => setAdminData({...adminData, name: e.target.value.toUpperCase()})} /></div>
-              <div style={styles.formGroup}><label style={styles.label}>Reset_Key</label><input type="password" style={styles.input} value={adminData.password} onChange={(e) => setAdminData({...adminData, password: e.target.value})} placeholder="New key..." /></div>
-              <div style={styles.formGroup}><label style={styles.label}>Confirm_Key</label><input type="password" style={styles.input} value={adminData.confirmPassword} onChange={(e) => setAdminData({...adminData, confirmPassword: e.target.value})} placeholder="Verify key..." /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Operator Alias</label>
+                <input type="text" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" value={adminData.name} onChange={(e) => setAdminData({...adminData, name: e.target.value.toUpperCase()})} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Reset Authorization Key</label>
+                <input type="password" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" value={adminData.password} onChange={(e) => setAdminData({...adminData, password: e.target.value})} placeholder="New key..." />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Confirm Authorization Key</label>
+                <input type="password" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" value={adminData.confirmPassword} onChange={(e) => setAdminData({...adminData, confirmPassword: e.target.value})} placeholder="Verify key..." />
+              </div>
             </div>
-            <button type="submit" style={{ ...styles.button, ...styles.primaryBtn, marginTop: '10px' }}>Apply_Override</button>
+            <button type="submit" className="px-8 py-3 bg-sky-500 text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-md transition-colors hover:bg-sky-600 gaming-clip-btn">Apply Identification Override</button>
           </form>
         </div>
       )}
 
       {activeTab === 'RETIRED' && (
-        <form style={styles.section} className="animate-in fade-in duration-500" onSubmit={handleRegistrySubmit}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: '40px', height: '2px', backgroundColor: '#0ea5e9' }} />
-          <h2 style={styles.subHeader}>Archive_Personnel_Deployment</h2>
+        <form className="crystal-card p-8 animate-in fade-in duration-500" onSubmit={handleRegistrySubmit}>
+          <h2 className="text-xl font-black uppercase text-carbon-black-DEFAULT tracking-tight mb-8 flex items-center gap-2 border-b-2 border-slate-grey-200/50 pb-4">
+             Archive Personnel Deployment
+          </h2>
 
-          <div className="flex gap-8 mb-8 items-start text-left">
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Profile_Visual</label>
-              <div style={styles.imagePreviewSquare}>
-                {newMember.profileImage ? <img src={newMember.profileImage} alt="Archive" className="w-full h-full object-cover" /> : <Upload className="text-zinc-800" size={24} />}
+          <div className="flex flex-col md:flex-row gap-10 mb-10 items-start text-left">
+            <div className="flex flex-col">
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-grey-500 mb-2">Profile Visual</label>
+              <div className="w-32 h-32 rounded-xl border-4 border-dashed border-slate-grey-200 overflow-hidden bg-white flex items-center justify-center">
+                {newMember.profileImage ? <img src={newMember.profileImage} alt="Archive" className="w-full h-full object-cover" /> : <Upload className="text-slate-grey-300" size={32} />}
               </div>
-              <input type="file" accept="image/*" onChange={handleRegistryPhoto} className="mt-3 text-[9px] text-zinc-600" />
+              <input type="file" accept="image/*" onChange={handleRegistryPhoto} className="mt-4 text-[10px] uppercase font-bold text-slate-grey-500 w-40" />
             </div>
 
-            <div className="flex-1 grid grid-cols-2 gap-4">
-              <div style={styles.formGroup}><label style={styles.label}>Full_Name</label><input type="text" style={styles.input} required placeholder="Personnel Name" onChange={(e) => setNewMember({...newMember, fullName: e.target.value})} /></div>
-              <div style={styles.formGroup}><label style={styles.label}>Personnel_ID</label><input type="text" style={styles.input} required placeholder="SDC-HIST-XX" onChange={(e) => setNewMember({...newMember, personnelId: e.target.value})} /></div>
-              <div style={styles.formGroup}><label style={styles.label}>Assigned_Role</label><input type="text" style={styles.input} required placeholder="e.g. Lead Developer" onChange={(e) => setNewMember({...newMember, role: e.target.value})} /></div>
-              <div style={styles.formGroup}><label style={styles.label}>LinkedIn_Protocol_URL</label><input type="url" style={styles.input} placeholder="https://linkedin.com/in/..." onChange={(e) => setNewMember({...newMember, linkedInUrl: e.target.value})} /></div>
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Full Name</label>
+                <input type="text" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" required placeholder="Personnel Name" onChange={(e) => setNewMember({...newMember, fullName: e.target.value})} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Personnel ID</label>
+                <input type="text" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" required placeholder="SDC-HIST-XX" onChange={(e) => setNewMember({...newMember, personnelId: e.target.value})} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Assigned Role</label>
+                <input type="text" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" required placeholder="e.g. Lead Developer" onChange={(e) => setNewMember({...newMember, role: e.target.value})} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">LinkedIn Identifier</label>
+                <input type="url" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors" placeholder="https://linkedin.com/in/..." onChange={(e) => setNewMember({...newMember, linkedInUrl: e.target.value})} />
+              </div>
             </div>
           </div>
 
-          <div style={styles.formGroup} className="text-left">
-            <label style={styles.label}>Tech_Stack_Archive (Press Enter to Add)</label>
-            <div className="flex gap-2 mb-3">
-              <input type="text" style={{ ...styles.input, flex: 1 }} placeholder="Input skill (e.g. REACT)" value={skillInput} 
+          <div className="flex flex-col text-left mb-6">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-grey-500 mb-2">Tech Stack Arsenal <span className="lowercase font-normal tracking-normal ml-1">(Press Enter)</span></label>
+            <div className="flex gap-4 mb-4">
+              <input type="text" className="bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors flex-1" placeholder="Input skill (e.g. REACT)" value={skillInput} 
                 onChange={(e) => setSkillInput(e.target.value)} 
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSkill(e)} />
-              <button onClick={() => handleAddSkill()} type="button" className="px-4 bg-zinc-800 border border-white/5 text-white hover:bg-sky-500 hover:text-black transition-all rounded-sm"><Plus size={16}/></button>
+              <button onClick={() => handleAddSkill()} type="button" className="px-6 bg-sky-50 text-sky-600 border border-sky-100 hover:bg-sky-500 hover:text-white transition-all rounded-xl font-bold uppercase tracking-widest text-xs"><Plus size={20}/></button>
             </div>
             <div className="flex flex-wrap gap-2">
               {newMember.techStack.map(skill => (
-                <div key={skill} style={styles.chip}>{skill} <X size={10} className="cursor-pointer hover:text-white" onClick={() => removeSkill(skill)} /></div>
+                <div key={skill} className="px-3 py-1.5 bg-slate-grey-50 border border-slate-grey-200 text-slate-grey-600 text-[10px] font-bold rounded-lg uppercase tracking-widest flex items-center gap-2">
+                  {skill} 
+                  <X size={12} className="cursor-pointer hover:text-red-500 text-slate-grey-400 transition-colors" onClick={() => removeSkill(skill)} />
+                </div>
               ))}
             </div>
           </div>
 
-          <button type="submit" style={{ ...styles.button, ...styles.primaryBtn, width: '100%', marginTop: '20px' }}>Authorize_Archive_Deploy</button>
+          <button type="submit" className="w-full py-4 mt-6 bg-carbon-black-DEFAULT text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-md transition-colors hover:bg-sky-500 gaming-clip-btn">Authorize Archive Entry Deployment</button>
         </form>
       )}
 
       <AnimatePresence>
         {showConfirmModal && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-950 border border-sky-500/30 p-8 max-w-md w-full relative">
-              <div className="flex items-center gap-4 mb-6">
-                <ShieldAlert className="text-sky-500" size={24} />
-                <h3 className="text-white font-black uppercase text-sm tracking-widest text-left">Authorize_Override?</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/80 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="crystal-card p-8 max-w-md w-full relative border-2 border-sky-300 shadow-2xl">
+              <div className="flex items-center gap-4 mb-6 border-b-2 border-slate-grey-200/50 pb-4">
+                <ShieldAlert className="text-sky-500" size={28} />
+                <h3 className="text-carbon-black-DEFAULT font-black uppercase text-lg tracking-tight text-left">Confirm Protocol Override?</h3>
               </div>
-              <p className="text-[11px] text-zinc-400 mb-8 italic border-l-2 border-sky-500/50 pl-4 text-left">"Are you sure you want to update the primary identity protocols?"</p>
+              <p className="text-sm font-semibold text-slate-grey-500 mb-8 border-l-4 border-sky-500 pl-4 py-1 text-left">"You are about to modify the core administrative credentials for this portal instance. Acknowledge and proceed?"</p>
               <div className="flex gap-4">
-                <button onClick={finalUpdateProtocol} className="flex-1 py-3 bg-sky-500 text-black font-black uppercase text-[10px] hover:bg-white transition-all">Authorize</button>
-                <button onClick={() => setShowConfirmModal(false)} className="flex-1 py-3 bg-zinc-900 text-zinc-500 font-black uppercase text-[10px] border border-white/5">Abort</button>
+                <button onClick={finalUpdateProtocol} className="flex-1 py-4 bg-sky-500 text-white font-black uppercase text-xs tracking-widest hover:bg-sky-600 transition-all rounded-xl gaming-clip-btn">Acknowledge</button>
+                <button onClick={() => setShowConfirmModal(false)} className="flex-1 py-4 bg-slate-grey-100 text-slate-grey-600 font-bold uppercase text-xs tracking-widest hover:bg-slate-grey-200 transition-all rounded-xl border border-slate-grey-200">Abort</button>
               </div>
             </motion.div>
           </div>

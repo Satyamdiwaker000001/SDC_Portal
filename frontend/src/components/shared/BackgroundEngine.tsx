@@ -15,9 +15,7 @@ export const BackgroundEngine = () => {
   );
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-      <div className="absolute inset-0 bg-linear-to-b from-slate-900 to-[#020617]" />
-      <div className="absolute inset-0 bg-size-[4rem_4rem] bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] opacity-10" />
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-black">
       {particles.map((p) => (
         <motion.div
           key={p.id}

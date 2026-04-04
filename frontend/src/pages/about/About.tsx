@@ -1,7 +1,7 @@
-/* cspell:disable */
-import { ShieldCheck, Cpu, Zap, Layers, Globe } from "lucide-react"; // Globe add kar diya
+import { ShieldCheck, Cpu, Zap, Layers, Globe } from "lucide-react"; 
 import { motion } from "framer-motion";
-import Navbar from "../landingpage/Navbar";
+import { soundManager } from "../../utils/SoundManager";
+import { HackyText } from "../../components/shared/HackyText";
 
 export default function About() {
   const CORE_VALUES = [
@@ -12,54 +12,64 @@ export default function About() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#020203] text-white selection:bg-sky-500/30 font-sans">
-      <Navbar />
+    <div className="min-h-screen bg-[#fdfdfd] text-black selection:bg-kpr-green font-sans relative overflow-x-hidden pt-32">
+      
+      {/* Background Component */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[#fdfdfd]" />
+      </div>
 
-      <main className="pt-32 pb-20 px-10 max-w-5xl mx-auto relative z-10">
-        <section className="mb-24 text-center">
-          <motion.h1 
+
+      <main className="pt-48 pb-32 px-6 md:px-12 max-w-5xl mx-auto relative z-10">
+        <section className="mb-32 text-left relative">
+          <motion.div
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
-            className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter mb-6"
+            transition={{ duration: 0.8 }}
           >
-            WHO WE <span className="text-sky-500 drop-shadow-[0_0_15px_#0ea5e966]">ARE</span>
-          </motion.h1>
-          <p className="max-w-2xl mx-auto text-zinc-500 text-[11px] font-black uppercase tracking-[0.4em] leading-loose">
-            The Software Development Cell is a nexus of engineering minds dedicated to architecting the digital ecosystem. We don't just write code; we engineer future-proof solutions.
-          </p>
+            <p className="kpr-mono text-black text-[10px] mb-4 opacity-40 font-black tracking-widest uppercase">Operational_Origins</p>
+            <HackyText 
+              text="SYSTEM_GENESIS" 
+              className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter mb-10 leading-none text-black" 
+            />
+            <p className="max-w-xl kpr-mono text-[11px] leading-relaxed text-black border-l-4 border-black pl-8 py-4 opacity-60">
+              THE SOFTWARE DEVELOPMENT CELL IS A PRIVILEGED OPERATIONAL NODE DEDICATED TO ARCHITECTING THE NEXT GENERATION OF DIGITAL SYSTEMS. WE DO NOT JUST WRITE CODE; WE ENGINEER UNBREAKABLE FUTURES.
+            </p>
+          </motion.div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {CORE_VALUES.map((val, i) => (
             <motion.div 
               key={i}
               initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              whileHover={{ x: 10 }}
-              className="flex gap-6 p-8 border border-white/5 bg-zinc-950/30 hover:border-sky-500/30 transition-all"
+              onMouseEnter={() => soundManager.playHover()}
+              className="group flex flex-col gap-8 p-12 kpr-panel bg-white border-black/5 hover:border-kpr-green transition-all relative"
             >
-              <div className="shrink-0 w-12 h-12 bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 shadow-[0_0_15px_#0ea5e922]">
-                <val.icon size={24} />
+              <div className="shrink-0 w-20 h-20 bg-black flex items-center justify-center text-white group-hover:bg-kpr-green group-hover:text-black transition-colors duration-500" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px))' }}>
+                <val.icon size={32} />
               </div>
               <div>
-                <h3 className="text-lg font-black uppercase tracking-widest text-white mb-2 italic">{val.title}</h3>
-                <p className="text-zinc-600 text-[9px] font-bold uppercase tracking-wider leading-relaxed">{val.desc}</p>
+                <h3 className="text-2xl font-black uppercase tracking-tight text-black mb-4 italic italic">{val.title}</h3>
+                <p className="text-black opacity-40 kpr-mono text-[10px] uppercase leading-relaxed tracking-widest">{val.desc}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
         {/* Footer Area with Globe */}
-        <footer className="mt-32 p-12 border-t border-white/5 text-center">
+        <footer className="mt-48 p-20 border-t border-black/5 text-center relative">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="inline-block"
+            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            className="inline-block opacity-10"
           >
-            <Globe className="text-sky-500/20 mb-6" size={40} />
+            <Globe className="text-black" size={64} strokeWidth={1} />
           </motion.div>
-          <p className="text-[9px] font-black uppercase tracking-[0.8em] text-zinc-800">SDC_CORE_SYSTEM // EST. 2024</p>
+          <p className="kpr-mono text-[10px] text-black tracking-[1em] font-black uppercase mt-12 opacity-20">SDC_CORE_SYSTEM // ARCHITECT_NULL</p>
         </footer>
       </main>
     </div>

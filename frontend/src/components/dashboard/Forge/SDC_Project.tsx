@@ -64,109 +64,113 @@ export const SDC_Project = () => {
   };
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-700 pb-20 text-zinc-300 text-left">
+    <div className="w-full space-y-8 animate-in fade-in duration-700 pb-20 text-carbon-black-DEFAULT text-left font-sans">
       
       {/* --- TOP HUD --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Total_Projects", val: stats.total, icon: Layers, color: "text-white" },
-          { label: "Live_Deployments", val: stats.live, icon: Activity, color: "text-emerald-400" },
-          { label: "Awaiting_Handshake", val: stats.pending, icon: Clock, color: "text-orange-400" },
+          { label: "Total Projects", val: stats.total, icon: Layers, bg: "bg-sky-50 border-sky-100", color: "text-sky-600", iconColor: "text-sky-400" },
+          { label: "Live Deployments", val: stats.live, icon: Activity, bg: "bg-emerald-50 border-emerald-100", color: "text-emerald-600", iconColor: "text-emerald-400" },
+          { label: "Awaiting Handshake", val: stats.pending, icon: Clock, bg: "bg-orange-50 border-orange-100", color: "text-orange-600", iconColor: "text-orange-400" },
         ].map((s, i) => (
-          <div key={i} className="bg-zinc-900/30 border border-white/5 p-4 flex items-center justify-between rounded-sm text-left">
-            <div>
-              <p className="text-[7px] font-black text-zinc-500 uppercase tracking-widest">{s.label}</p>
-              <p className={`text-xl font-black italic tracking-tighter ${s.color}`}>{s.val.toString().padStart(2, '0')}</p>
+          <div key={i} className={`border-2 p-6 flex flex-col justify-between rounded-2xl shadow-sm relative overflow-hidden ${s.bg}`}>
+            <div className="flex justify-between items-start mb-4">
+               <div>
+                  <p className="text-xs font-black text-slate-grey-500 uppercase tracking-widest">{s.label}</p>
+               </div>
+               <s.icon size={24} className={s.iconColor} />
             </div>
-            <s.icon size={20} className="text-zinc-800" />
+            <p className={`text-4xl font-black italic tracking-tight ${s.color}`}>{s.val.toString().padStart(2, '0')}</p>
           </div>
         ))}
       </div>
 
       {/* --- HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-center border-b border-white/5 pb-6 gap-4">
-        <div className="flex items-center gap-3 w-full">
-          <div className="p-2.5 bg-sky-500/10 border border-sky-500/20 rotate-45">
-            <Briefcase className="text-sky-400 -rotate-45" size={20} />
+      <div className="flex flex-col md:flex-row justify-between items-center border-b-2 border-slate-grey-200/50 pb-6 gap-4">
+        <div className="flex items-center gap-4 w-full">
+          <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center border-2 border-sky-200 shadow-sm">
+            <Briefcase className="text-sky-600" size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white tracking-tighter uppercase italic leading-none text-left">Nexus_Project_Core</h2>
-            <p className="text-[8px] text-zinc-600 font-bold tracking-[0.3em] uppercase mt-1 text-left">Operational_Registry</p>
+            <h2 className="text-2xl font-black text-carbon-black-DEFAULT tracking-tight uppercase leading-none text-left">Nexus Project Core</h2>
+            <p className="text-[10px] text-slate-grey-500 font-bold tracking-widest uppercase mt-2 text-left">Operational Registry</p>
           </div>
         </div>
 
         <button 
           onClick={() => setView(view === 'list' ? 'add' : 'list')}
-          className={`px-6 py-2.5 font-black text-[9px] uppercase tracking-widest flex items-center gap-2 transition-all rounded-sm border shrink-0 ${view === 'add' ? 'bg-white text-black border-white' : 'bg-black text-white border-white/10 hover:border-sky-500/50'}`}
+          className={`px-8 py-3 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl border-2 shrink-0 shadow-sm gaming-clip-btn ${view === 'add' ? 'bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100' : 'bg-carbon-black-DEFAULT text-white border-carbon-black-DEFAULT hover:bg-carbon-black-600 hover:border-carbon-black-600'}`}
         >
-          {view === 'list' ? <><Plus size={14} /> New_Forge</> : <><Clock size={14} /> View_Matrix</>}
+          {view === 'list' ? <><Plus size={16} /> New Forge</> : <><Clock size={16} /> View Matrix</>}
         </button>
       </div>
 
       <AnimatePresence mode="wait">
         {view === 'list' ? (
           <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <div className="bg-black border border-white/5 overflow-hidden rounded-sm relative">
+            <div className="crystal-card overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-zinc-900/50 text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]">
-                    <th className="p-4 w-12 text-center">Sel</th>
-                    <th className="p-4">Ident / Title</th>
-                    <th className="p-4">Assigned_Team</th>
-                    <th className="p-4">Integrity</th>
-                    <th className="p-4 text-center">Target_Date</th> {/* DEADLINE HEADER */}
-                    <th className="p-4 text-center">Status</th>
-                    <th className="p-4 text-right">Actions</th>
+                  <tr className="bg-slate-grey-50 border-b-2 border-slate-grey-200 text-[10px] font-black text-slate-grey-500 uppercase tracking-widest">
+                    <th className="p-5 w-16 text-center">Sel</th>
+                    <th className="p-5">Ident / Title</th>
+                    <th className="p-5">Assigned Team</th>
+                    <th className="p-5">Integrity</th>
+                    <th className="p-5 text-center">Target Date</th>
+                    <th className="p-5 text-center">Status</th>
+                    <th className="p-5 text-right w-24">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y-2 divide-slate-grey-100">
                   {sortedProjects.map((project) => (
-                    <tr key={project.id} className="group hover:bg-white/2 transition-all"> 
-                      <td className="p-4 text-center">
-                        <button onClick={() => toggleSelect(project.id)} className="text-zinc-700 hover:text-sky-400 transition-colors">
-                          {selectedIds.includes(project.id) ? <CheckSquare size={16} className="text-sky-400" /> : <Square size={16} />}
+                    <tr key={project.id} className="group hover:bg-sky-50/50 transition-colors bg-white"> 
+                      <td className="p-5 text-center">
+                        <button onClick={() => toggleSelect(project.id)} className="text-slate-grey-400 hover:text-sky-500 transition-colors">
+                          {selectedIds.includes(project.id) ? <CheckSquare size={20} className="text-sky-500" /> : <Square size={20} />}
                         </button>
                       </td>
-                      <td className="p-4">
+                      <td className="p-5">
                         <div className="flex flex-col text-left">
-                          <span className="text-[9px] font-mono text-zinc-600 mb-1">{project.id} // {project.type}</span>
-                          <span className="text-xs font-black text-white group-hover:text-sky-400 transition-colors uppercase italic">{project.name}</span>
+                          <span className="text-[10px] font-bold text-slate-grey-500 mb-1">{project.id} <span className="text-slate-grey-300 mx-1">/</span> {project.type}</span>
+                          <span className="text-sm font-black text-carbon-black-DEFAULT group-hover:text-sky-600 transition-colors uppercase pr-4">{project.name}</span>
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-5">
                         <div className="flex items-center gap-2">
-                          <Users size={12} className="text-zinc-600" />
-                          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">{project.team}</span>
+                          <div className="w-6 h-6 rounded-md bg-slate-grey-100 flex items-center justify-center">
+                             <Users size={12} className="text-slate-grey-600" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-grey-600 uppercase tracking-tight">{project.team}</span>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <div className="w-32">
-                          <div className="flex justify-between text-[7px] font-black uppercase mb-1">
-                            <span className="text-zinc-500 font-mono tracking-widest">Sync</span>
-                            <span className="text-sky-500">{project.progress}%</span>
+                      <td className="p-5">
+                        <div className="w-40">
+                          <div className="flex justify-between text-[10px] font-bold uppercase mb-2">
+                            <span className="text-slate-grey-500 tracking-widest">Sync</span>
+                            <span className="text-sky-600">{project.progress}%</span>
                           </div>
-                          <div className="h-1 bg-zinc-900 border border-white/5 rounded-full overflow-hidden">
+                          <div className="h-2 bg-slate-grey-100 rounded-full overflow-hidden border border-slate-grey-200">
                             <motion.div 
                               initial={{ width: 0 }} animate={{ width: `${project.progress}%` }}
-                              className={`h-full ${project.progress === 100 ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-sky-500'}`} 
+                              className={`h-full ${project.progress === 100 ? 'bg-emerald-500' : 'bg-sky-500'}`} 
                             />
                           </div>
                         </div>
                       </td>
-                      <td className="p-4 text-center"> {/* DEADLINE COLUMN */}
-                        <div className="flex flex-col items-center gap-1">
-                           <Calendar size={12} className="text-zinc-600" />
-                           <span className="text-[10px] font-mono font-bold text-zinc-400">{project.date}</span>
+                      <td className="p-5 text-center">
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                           <Calendar size={14} className="text-slate-grey-400 group-hover:text-sky-500 transition-colors" />
+                           <span className="text-[10px] font-bold text-slate-grey-600">{project.date}</span>
                         </div>
                       </td>
-                      <td className="p-4 text-center">
-                        <span className={`text-[8px] font-black uppercase px-2 py-1 border ${project.status === 'LIVE' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' : 'border-orange-500/30 text-orange-400 bg-orange-500/5'}`}>
+                      <td className="p-5 text-center">
+                        <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border ${project.status === 'LIVE' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : project.status === 'COMPLETED' ? 'border-sky-200 text-sky-700 bg-sky-50' : 'border-orange-200 text-orange-700 bg-orange-50'}`}>
                           {project.status}
                         </span>
                       </td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => deleteProject(project.id)} className="p-2 text-zinc-800 hover:text-red-500 transition-all">
-                          <Trash2 size={14} />
+                      <td className="p-5 text-right">
+                        <button onClick={() => deleteProject(project.id)} className="p-2 text-slate-grey-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all inline-flex items-center justify-center">
+                          <Trash2 size={16} />
                         </button>
                       </td>
                     </tr>
@@ -177,31 +181,32 @@ export const SDC_Project = () => {
           </motion.div>
         ) : (
           <motion.div key="add" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="max-w-3xl mx-auto text-left">
-            <div className="bg-zinc-900/20 border border-white/5 p-10 rounded-sm relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 shadow-[0_0_15px_#10b981]" />
-              <form onSubmit={handleManualSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-1">Project_Identity</label>
-                    <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} type="text" placeholder="E.G. NEXUS_CORE" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-emerald-500/50" />
+            <div className="crystal-card p-10 relative overflow-hidden border-t-4 border-t-sky-400">
+              <form onSubmit={handleManualSubmit} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest ml-1">Project Identity</label>
+                    <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} type="text" placeholder="e.g. Nexus Core" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-1">Domain_Sector</label>
-                    <input required value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} type="text" placeholder="E.G. WEB_APP" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-emerald-500/50" />
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest ml-1">Domain Sector</label>
+                    <input required value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} type="text" placeholder="e.g. Web App" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors placeholder:text-slate-grey-400" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-1">Assign_Team</label>
-                    <select required value={formData.team} onChange={e => setFormData({...formData, team: e.target.value})} className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-emerald-500/50 scheme-dark">
-                      <option value="">SELECT_TEAM</option>
-                      {teams.map(t => <option key={t.id} value={t.name}>{t.name.toUpperCase()}</option>)}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest ml-1">Assign Team</label>
+                    <select required value={formData.team} onChange={e => setFormData({...formData, team: e.target.value})} className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-carbon-black-DEFAULT outline-none focus:border-sky-500 transition-colors appearance-none">
+                      <option value="" disabled className="text-slate-grey-400">Select Team</option>
+                      {teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-1">Target_Deadline</label>
-                    <input required value={formData.deadline} onChange={e => setFormData({...formData, deadline: e.target.value})} type="date" className="w-full bg-black border border-white/10 p-3 text-[11px] font-bold text-white outline-none focus:border-emerald-500/50 scheme-dark" />
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-grey-500 uppercase tracking-widest ml-1">Target Deadline</label>
+                    <input required value={formData.deadline} onChange={e => setFormData({...formData, deadline: e.target.value})} type="date" className="w-full bg-white border-2 border-slate-grey-200 rounded-xl p-4 text-sm font-bold text-slate-grey-500 outline-none focus:border-sky-500 transition-colors" />
                   </div>
                 </div>
-                <button type="submit" className="w-full py-4 bg-white text-black font-black text-[10px] uppercase tracking-[0.4em] hover:bg-emerald-400 transition-all shadow-2xl">Initialize_Forge_Protocol</button>
+                <div className="pt-4 border-t-2 border-slate-grey-100">
+                    <button type="submit" className="w-full py-5 bg-sky-500 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-sky-600 transition-all shadow-md gaming-clip-btn">Initialize Forge Protocol</button>
+                </div>
               </form>
             </div>
           </motion.div>

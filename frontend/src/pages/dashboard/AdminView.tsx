@@ -1,12 +1,13 @@
-/* cspell:disable */
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, LogOut, Layers, Briefcase, Settings, UserCheck,
-  Globe, Radio, Megaphone, Send, Menu, User, ShieldCheck, Download, UserPlus
+  Globe, Menu, Download, UserPlus, Megaphone,
+  Cpu, Activity, Database
 } from "lucide-react"; 
 import type { LucideIcon } from "lucide-react"; 
 import { useAuth } from "../../context/useAuth";
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { soundManager } from "../../utils/SoundManager";
 
 // --- COMPONENTS ---
 import { RecruitmentForm } from '../../components/dashboard/Forge/RecruitmentForm';
@@ -14,20 +15,18 @@ import { SDC_User } from "../../components/views/SDC_User";
 import { SDC_Team } from "../../components/dashboard/Forge/SDC_Team";
 import { SDC_Project } from "../../components/dashboard/Forge/SDC_Project";
 import AdminSettings from "../../components/dashboard/Forge/AdminSettings"; 
-import SdcLogo from "../../assets/SDC.png";
 
 type ViewType = 'overview' | 'recruitment' | 'registry' | 'members' | 'teams' | 'projects' | 'config' | 'announce' | 'deadlines';
 
-export default function AdminView({ userName }: { userName: string }) {
+export default function AdminView({ userName }: { userName?: string }) {
   const { logout, user } = useAuth();
   const [activeView, setActiveView] = useState<ViewType>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
-  const [isPosting, setIsPosting] = useState(false);
 
   // --- SETTINGS SYNC ---
   const [adminProfile, setAdminProfile] = useState({
-    name: localStorage.getItem("SDC_ADMIN_NAME") || user?.name || userName || "ADMIN",
+    name: localStorage.getItem("SDC_ADMIN_NAME") || user?.name || userName || "ADMIN_ROOT",
     avatar: localStorage.getItem("SDC_ADMIN_AVATAR") || ""
   });
 
@@ -35,7 +34,7 @@ export default function AdminView({ userName }: { userName: string }) {
     const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
     const syncProfile = () => {
       setAdminProfile({
-        name: localStorage.getItem("SDC_ADMIN_NAME") || "ADMIN",
+        name: localStorage.getItem("SDC_ADMIN_NAME") || "ADMIN_ROOT",
         avatar: localStorage.getItem("SDC_ADMIN_AVATAR") || ""
       });
     };
@@ -46,211 +45,333 @@ export default function AdminView({ userName }: { userName: string }) {
     };
   }, []);
 
-  // --- DATA STATES ---
-  const announcements = [
-    { id: 1, title: 'Recruitment Open!', body: 'Applications for SDC 2026 batch are now open.', priority: 'Important', date: '01/04/2026' },
-  ];
-  const [newAnn, setNewAnn] = useState({ title: '', body: '', priority: 'Normal' });
-
-  const teamsData = [{ name: 'Team Alpha', focus: 'Web Dev', mentor: 'Arjun', members: '3' }];
-  const projectsData = [{ name: 'Campus Connect', team: 'Team Alpha', deadline: '15/04/2026', progress: 78, status: 'Active' }];
-  const applicants = [{ id: "001", name: "Rahul Singh", email: "rahul@gmail.com", status: "Interested", class: "B.Tech 3rd" }];
-
-  // --- LOGIC HANDLERS ---
   const [isRecruitmentLive, setIsRecruitmentLive] = useState(() => localStorage.getItem("SDC_RECRUITMENT_STATUS") === "LIVE");
 
   const toggleRecruitment = () => {
+    soundManager.playConfirm();
     const newStatus = !isRecruitmentLive;
     setIsRecruitmentLive(newStatus);
     localStorage.setItem("SDC_RECRUITMENT_STATUS", newStatus ? "LIVE" : "OFFLINE");
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handlePostAnn = () => {
-    if(!newAnn.title || !newAnn.body) return;
-    alert("Broadcasting Signal...");
-    setIsPosting(false);
-  };
-
   const STATS = [
-    { label: "Total_Users", value: "42", color: "border-l-sky-500" },
-    { label: "Live_Projects", value: "08", color: "border-l-emerald-500" },
-    { label: "Active_Teams", value: "05", color: "border-l-yellow-500" },
-    { label: "Applicants", value: applicants.length.toString(), color: "border-l-purple-500" },
+    { label: "Total_Users", value: "42", ref: "USR-01" },
+    { label: "Live_Projects", value: "08", ref: "PRJ-01" },
+    { label: "Active_Teams", value: "05", ref: "TEAM-01" },
+    { label: "Applicants", value: "12", ref: "APP-01" },
   ];
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-[#020203] text-zinc-300 font-sans selection:bg-sky-500/30 text-[11px]">
-      
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden" />
-        )}
-      </AnimatePresence>
+  const ViewTitleMap: Record<string, string> = {
+    overview: 'COMMAND_OVERVIEW',
+    recruitment: 'ASPIRANT_REGISTRY',
+    registry: 'ADD_MEMBER',
+    members: 'TEAM_ROSTER',
+    teams: 'SQUAD_MGNT',
+    projects: 'PROJECT_OVERVIEW',
+    announce: 'BROADCAST_NET',
+    config: 'SYS_CONFIG'
+  };
 
-      <aside className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out w-52 border-r border-sky-500/10 bg-black flex flex-col z-60 shrink-0 text-left`}>
-        <div className="p-4 border-b border-white/5 flex justify-center">
-          <img src={SdcLogo} alt="SDC" className="w-28 h-auto brightness-125" />
+  return (
+    <div className="flex h-screen overflow-hidden bg-kpr-white text-kpr-black relative">
+      
+      {/* PERSISTENT SIDEBAR [MECHANICAL] */}
+      <aside className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:relative lg:translate-x-0 transition-transform duration-500 ease-in-out w-72 bg-white border-r border-kpr-grey flex flex-col z-[60] shadow-2xl`}>
+        <div className="p-8 border-b border-kpr-grey flex flex-col items-start relative overflow-hidden bg-white">
+           <div className="kpr-grid-main opacity-10 pointer-events-none" />
+           <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 bg-kpr-black flex items-center justify-center text-white font-black italic text-xl" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%)' }}>
+                S
+              </div>
+              <div className="flex flex-col">
+                 <span className="kpr-mono-label mb-1">SDC_ROOT</span>
+                 <span className="kpr-mono-value">V4.02_STABLE</span>
+              </div>
+           </div>
+           <h2 className="text-3xl font-black italic tracking-tighter line-clamp-1">{ViewTitleMap[activeView]}</h2>
         </div>
-        <nav className="flex-1 p-2 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">
-          <SidebarLink icon={LayoutDashboard} label="Overview" active={activeView === 'overview'} onClick={() => { setActiveView('overview'); setIsSidebarOpen(false); }} />
-          <SidebarLink icon={Globe} label="Recruitment" active={activeView === 'recruitment'} onClick={() => { setActiveView('recruitment'); setIsSidebarOpen(false); }} />
-          <div className="h-px bg-white/5 my-2 mx-3" />
-          <SidebarLink icon={UserPlus} label="Add Member" active={activeView === 'registry'} onClick={() => { setActiveView('registry'); setIsSidebarOpen(false); }} />
-          <SidebarLink icon={UserCheck} label="Members" active={activeView === 'members'} onClick={() => { setActiveView('members'); setIsSidebarOpen(false); }} />
-          <SidebarLink icon={Layers} label="Teams" active={activeView === 'teams'} onClick={() => { setActiveView('teams'); setIsSidebarOpen(false); }} />
-          <SidebarLink icon={Briefcase} label="Projects" active={activeView === 'projects'} onClick={() => { setActiveView('projects'); setIsSidebarOpen(false); }} />
-          <div className="h-px bg-white/5 my-2 mx-3" />
-          <SidebarLink icon={Megaphone} label="Announce" active={activeView === 'announce'} onClick={() => { setActiveView('announce'); setIsSidebarOpen(false); }} />
-          <SidebarLink icon={Settings} label="Settings" active={activeView === 'config'} onClick={() => { setActiveView('config'); setIsSidebarOpen(false); }} />
+        
+        <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar relative z-10 bg-white">
+          <SidebarNavBtn icon={LayoutDashboard} label="Overview" refCode="D-01" active={activeView === 'overview'} onClick={() => setActiveView('overview')} />
+          <SidebarNavBtn icon={Globe} label="Recruitment" refCode="D-02" active={activeView === 'recruitment'} onClick={() => setActiveView('recruitment')} />
+          <div className="h-[1px] bg-kpr-grey my-4 mx-4 opacity-50" />
+          <SidebarNavBtn icon={UserPlus} label="Add Member" refCode="M-01" active={activeView === 'registry'} onClick={() => setActiveView('registry')} />
+          <SidebarNavBtn icon={UserCheck} label="Members" refCode="M-02" active={activeView === 'members'} onClick={() => setActiveView('members')} />
+          <SidebarNavBtn icon={Layers} label="Teams" refCode="T-01" active={activeView === 'teams'} onClick={() => setActiveView('teams')} />
+          <SidebarNavBtn icon={Briefcase} label="Projects" refCode="P-01" active={activeView === 'projects'} onClick={() => setActiveView('projects')} />
+          <div className="h-[1px] bg-kpr-grey my-4 mx-4 opacity-50" />
+          <SidebarNavBtn icon={Megaphone} label="Announce" refCode="B-01" active={activeView === 'announce'} onClick={() => setActiveView('announce')} />
+          <SidebarNavBtn icon={Settings} label="Settings" refCode="S-01" active={activeView === 'config'} onClick={() => setActiveView('config')} />
         </nav>
-        <div className="p-4 border-t border-white/5">
-          <button onClick={logout} className="w-full flex items-center gap-3 px-3 py-2 font-black uppercase text-zinc-600 hover:text-red-500 transition-all group text-left"><LogOut size={16} /> <span className="text-[9px]">Exit</span></button>
+        
+        <div className="p-4 border-t border-kpr-grey bg-white relative z-10">
+           <div className="mb-4 flex items-center justify-between px-4">
+              <span className="kpr-mono-label">UPLINK_STABLE</span>
+              <Activity size={12} className="text-kpr-green animate-pulse" />
+           </div>
+           <button 
+             onClick={() => { soundManager.playClick(); logout(); }}
+             onMouseEnter={() => soundManager.playHover()}
+             className="w-full kpr-btn-notched flex items-center justify-center gap-3 bg-kpr-black hover:bg-red-500"
+           >
+             <LogOut size={16} /> SECURE_EXIT
+           </button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#020203] relative text-left w-full">
-        <header className="h-14 w-full border-b border-white/5 px-4 lg:px-8 flex items-center justify-between bg-black/60 backdrop-blur-md z-40 sticky top-0">
-          <div className="flex items-center gap-4 text-left">
-            <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-sky-500 rounded-sm hover:bg-sky-500/10"><Menu size={20} /></button>
-            <div className="hidden md:flex items-center gap-4 border-l border-white/10 pl-4 text-left">
-              <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-emerald-500" /><span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">SEC: <span className="text-emerald-500">ACTIVE</span></span></div>
+      {/* MAIN CONTENT AREA [HUD_MODE] */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
+        
+        {/* TOP HUD BAR */}
+        <header className="h-24 w-full border-b border-kpr-grey px-8 lg:px-12 flex items-center justify-between bg-white relative z-50">
+          <div className="flex items-center gap-8">
+            <button onClick={() => { soundManager.playSlide(); setIsSidebarOpen(!isSidebarOpen); }} className="lg:hidden p-3 bg-kpr-black text-white"><Menu size={20} /></button>
+            
+            <div className="hidden md:flex flex-col">
+               <span className="kpr-mono-label opacity-40">SYSTEM_NODE</span>
+               <span className="kpr-mono-value">AGRA_CENTRAL_01</span>
             </div>
-            <button onClick={toggleRecruitment} className={`flex items-center gap-2 px-3 py-1 border font-black uppercase transition-all rounded-sm text-[8px] ${isRecruitmentLive ? "border-emerald-500/50 text-emerald-500 bg-emerald-500/5" : "border-white/10 text-zinc-600"}`}>
-              <Radio size={10} className={isRecruitmentLive ? "animate-pulse" : ""} /> {isRecruitmentLive ? "LIVE_UPLINK" : "UPLINK_OFF"}
+
+            <button 
+              onClick={toggleRecruitment} 
+              onMouseEnter={() => soundManager.playHover()} 
+              className={`flex items-center gap-3 px-4 py-2 bg-kpr-white border border-kpr-grey hover:border-kpr-green transition-all group`}
+              style={{ clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}
+            >
+              <div className={`w-2 h-2 rounded-full ${isRecruitmentLive ? 'bg-kpr-green animate-pulse' : 'bg-kpr-grey'}`} />
+              <span className="kpr-mono-value">{isRecruitmentLive ? "RECRUITMENT_LIVE" : "RECRUITMENT_OFF"}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-4 lg:gap-8">
-            <div className="hidden sm:flex flex-col items-end pr-4 border-r border-white/10 text-right">
-              <span className="text-[10px] font-mono font-black text-white tracking-widest">{currentTime}</span>
-              <span className="text-[7px] text-zinc-600 uppercase font-black tracking-widest">System_Clock</span>
+          <div className="flex items-center gap-12">
+            <div className="hidden sm:flex flex-col items-end pr-12 border-r border-kpr-grey">
+              <span className="text-xl font-black italic text-kpr-black tracking-tighter">{currentTime}</span>
+              <span className="kpr-mono-label">SDC_SYSTEM_CLOCK</span>
             </div>
             
-            <div className="flex items-center gap-3 text-right">
-              <div className="text-right flex flex-col justify-center">
-                {/* --- HEADER FIX: White Text = ADMIN | Blue Text = OPERATOR_ROOT --- */}
-                <p className="font-black uppercase text-white leading-none tracking-widest text-[11px] mb-1">{adminProfile.name}</p>
-                <p className="text-[8px] font-black text-sky-500 uppercase italic tracking-widest opacity-100 leading-none">OPERATOR_ROOT</p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="font-black italic text-lg leading-none mb-1 text-kpr-black">{adminProfile.name}</p>
+                <p className="kpr-mono-label text-kpr-green">ROOT_STATUS_ACTIVE</p>
               </div>
-              <div className="w-9 h-9 border-2 border-sky-500/40 p-0.5 rotate-45 bg-zinc-900 flex items-center justify-center text-sky-400 font-black overflow-hidden shadow-[0_0_15px_rgba(14,165,233,0.3)] shrink-0">
+              <div className="w-12 h-12 bg-kpr-white border-2 border-kpr-grey flex items-center justify-center overflow-hidden" 
+                   style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%)' }}>
                 {adminProfile.avatar ? (
-                  <img src={adminProfile.avatar} alt="AD" className="-rotate-45 w-[140%] h-[140%] object-cover" />
+                  <img src={adminProfile.avatar} alt="AD" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="-rotate-45 text-[10px]">{adminProfile.name.substring(0,2).toUpperCase()}</span>
+                  <Database size={20} className="text-kpr-green" />
                 )}
               </div>
             </div>
           </div>
         </header>
 
-        <div className="p-6 lg:p-8 flex-1 overflow-y-auto custom-scrollbar relative z-10 text-left">
+        {/* HUD CONTENT [GRID_LOCKED] */}
+        <div className="p-8 lg:p-12 flex-1 overflow-y-auto custom-scrollbar z-10 w-full max-w-[1600px] mx-auto">
           {activeView === 'overview' && (
-            <div className="space-y-8 animate-in fade-in duration-500 text-left">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-12">
+              {/* STATS_MODULE */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
                 {STATS.map((stat, i) => (
-                  <div key={i} className={`bg-zinc-900/40 border border-white/5 border-l-2 ${stat.color} p-5 shadow-lg relative`}>
-                    <p className="font-black text-zinc-500 uppercase tracking-widest mb-3 text-[9px] opacity-70 text-left">{stat.label}</p>
-                    <h3 className="text-2xl font-black italic text-white text-left">{stat.value}</h3>
-                  </div>
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="kpr-panel p-8 group hover:border-kpr-green transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-8">
+                      <div className="space-y-1">
+                         <span className="kpr-mono-label opacity-40 block">{stat.ref}</span>
+                         <span className="kpr-mono-value opacity-60 group-hover:opacity-100 transition-opacity">{stat.label}</span>
+                      </div>
+                      <Cpu size={16} className="text-kpr-black/10 group-hover:text-kpr-green transition-colors" />
+                    </div>
+                    <h3 className="text-6xl font-black italic text-kpr-black tracking-tighter">{stat.value}</h3>
+                    <div className="absolute right-4 bottom-4 w-4 h-4 text-kpr-grey border-b border-r" />
+                  </motion.div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-zinc-950/40 border border-white/5 p-5 rounded-sm">
-                  <p className="text-[9px] font-black text-yellow-500 mb-4 uppercase border-b border-white/5 pb-2 flex justify-between items-center text-left">Teams Snapshot <button onClick={() => setActiveView('teams')} className="text-[7px] text-zinc-600 hover:text-white transition-colors">MANAGE</button></p>
-                  {teamsData.map((t, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-white/2 border-l border-yellow-500/30 mb-2 last:mb-0">
-                      <div className="text-left"><p className="text-zinc-200 font-black uppercase text-[10px] text-left">{t.name}</p><p className="text-zinc-600 text-[8px] text-left">Focus: {t.focus}</p></div>
-                      <span className="text-yellow-500 text-[8px] font-black">{t.members} MBRS</span>
-                    </div>
-                  ))}
+              
+              {/* SNAPSHOT_MODULES */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div className="kpr-panel p-10">
+                   <div className="flex justify-between items-end mb-12 border-b border-kpr-grey pb-8">
+                      <div>
+                         <span className="kpr-mono-label opacity-40 mb-2 block">MODULE_ROSTER</span>
+                         <h3 className="text-3xl font-black italic">SQUAD_SNAPSHOT</h3>
+                      </div>
+                      <button onClick={() => setActiveView('teams')} className="kpr-badge-neon hover:scale-105 transition-transform">MANAGE_ALL</button>
+                   </div>
+                   <div className="space-y-6">
+                      {["ALPHA_UNIT", "BRAVO_CORE", "GIGA_DRIVE"].map((t, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-6 bg-kpr-white border border-kpr-grey group hover:translate-x-2 transition-transform cursor-pointer">
+                           <div className="flex items-center gap-6">
+                              <span className="kpr-mono-label text-kpr-green">00{idx+1}</span>
+                              <span className="font-black italic text-xl">{t}</span>
+                           </div>
+                           <span className="kpr-mono-label opacity-40 group-hover:text-kpr-green">ACTIVE_SYNC</span>
+                        </div>
+                      ))}
+                   </div>
                 </div>
-                <div className="bg-zinc-950/40 border border-white/5 p-5 rounded-sm text-left">
-                  <p className="text-[9px] font-black text-emerald-500 mb-4 uppercase border-b border-white/5 pb-2 flex justify-between items-center text-left">Mission Progress <button onClick={() => setActiveView('projects')} className="text-[7px] text-zinc-600 hover:text-white transition-colors">VIEW ALL</button></p>
-                  {projectsData.map((p, idx) => (
-                    <div key={idx} className="p-3 bg-white/2 border-l border-emerald-500/30 mb-2 last:mb-0 text-left">
-                      <div className="flex justify-between items-center mb-1 text-left"><p className="text-zinc-200 font-black uppercase text-[10px] text-left">{p.name}</p><span className="text-emerald-500 font-black text-[9px] text-right">{p.progress}%</span></div>
-                      <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-white/5"><div className="h-full bg-emerald-500 shadow-[0_0_8px_#10b981]" style={{ width: `${p.progress}%` }}></div></div>
-                    </div>
-                  ))}
+
+                <div className="kpr-panel p-10">
+                   <div className="flex justify-between items-end mb-12 border-b border-kpr-grey pb-8">
+                      <div>
+                         <span className="kpr-mono-label opacity-40 mb-2 block">MODULE_MISSION</span>
+                         <h3 className="text-3xl font-black italic">FORGE_PROGRESS</h3>
+                      </div>
+                      <button onClick={() => setActiveView('projects')} className="kpr-badge-neon hover:scale-105 transition-transform">VIEW_INDEX</button>
+                   </div>
+                   <div className="space-y-10">
+                      {[
+                        { n: "CAMPUS_CORE", p: 88 },
+                        { n: "SYSTEM_REACH", p: 42 }
+                      ].map((p, idx) => (
+                        <div key={idx} className="space-y-4">
+                           <div className="flex justify-between items-center">
+                              <span className="font-black italic text-xl">{p.n}</span>
+                              <span className="kpr-mono-value text-kpr-green">{p.p}%_SYNC</span>
+                           </div>
+                           <div className="w-full h-1 bg-kpr-grey relative overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }} 
+                                animate={{ width: `${p.p}%` }} 
+                                className="absolute inset-y-0 left-0 bg-kpr-green" 
+                              />
+                           </div>
+                        </div>
+                      ))}
+                   </div>
                 </div>
               </div>
             </div>
           )}
 
           {activeView === 'recruitment' && (
-            <div className="space-y-6 animate-in fade-in duration-500 text-left">
-              <div className="flex justify-between items-center border-b border-white/5 pb-4 text-left">
-                <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter text-left">Aspirant_Registry</h2>
-                <button className="flex items-center gap-2 bg-white text-black px-4 py-1.5 font-black uppercase rounded-sm text-[9px] hover:bg-sky-500 transition-colors"><Download size={12} /> Export_Data</button>
-              </div>
-              <div className="bg-zinc-950 border border-white/5 rounded-sm overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-125">
-                  <thead>
-                    <tr className="bg-white/5 font-black uppercase text-zinc-500 text-[9px] border-b border-white/10 text-left">
-                      <th className="p-4">Ident/Name</th><th className="p-4">Contact</th><th className="p-4">Class</th><th className="p-4 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {applicants.map(app => (
-                      <tr key={app.id} className="border-b border-white/5 hover:bg-sky-500/5 transition-colors text-left text-zinc-300">
-                        <td className="p-4 text-white uppercase font-black tracking-tight text-left"><User size={12} className="inline mr-2 text-sky-500" /> {app.name}</td>
-                        <td className="p-4 text-zinc-400 font-mono text-left">{app.email}</td>
-                        <td className="p-4 text-zinc-500 text-left">{app.class}</td>
-                        <td className="p-4 text-right text-emerald-500 italic font-black uppercase">{app.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+             <div className="animate-in fade-in duration-700">
+                <RecruitmentDashboardHeader onExport={() => alert("SIGNAL_EXPORTED")} />
+                <div className="kpr-panel mt-8 overflow-hidden bg-white">
+                   <RecruitmentTable />
+                </div>
+             </div>
           )}
 
+          {/* Integration Views */}
           {activeView === 'registry' && <RecruitmentForm onClose={() => setActiveView('overview')} />}
           {activeView === 'members' && <SDC_User onAddTeam={() => setActiveView('teams')} />}
           {activeView === 'teams' && <SDC_Team />}
           {activeView === 'projects' && <SDC_Project />}
-          {activeView === 'config' && <AdminSettings />}
+          {activeView === 'config' && <div className="max-w-4xl mx-auto"><AdminSettings /></div>}
+          {activeView === 'announce' && <BroadcastInterface />}
 
-          {activeView === 'announce' && (
-            <div className="space-y-6 animate-in fade-in duration-500 text-left">
-              <div className="flex justify-between items-center border-b border-white/5 pb-4 text-left">
-                <h2 className="text-2xl lg:text-3xl font-black italic text-white uppercase tracking-tighter text-left">Broadcasting</h2>
-                <button onClick={() => setIsPosting(!isPosting)} className="px-4 py-2 bg-sky-500 text-black font-black uppercase rounded-sm text-[9px] font-bold">{isPosting ? 'Abort' : 'Post_New'}</button>
-              </div>
-              <AnimatePresence>
-                {isPosting && (
-                  <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden bg-zinc-900/60 border border-sky-500/30 p-6 space-y-4 mb-8 text-left text-zinc-300">
-                    <input value={newAnn.title} onChange={e => setNewAnn({...newAnn, title: e.target.value})} placeholder="SIGNAL_TITLE..." className="w-full bg-black border border-white/10 p-3 text-[10px] text-white outline-none focus:border-sky-500" />
-                    <textarea value={newAnn.body} onChange={e => setNewAnn({...newAnn, body: e.target.value})} placeholder="MESSAGE..." className="w-full bg-black border border-white/10 p-3 h-24 text-[10px] text-white outline-none focus:border-sky-500 resize-none" />
-                    <button onClick={handlePostAnn} className="w-full py-3 bg-white text-black font-black uppercase flex items-center justify-center gap-2 text-[10px] transition-colors hover:bg-sky-400"><Send size={14}/> Transmit</button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <div className="grid grid-cols-1 gap-4 pb-10 text-left">
-                {announcements.map(ann => (
-                  <div key={ann.id} className="bg-zinc-900/40 border border-white/5 p-5 text-left group hover:border-sky-500/30 transition-all text-zinc-300">
-                    <div className="flex justify-between items-center mb-3 text-left">
-                      <div className="flex items-center gap-4 text-left"><span className={`px-2 py-0.5 text-[8px] font-black uppercase border ${ann.priority === 'Urgent' ? 'border-red-500 text-red-500' : 'border-sky-500 text-sky-500'}`}>{ann.priority}</span><h3 className="text-lg font-black text-white uppercase italic text-left">{ann.title}</h3></div>
-                      <span className="text-zinc-600 font-mono text-[9px] text-right">{ann.date}</span>
-                    </div>
-                    <p className="text-zinc-400 text-[11px] leading-relaxed border-l border-white/10 pl-5 italic text-left">"{ann.body}"</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </main>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--kpr-grey); }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--kpr-green); }
+      `}</style>
     </div>
   );
 }
 
-function SidebarLink({ icon: Icon, label, active, onClick }: { icon: LucideIcon, label: string, active: boolean, onClick: () => void }) {
+// --- SUB_COMPONENTS [REFACTORED_FOR_KPR] ---
+
+function SidebarNavBtn({ icon: Icon, label, refCode, active, onClick }: { icon: LucideIcon, label: string, refCode: string, active: boolean, onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`w-full group relative flex items-center gap-3 px-3 py-2 font-black uppercase tracking-widest transition-all duration-300 ${active ? 'text-white' : 'text-zinc-500 hover:text-sky-400'}`}>
-      {active && <div className="absolute inset-0 bg-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.3)] -skew-x-12 z-0 text-left" />}
-      <Icon size={16} className="relative z-10 text-left" /> <span className="relative z-10 text-[9px] text-left">{label}</span>
+    <button 
+      onClick={() => { soundManager.playChirp(); onClick(); }}
+      onMouseEnter={() => soundManager.playHover()}
+      className={`w-full group relative flex items-center justify-between px-6 py-4 text-xs font-bold uppercase transition-all duration-300 ${active ? 'bg-kpr-black text-white' : 'text-kpr-black/60 hover:bg-kpr-grey/20 hover:text-kpr-black'}`}
+      style={{ clipPath: active ? 'polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' : 'none' }}
+    >
+      <div className="flex items-center gap-4">
+        <Icon size={16} className={active ? "text-kpr-green" : "group-hover:text-kpr-green transition-colors"} /> 
+        <span>{label}</span>
+      </div>
+      <span className={`kpr-mono-label opacity-30 group-hover:opacity-100 transition-opacity ${active ? 'text-kpr-green' : ''}`}>{refCode}</span>
     </button>
+  );
+}
+
+function RecruitmentDashboardHeader({ onExport }: { onExport: () => void }) {
+  return (
+    <div className="flex justify-between items-end border-b border-kpr-grey pb-8">
+      <div>
+        <span className="kpr-mono-label opacity-40 mb-2 block">MODULE_ASPIRANTS</span>
+        <h3 className="text-3xl font-black italic">ASPIRANT_REGISTRY</h3>
+      </div>
+      <button 
+        onClick={() => { soundManager.playConfirm(); onExport(); }}
+        onMouseEnter={() => soundManager.playHover()}
+        className="kpr-btn-notched flex items-center gap-3 bg-kpr-black"
+      >
+        <Download size={16} /> EXPORT_SIGNAL
+      </button>
+    </div>
+  );
+}
+
+function RecruitmentTable() {
+  const applicants = [{ id: "001", name: "Rahul Singh", email: "rahul@gmail.com", status: "INTERESTED", class: "B.TECH_3RD" }];
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="border-b border-kpr-grey bg-kpr-white">
+            <th className="p-6 kpr-mono-label opacity-40">OPERATIVE_ID</th>
+            <th className="p-6 kpr-mono-label opacity-40">UPLINK_IDENTITY</th>
+            <th className="p-6 kpr-mono-label opacity-40">CONTACT_REF</th>
+            <th className="p-6 kpr-mono-label opacity-40 text-right">PROTOCOL_STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {applicants.map(app => (
+            <tr key={app.id} className="border-b border-kpr-grey hover:bg-kpr-white transition-colors">
+              <td className="p-6 kpr-mono-value">#{app.id}</td>
+              <td className="p-6 font-black italic text-lg">{app.name}</td>
+              <td className="p-6 kpr-mono-label">{app.email}</td>
+              <td className="p-6 text-right">
+                <span className="kpr-badge-neon">{app.status}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BroadcastInterface() {
+  return (
+    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700">
+       <div className="flex justify-between items-end border-b border-kpr-grey pb-8">
+          <div>
+            <span className="kpr-mono-label opacity-40 mb-2 block">MODULE_BROADCAST</span>
+            <h3 className="text-3xl font-black italic">NETWORK_TRANSMISSIONS</h3>
+          </div>
+          <button className="kpr-btn-notched bg-kpr-black">NEW_SIGNAL</button>
+       </div>
+       <div className="space-y-6">
+          {[1].map(i => (
+            <div key={i} className="kpr-panel p-8 group border-l-4 border-l-kpr-green">
+               <div className="flex justify-between items-start mb-4">
+                  <h4 className="text-2xl font-black italic">RECRUITMENT_PHASE_01_LIVE</h4>
+                  <span className="kpr-mono-label opacity-40">01/04/2026</span>
+               </div>
+               <p className="kpr-mono-label mb-8 leading-relaxed">APPLICATIONS FOR THE 2026 SDC BATCH ARE NOW BEING PROCESSED THROUGH SECTOR_7 GATEWAY.</p>
+               <div className="flex gap-4">
+                  <span className="kpr-badge-neon">PRIORITY_HIGH</span>
+                  <span className="kpr-badge-neon bg-kpr-black text-white">B_SIGNAL</span>
+               </div>
+            </div>
+          ))}
+       </div>
+    </div>
   );
 }

@@ -1,243 +1,284 @@
-/* cspell:disable */
-import { useState, useEffect, forwardRef } from "react";
-import { Users, Cpu, Zap, Fingerprint, Activity, History, ShieldCheck } from "lucide-react"; 
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { useState, forwardRef } from "react";
+import { Zap, X, Terminal, Cpu } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { HackyText } from "../../components/shared/HackyText";
+import { soundManager } from "../../utils/SoundManager";
 
 interface Operative {
   id: string;
   name: string;
   role: string;
-  status: "ACTIVE" | "FORMER";
+  status: string;
+  level: string;
   tech: string[];
-  stats: { integrity: number; efficiency: number };
-}
-
-// Interface for Raw Data from LocalStorage
-interface RawRegistryData {
-  id?: string;
-  name: string;
-  role?: string;
-  status?: "ACTIVE" | "FORMER";
-  tech?: string | string[];
+  image: string;
 }
 
 const DevelopersSection = forwardRef<HTMLElement>((_, ref) => {
-  const [operatives] = useState<Operative[]>(() => {
-    const defaultDevs: Operative[] = [
-      { id: "SDC-2026-01", name: "SATYAM DIWAKER", role: "SYSTEM_LEAD", status: "ACTIVE", tech: ["NESTJS", "TS", "PYTHON"], stats: { integrity: 98, efficiency: 95 } },
-      { id: "SDC-HIST-01", name: "LEGACY_OPERATIVE", role: "ARCHITECT_EMERITUS", status: "FORMER", tech: ["C++", "ASSEMBLY"], stats: { integrity: 100, efficiency: 100 } },
-    ];
+  const [selectedOp, setSelectedOp] = useState<Operative | null>(null);
+  const [activeTab, setActiveTab ] = useState<'ACTIVE' | 'ARCHIVE'>('ACTIVE');
+  const [holdingId, setHoldingId] = useState<string | null>(null);
 
-    if (typeof window !== "undefined") {
-      const storedUsers = localStorage.getItem('sdc_users_registry');
-      if (storedUsers) {
-        try {
-          const parsedUsers: RawRegistryData[] = JSON.parse(storedUsers);
-          const formattedUsers: Operative[] = parsedUsers.map((u) => ({
-            id: u.id || `SDC-REG-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-            name: (u.name || "UNKNOWN").toUpperCase(),
-            role: (u.role || "OPERATIVE").toUpperCase(),
-            status: u.status || "ACTIVE",
-            tech: Array.isArray(u.tech) ? u.tech : (u.tech?.split(',') || ["CORE_NODE"]),
-            stats: { integrity: 90, efficiency: 85 } 
-          }));
-          return [...defaultDevs, ...formattedUsers];
-        } catch {
-          return defaultDevs;
-        }
-      }
-    }
-    return defaultDevs;
-  });
-
-  const [activeTab, setActiveTab] = useState<"ACTIVE" | "FORMER">("ACTIVE");
-  const [inspectedDev, setInspectedDev] = useState<string | null>(null);
-
-  const handleInspect = (id: string) => {
-    setInspectedDev(id);
-    if (ref && 'current' in ref && ref.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  useEffect(() => {
-    const release = () => setInspectedDev(null);
-    window.addEventListener("mouseup", release);
-    window.addEventListener("touchend", release);
-    return () => {
-      window.removeEventListener("mouseup", release);
-      window.removeEventListener("touchend", release);
-    };
-  }, []);
-
-  const filteredDevs = operatives.filter(dev => dev.status === activeTab);
-
-  const overlayVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2 } }
-  };
-
-  const cardVariants: Variants = {
-    hidden: { opacity: 0, scale: 0.9, x: "-50%", y: "-40%", left: "50%", top: "50%" },
-    visible: { 
-      opacity: 1, scale: 1, x: "-50%", y: "-50%", left: "50%", top: "50%",
-      transition: { type: "spring", stiffness: 400, damping: 25 }
+  const OPERATIVES: Operative[] = [
+    { 
+      id: "SDC-OP-001", 
+      name: "Alpha_One", 
+      role: "Frontend Specialist", 
+      status: "Active", 
+      level: "Senior", 
+      tech: ["React", "GLSL", "GSAP"],
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&h=256&auto=format&fit=crop&grayscale=1"
     },
-    exit: { opacity: 0, scale: 0.8, x: "-50%", y: "-40%", transition: { duration: 0.2 } }
-  };
+    { 
+      id: "SDC-OP-002", 
+      name: "Zeta_Zero", 
+      role: "Backend Architect", 
+      status: "Active", 
+      level: "Senior", 
+      tech: ["Node", "Go", "Redis"],
+      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&h=256&auto=format&fit=crop&grayscale=1"
+    },
+    { 
+      id: "SDC-OP-003", 
+      name: "Apex_Dev", 
+      role: "UI Designer", 
+      status: "Active", 
+      level: "Mid", 
+      tech: ["Figma", "Tailwind", "Motion"],
+      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=256&h=256&auto=format&fit=crop&grayscale=1"
+    },
+    { 
+      id: "SDC-OP-004", 
+      name: "Cyber_Script", 
+      role: "Fullstack Engineer", 
+      status: "Active", 
+      level: "Junior", 
+      tech: ["TS", "Next.js", "SQL"],
+      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=256&h=256&auto=format&fit=crop&grayscale=1"
+    },
+    { 
+      id: "SDC-OLD-092", 
+      name: "Ghost_Node", 
+      role: "Legacy Architect", 
+      status: "Former", 
+      level: "Ex-Lead", 
+      tech: ["C++", "Python", "Docker"],
+      image: "https://images.unsplash.com/photo-1552058544-f2b08422138a?q=80&w=256&h=256&auto=format&fit=crop&grayscale=1"
+    },
+    { 
+      id: "SDC-OLD-071", 
+      name: "Void_Dev", 
+      role: "Former Frontend", 
+      status: "Former", 
+      level: "Senior", 
+      tech: ["Vue", "D3.js", "PHP"],
+      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=256&h=256&auto=format&fit=crop&grayscale=1"
+    },
+  ];
+
+  const filteredOps = OPERATIVES.filter(op => 
+    activeTab === 'ACTIVE' ? op.status === 'Active' : op.status === 'Former'
+  );
 
   return (
-    <section 
-      ref={ref} 
-      className="relative w-full min-h-screen bg-[#020203] flex flex-col items-center justify-start py-32 px-8 overflow-hidden select-none touch-none z-40"
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      <div className="absolute inset-0 z-0 opacity-5 pointer-events-none" 
-           style={{ backgroundImage: `radial-gradient(#0ea5e9 1px, transparent 1px)`, backgroundSize: '30px 30px' }} 
-      />
-
-      <div className="relative z-10 w-full max-w-6xl">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-3 px-4 py-2 border border-sky-500/30 bg-sky-500/5 text-sky-500 text-[10px] font-black uppercase tracking-[0.4em] mb-6 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
-            <Fingerprint size={14} className="animate-pulse" /> SDC_Registry_Access
+    <section ref={ref} className="relative w-full py-48 px-6 bg-[#fdfdfd]">
+      <div className="w-full max-w-7xl mx-auto">
+        
+        {/* Header & Filter Control */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-12 mb-24">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-6">
+               <div className="w-16 h-px bg-kpr-green" />
+               <HackyText text="PERSONNEL_REGISTRY" className="kpr-mono text-black font-black uppercase text-[10px] tracking-widest" />
+            </div>
+            <h2 className="text-6xl md:text-8xl font-black italic text-black tracking-tighter uppercase leading-none">THE_OPERATIVES</h2>
           </div>
-          <h2 className="text-7xl font-black italic text-white uppercase tracking-tighter leading-none">
-            THE <span className="text-sky-500 drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]">OPERATIVES</span>
-          </h2>
+
+          <div className="flex bg-black p-1">
+             {(['ACTIVE', 'ARCHIVE'] as const).map(tab => (
+               <button
+                 key={tab}
+                 onClick={() => { soundManager.playSlide(); setActiveTab(tab); }}
+                 className={`px-10 py-4 kpr-mono text-[10px] font-black tracking-widest transition-all ${
+                   activeTab === tab ? 'bg-kpr-green text-black' : 'text-white/40 hover:text-white'
+                 }`}
+               >
+                 {tab}
+               </button>
+             ))}
+          </div>
         </div>
 
-        <div className="flex justify-center mb-20 gap-4">
-          <button 
-            onClick={() => setActiveTab("ACTIVE")}
-            className={`flex items-center gap-3 px-8 py-3 font-black text-[10px] uppercase tracking-[0.3em] transition-all border ${activeTab === 'ACTIVE' ? 'bg-sky-500 text-black border-sky-500 shadow-[0_0_20px_#0ea5e944]' : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-sky-500/50 hover:text-sky-500'}`}
-            style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}
-          >
-            <Activity size={14} /> Active_Operatives
-          </button>
-          <button 
-            onClick={() => setActiveTab("FORMER")}
-            className={`flex items-center gap-3 px-8 py-3 font-black text-[10px] uppercase tracking-[0.3em] transition-all border ${activeTab === 'FORMER' ? 'bg-sky-500 text-black border-sky-500 shadow-[0_0_20px_#0ea5e944]' : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-sky-500/50 hover:text-sky-500'}`}
-            style={{ clipPath: 'polygon(10% 0, 100% 0, 90% 100%, 0 100%)' }}
-          >
-            <History size={14} /> Former_Legends
-          </button>
-        </div>
+        {/* Grid Array */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {filteredOps.map((op) => (
+            <motion.div 
+              key={op.id}
+              onMouseDown={() => { setHoldingId(op.id); soundManager.playHover(); }}
+              onMouseUp={() => { if(holdingId === op.id) { soundManager.playConfirm(); setSelectedOp(op); } setHoldingId(null); }}
+              onMouseLeave={() => setHoldingId(null)}
+              whileHover={{ y: -5 }}
+              whileTap={{ scale: 0.98 }}
+              className={`kpr-panel p-10 cursor-pointer group transition-all bg-white relative overflow-hidden ${
+                holdingId === op.id ? 'border-kpr-green shadow-[0_0_30px_rgba(0,0,0,0.1)]' : 'border-black/5 hover:border-black/20'
+              }`}
+            >
+              {/* Charge Bar for Hold */}
+              {holdingId === op.id && (
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute bottom-0 left-0 h-1 bg-kpr-green z-20"
+                />
+              )}
 
-        <motion.div 
-          layout
-          className={`grid grid-cols-1 md:grid-cols-3 gap-10 transition-all duration-500 ${inspectedDev ? 'blur-xl opacity-20' : 'blur-0 opacity-100'}`}
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredDevs.map((dev) => (
-              <motion.div 
-                key={dev.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="relative group active:scale-95 transition-transform cursor-crosshair"
-                onMouseDown={(e) => { e.preventDefault(); handleInspect(dev.id); }}
-                onTouchStart={(e) => { e.preventDefault(); handleInspect(dev.id); }}
-              >
-                <div className="bg-zinc-900/50 border-2 border-zinc-800 p-1 relative overflow-hidden"
-                     style={{ clipPath: 'polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%)' }}>
-                  <div className="bg-black p-6 border border-zinc-800 flex flex-col items-center group-hover:border-sky-500/30 transition-all">
-                    <div className="w-32 h-40 bg-zinc-900 border-2 border-sky-500/10 flex items-center justify-center mb-6 relative group-hover:border-sky-500 transition-colors">
-                        <Users size={60} strokeWidth={0.5} className="text-zinc-800 group-hover:text-sky-500" />
-                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-sky-500" />
-                    </div>
-                    <h3 className="text-xl font-black italic text-white uppercase tracking-tighter text-center wrap-break-word w-full">{dev.name}</h3>
-                    <p className="text-[9px] font-mono text-sky-500 uppercase tracking-widest mt-1">{dev.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+              <div className="flex justify-between items-start mb-12">
+                 <div className="w-16 h-16 bg-black relative p-0.5 overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}>
+                    <img 
+                      src={op.image} 
+                      alt={op.name}
+                      className="w-full h-full object-cover grayscale brightness-110 group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
+                    />
+                    <div className="absolute inset-0 border border-white/10" />
+                 </div>
+                 <div className="flex flex-col items-end opacity-20 group-hover:opacity-100 transition-opacity">
+                    <span className="kpr-mono text-[8px] font-black">ID_REF</span>
+                    <span className="kpr-mono text-[9px] font-black">{op.id}</span>
+                 </div>
+              </div>
+
+              <HackyText 
+                text={op.name} 
+                className="text-3xl font-black text-black block mb-2 group-hover:text-kpr-green transition-colors leading-none tracking-tighter" 
+              />
+              <p className="kpr-mono text-black opacity-40 text-[10px] tracking-widest mb-10 uppercase font-black">{op.role}</p>
+              
+              <div className="flex items-center justify-between pt-8 border-t border-black/5">
+                 <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${op.status === 'Active' ? 'bg-kpr-green animate-pulse' : 'bg-black/20'}`} />
+                    <span className="kpr-mono text-[10px] font-black uppercase text-black/60 tracking-widest">
+                       {op.status === 'Active' ? 'DEPLOYED' : 'DECOMMISSIONED'}
+                    </span>
+                 </div>
+                 <Cpu size={18} className="text-black/10 group-hover:text-kpr-green transition-colors" />
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
+      {/* Modal Dossier */}
       <AnimatePresence>
-        {inspectedDev && (() => {
-          const devData = operatives.find(d => d.id === inspectedDev);
-          if (!devData) return null;
-
-          return (
-            <>
-              <motion.div 
-                className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md" 
-                variants={overlayVariants} initial="hidden" animate="visible" exit="hidden" 
-              />
-              <motion.div 
-                className="fixed z-101 w-[95%] max-w-2xl bg-[#0a0a0a] border-2 border-sky-500 shadow-[0_0_100px_rgba(14,165,233,0.3)] overflow-hidden"
-                style={{ clipPath: 'polygon(0 0, 100% 0, 100% 95%, 95% 100%, 0 100%)' }}
-                variants={cardVariants} initial="hidden" animate="visible" exit="exit"
-              >
-                <div className="px-6 py-2 bg-sky-500 text-black flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">OPERATIVE_ID_VERIFIED // {devData.status}</span>
-                  <Cpu size={14} />
-                </div>
-                
-                <div className="p-8 flex flex-col md:flex-row gap-8">
-                  <div className="flex flex-col items-center gap-4 shrink-0">
-                    <div className="w-48 h-60 bg-black border-2 border-sky-500 flex items-center justify-center relative">
-                        <Users size={100} strokeWidth={0.5} className="text-sky-950" />
-                        <motion.div 
-                          className="absolute top-0 left-0 w-full h-1 bg-sky-500 shadow-[0_0_15px_#0ea5e9]"
-                          animate={{ top: ["0%", "100%", "0%"] }}
-                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        />
+        {selectedOp && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/95 backdrop-blur-2xl" 
+              onClick={() => setSelectedOp(null)} 
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="kpr-panel w-full max-w-4xl bg-white relative z-10 p-0 overflow-hidden border-white/10"
+            >
+              {/* Modal Header */}
+              <div className="bg-black text-white p-10 flex justify-between items-center border-b border-white/5">
+                 <div className="flex items-center gap-6">
+                    <div className="w-10 h-10 border border-kpr-green flex items-center justify-center text-kpr-green animate-pulse">
+                      <Terminal size={20} />
                     </div>
-                  </div>
-                  
-                  <div className="flex-1 space-y-6 min-w-0 text-[11px]">
+                    <div className="flex flex-col">
+                      <span className="kpr-mono text-[10px] font-black tracking-widest text-kpr-green uppercase leading-none mb-1">OPERATIVE_DOSSIER // ACCESS_GRANTED</span>
+                      <span className="kpr-mono text-[12px] font-black text-white/40 tracking-[0.3em]">{selectedOp.id}</span>
+                    </div>
+                 </div>
+                 <button 
+                  onClick={() => { soundManager.playClick(); setSelectedOp(null); }} 
+                  className="w-12 h-12 bg-white/5 hover:bg-kpr-green hover:text-black flex items-center justify-center text-white transition-all duration-300"
+                  style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}
+                 >
+                    <X size={24} />
+                 </button>
+              </div>
+
+              <div className="p-12 md:p-20 grid grid-cols-1 md:grid-cols-5 gap-20 bg-[#fdfdfd]">
+                 <div className="md:col-span-2 space-y-12">
+                    <div className="w-full aspect-square bg-black relative group overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 48px 100%, 0 calc(100% - 48px))' }}>
+                       <img 
+                          src={selectedOp.image} 
+                          alt={selectedOp.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                       />
+                       <div className="absolute inset-0 bg-kpr-green/10 mix-blend-overlay" />
+                       <div className="absolute top-6 left-6 p-2 bg-black text-kpr-green kpr-mono text-[8px] font-black">STABLE_UPLINK</div>
+                    </div>
+                    
                     <div>
-                      <h3 className="text-4xl font-black italic text-white uppercase leading-none wrap-break-word">{devData.name}</h3>
-                      <p className="text-sky-500 font-mono text-xs uppercase tracking-[0.3em] mt-2">{devData.role}</p>
-                      <p className="text-zinc-600 font-mono text-[10px] mt-1 tracking-tighter">ID: {devData.id}</p>
+                      <h3 className="text-6xl font-black text-black mb-4 leading-none italic tracking-tighter uppercase">{selectedOp.name}</h3>
+                      <p className="kpr-mono text-kpr-green font-black tracking-[0.25em] text-[12px] uppercase">{selectedOp.role}</p>
                     </div>
 
-                    {devData.status === "ACTIVE" && (
-                      <div className="grid grid-cols-1 gap-4 border-t border-zinc-800 pt-6">
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-1"><ShieldCheck size={8}/> Integrity</span>
-                            <span className="text-[8px] font-mono text-sky-500">{devData.stats.integrity}%</span>
-                          </div>
-                          <div className="h-1 bg-zinc-900 overflow-hidden rounded-full">
-                            <motion.div className="h-full bg-sky-600" initial={{width: 0}} animate={{width: `${devData.stats.integrity}%`}} />
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Activity size={8}/> Efficiency</span>
-                            <span className="text-[8px] font-mono text-cyan-400">{devData.stats.efficiency}%</span>
-                          </div>
-                          <div className="h-1 bg-zinc-900 overflow-hidden rounded-full">
-                            <motion.div className="h-full bg-cyan-400" initial={{width: 0}} animate={{width: `${devData.stats.efficiency}%`}} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <div className="grid grid-cols-2 gap-6">
+                       <div className="p-6 bg-black flex flex-col gap-2">
+                          <span className="kpr-mono text-[8px] font-black text-white/30 tracking-widest">CLEARANCE</span>
+                          <span className="kpr-mono text-[11px] font-black text-white tracking-widest">{selectedOp.level}</span>
+                       </div>
+                       <div className="p-6 bg-black flex flex-col gap-2">
+                          <span className="kpr-mono text-[8px] font-black text-white/30 tracking-widest">ENCRYPTION</span>
+                          <span className="kpr-mono text-[11px] font-black text-kpr-green tracking-widest">AES_256</span>
+                       </div>
+                    </div>
+                 </div>
 
-                    <div className="space-y-2 border-t border-zinc-800 pt-4">
-                      <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest block italic">Authorized_Stack</span>
-                      <div className="flex flex-wrap gap-2">
-                        {devData.tech.map((t) => (
-                          <span key={t} className="text-[9px] border border-sky-500/30 px-3 py-1 text-white font-mono uppercase bg-sky-500/5 font-black">{t}</span>
-                        ))}
+                 <div className="md:col-span-3 space-y-16">
+                    <div>
+                      <div className="flex items-center gap-4 mb-8">
+                         <div className="w-12 h-1 bg-black" />
+                         <span className="kpr-mono text-[11px] font-black text-black tracking-[0.4em] uppercase">TECHNICAL_LOADOUT</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4">
+                         {selectedOp.tech.map((t: string) => (
+                            <span key={t} className="px-6 py-3 bg-black text-white kpr-mono text-[10px] font-black tracking-[0.2em] uppercase">
+                               {t}
+                            </span>
+                         ))}
                       </div>
                     </div>
                     
-                    <div className="pt-4 flex justify-between items-end opacity-40">
-                       <span className="text-[8px] font-mono text-zinc-600 uppercase italic tracking-widest leading-none">System_Uplink // Registry_Verified</span>
-                       <Zap size={16} className="text-sky-500" />
+                    <div className="p-10 border-l-8 border-kpr-green bg-white shadow-xl relative overflow-hidden">
+                       <div className="absolute top-0 right-0 w-32 h-32 bg-black/5 rotate-45 translate-x-16 -translate-y-16" />
+                       <div className="flex items-center gap-4 mb-6">
+                          <Zap size={20} className="text-kpr-green animate-pulse" />
+                          <span className="kpr-mono text-black text-[12px] font-black tracking-widest uppercase">BIO_METRICS</span>
+                       </div>
+                       <p className="kpr-mono text-[13px] leading-relaxed text-black/60 font-medium">
+                          ELITE_OPERATOR_ENGAGED_IN_HIGH_FIDELITY_SYSTEM_ARCHITECTURE. 
+                          MAINTAINS_MAXIMUM_UPTIME_AND_CODE_PURITY_ACROSS_ALL_AGRA_NODES.
+                          CORE_MEMETIC_LOAD_STABLE. 
+                       </p>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          );
-        })()}
+
+                    <div className="pt-8 grid grid-cols-2 gap-4">
+                      <button 
+                        onClick={() => setSelectedOp(null)} 
+                        className="py-6 bg-black text-white hover:bg-kpr-green hover:text-black font-black uppercase text-[11px] tracking-[0.4em] transition-all"
+                      >
+                        DISMISS
+                      </button>
+                      <button className="py-6 border-4 border-black text-black hover:bg-black hover:text-white font-black uppercase text-[11px] tracking-[0.4em] transition-all">
+                        UPLINK
+                      </button>
+                    </div>
+                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </section>
   );
