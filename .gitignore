@@ -1,0 +1,51 @@
+# --- CONFIDENTIAL DATA ---
+.env
+*.env.local
+*.log
+sdc_portal.db
+backend/sdc_portal.db
+
+# --- PYTHON SETTINGS & VENV ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- FRONTEND (NODE.JS) ---
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- IDE & SYSTEM ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- DATABASE SPECIFIC ---
+*.sql
+!schema.sql
