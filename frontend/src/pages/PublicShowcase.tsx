@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import axios from 'axios';
-import GamingButton from '../components/GamingButton';
-import FrostCard from '../components/FrostCard';
-import CyberSnow from '../components/CyberSnow';
+import GamingButton from '../components/common/GamingButton';
+import FrostCard from '../components/common/FrostCard';
+import CyberSnow from '../components/landing/CyberSnow';
 
 interface Project {
   id: string;
@@ -56,7 +56,7 @@ const PublicShowcase: React.FC = () => {
       </HeroSection>
 
       <ProjectGrid>
-        {projects.map((project, index) => (
+        {projects.map((project) => (
           <FrostCard
             key={project.id}
             title={project.name}

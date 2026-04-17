@@ -8,6 +8,8 @@ class ApplicationBase(BaseModel):
     contact: str
     class_name: str
     interested: str
+    photo_url: Optional[str] = None
+    resume_url: Optional[str] = None
 
 class ApplicationCreate(ApplicationBase):
     pass

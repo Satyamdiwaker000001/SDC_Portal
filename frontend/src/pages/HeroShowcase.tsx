@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import GamingButton from '../components/GamingButton';
-import CyberSnow from '../components/CyberSnow';
+import GamingButton from '../components/common/GamingButton';
+import CyberSnow from '../components/landing/CyberSnow';
 
 interface Project {
   id: string;
@@ -38,7 +38,7 @@ const HeroShowcase: React.FC = () => {
             initial={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
             animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] as const }}
           >
             <ContentLayer>
               <TypeTag>MISSION_MODULE // {projects[index].type}</TypeTag>

@@ -1,0 +1,640 @@
+﻿SDC PORTAL
+ Software Development Cell ΓÇö Website
+ "Build Together. Grow Together. Lead Tomorrow."
+Document Type
+Product Requirements Document (PRD)
+Version
+1.0
+Tech Stack
+React ┬╖ FastAPI ┬╖ MySQL ┬╖ TypeScript
+Status
+Draft ΓÇö Internal Use
+Date
+April 2026
+
+Table of Contents
+Part 1
+Understanding SDC ΓÇö What Is the Software Development Cell?
+Part 2
+Why Are We Building the SDC Website?
+Part 3
+Tech Stack ΓÇö Tools We Will Use
+Part 4
+Database Design
+Part 5
+System Modules & Features
+Part 6
+API Overview
+Part 7
+System Architecture
+Glossary
+Technical Terms
+
+Part 1
+Understanding SDC
+What is the Software Development Cell?
+The Software Development Cell (SDC) is a student-run technical organization within the college that gives
+students a real-world platform to sharpen their development skills, collaborate on meaningful projects, and
+grow into industry-ready professionals ΓÇö all while still in college.
+Our Mission: To bridge the gap between academic learning and professional software engineering by
+giving students hands-on project experience, senior mentorship, and a culture of continuous growth.
+What SDC Offers Students
+What SDC Offers
+Description
+Real Project Experience
+Students build and ship actual web and software projects ΓÇö not just college
+assignments.
+Team Collaboration
+Work in structured teams with defined roles: Team Leader, Frontend, Backend,
+etc.
+Senior Mentorship
+Seniors guide juniors through technical challenges, code reviews, and career
+decisions.
+Industry Practices
+Learn Git, pull requests, code reviews, agile sprints, and professional
+documentation.
+Workshops & Sessions
+Regular coding sessions, workshops, and knowledge-sharing events for all skill
+levels.
+Portfolio Building
+Contribute to live projects that you can showcase to recruiters and companies.
+Who Is SDC For?
+Role
+Who
+Responsibility
+Admin
+Faculty/Senior Lead
+Oversees operations, manages members, assigns projects, tracks
+progress
+Developer
+Student Member
+Works on assigned modules, reports progress, learns under senior
+guidance
+Team Leader
+Senior Student
+Leads a project team, assigns tasks, reviews work, reports to Admin
+
+Part 2
+Why Are We Building the SDC Website?
+The Problem Today
+Currently SDC has no central platform. Projects are tracked manually, members have no public presence,
+recruitment happens informally, and there is no way for the outside world ΓÇö or new students ΓÇö to
+discover what SDC has built.
+Current Problem
+Impact
+No central project tracking
+Projects are scattered across chats and spreadsheets with no single source
+of truth.
+No member visibility
+Talented SDC members have no unified showcase for their work and
+contributions.
+No formal recruitment process
+New student intake is informal and inconsistent.
+No admin control panel
+Admins cannot efficiently manage teams, tasks, or announcements.
+No transparency for juniors
+New members can't see ongoing projects, team structures, or their assigned
+tasks.
+What the SDC Website Will Solve
+What We Build
+How It Helps
+Web & App Project Showcase
+A public landing page displaying all SDC projects ΓÇö live, completed, and
+in-progress.
+Team Collaboration Portal
+Internal dashboard for Admins to create teams, assign projects, and monitor
+progress.
+Task Management System
+Developers can view assigned tasks, update progress, and submit for review.
+Workshops & Coding Events
+Announcements section to promote upcoming workshops and coding
+sessions.
+Senior Guidance Visibility
+Profiles of seniors and alumni, linked to their GitHub and LinkedIn for
+mentorship.
+Recruitment Form
+A public application form for new students to apply to join SDC.
+Announcements System
+Admins can broadcast important updates to teams or globally across the
+portal.
+Landing Page Structure (Public-Facing)
+Section
+Content
+
+Navbar
+Links to: Projects, About, Recruitment Form, Login
+Hero Section
+Introduction to SDC ΓÇö what it is, what it does, why to join
+Founders Section
+Profiles of SDC founders with LinkedIn links
+Developers Section
+All current and passed-out members with GitHub & LinkedIn
+Projects Section
+Showcase of all SDC projects with type, status, and description
+Recruitment Form
+Public form for students to apply to join SDC
+
+Part 3
+Tech Stack ΓÇö Tools We Will Use
+What is a Tech Stack?
+A tech stack is the complete set of technologies ΓÇö languages, frameworks, and services ΓÇö used to build an
+application. The SDC Portal uses a modern, industry-standard full-stack that mirrors what top companies use
+today.
+Layer
+Technology
+Purpose
+Why We Chose It
+Frontend
+React + TypeScript
+User Interface
+Type-safe, component-driven UI for both the public
+landing page and the internal dashboard
+Backend
+FastAPI (Python)
+Server & API
+Logic
+High-performance Python API framework;
+auto-generates API docs with Swagger UI
+Database
+MySQL
+Data Storage
+Relational database for users, members, teams, projects,
+tasks, and announcements
+ORM
+SQLAlchemy /
+Prisma
+DB Interface
+Maps database tables to Python/JS objects for clean,
+safe database queries
+Authenticat
+ion
+JWT Tokens
+Login Security
+Stateless token-based auth; admin and developer roles
+are enforced at API level
+Styling
+Tailwind CSS
+Visual Design
+Utility-first CSS for rapid, consistent, responsive design
+Version
+Control
+Git + GitHub
+Code
+Collaboration
+All code is managed via Git; pull requests and branches
+enforce professional workflow
+Why This Stack?
+React and FastAPI are among the most in-demand technologies in the job market today. By building the
+SDC Portal with this stack, every member who contributes is building real, resume-worthy skills that
+directly map to internships and job opportunities.
+
+Part 4
+Database Design
+The SDC Portal uses a normalized MySQL relational database. All tables follow clean foreign-key
+relationships to ensure data integrity. Below is a description of every table.
+4.1 user ΓÇö Authentication Layer
+Stores login credentials for all portal users. Roles determine what each user can access.
+Column
+Type
+Description
+id
+VARCHAR(255)
+Primary Key ΓÇö unique user identifier
+email
+VARCHAR(255)
+Unique login email address
+name
+VARCHAR(255)
+Display name
+role
+VARCHAR(50)
+Either 'admin' or 'developer'
+image
+VARCHAR(500)
+Profile picture URL (default: N/A)
+hashed_password
+VARCHAR(500)
+Bcrypt-hashed password ΓÇö never stored in plain text
+4.2 member ΓÇö Identity & Profile Layer
+Stores detailed profiles for all SDC members ΓÇö active, passed-out, or retired. Separate from user to allow
+non-login members (e.g., alumni) to still appear in public listings.
+Column
+Type
+Description
+id
+VARCHAR(255)
+Primary Key
+name
+VARCHAR(255)
+Full name
+email
+VARCHAR(255)
+Unique email
+spec
+VARCHAR(255)
+Specialization ΓÇö e.g. Frontend Lead, Backend Dev
+joinDate
+VARCHAR(50)
+Date joined SDC
+retirementDate
+VARCHAR(50)
+Date retired / passed out (nullable)
+status
+VARCHAR(50)
+ACTIVE | PASSOUT | RETIRED
+image
+VARCHAR(500)
+Profile image URL
+techStack
+JSON
+Array of technologies ΓÇö e.g. ['React','Node.js']
+4.3 team ΓÇö Strategic Unit
+Represents a project team within SDC. Each team has one designated leader (a member).
+
+Column
+Type
+Description
+id
+VARCHAR(255)
+Primary Key
+name
+VARCHAR(255)
+Team name
+leaderId
+VARCHAR(255)
+FK ΓåÆ member.id ΓÇö the team's assigned leader
+4.4 project ΓÇö High-Level Forge Project
+Tracks every project SDC undertakes, including its type, current status, deadline, and overall progress
+percentage.
+Column
+Type
+Description
+id
+VARCHAR(255)
+Primary Key
+name
+VARCHAR(255)
+Project title
+description
+TEXT
+Project summary
+type
+VARCHAR(100)
+Category: Cybersecurity | Web_App | etc.
+status
+VARCHAR(50)
+LIVE | PENDING | COMPLETED | PENDING_ADMIN
+deadline
+VARCHAR(50)
+Target completion date
+progress
+INT
+Completion percentage (0ΓÇô100)
+teamId
+VARCHAR(255)
+FK ΓåÆ team.id (nullable if unassigned)
+4.5 task ΓÇö Operational Module Layer
+Represents individual work items within a project. Each task belongs to a module and is assigned to one
+member.
+Column
+Type
+Description
+id
+VARCHAR(255)
+Primary Key
+moduleName
+VARCHAR(255)
+Module this task belongs to
+title
+VARCHAR(255)
+Task description
+assignedTo
+VARCHAR(255)
+FK ΓåÆ member.id (nullable)
+status
+VARCHAR(50)
+TODO | IN_PROGRESS | REVIEW_PENDING | DONE
+project_id
+VARCHAR(255)
+FK ΓåÆ project.id
+reviewFeedback
+TEXT
+Leader's review comments (nullable)
+
+4.6 application ΓÇö Recruitment Layer
+Stores all SDC recruitment applications submitted via the public landing page form.
+Column
+Type
+Description
+id
+INT
+AUTO_INCREMENT
+Primary Key
+name
+VARCHAR(255)
+Applicant's name
+email
+VARCHAR(255)
+Contact email
+contact
+VARCHAR(50)
+Phone number
+class_name
+VARCHAR(100)
+Current class / year
+interested
+TEXT
+Areas of interest described by applicant
+status
+VARCHAR(50)
+PENDING | ACCEPTED | REJECTED (default: PENDING)
+timestamp
+DATETIME
+Auto-recorded submission time
+4.7 announcement ΓÇö Communication Layer
+Stores admin-created announcements. Can be global (all members) or targeted to specific teams via the
+announcementteamlink table.
+Column
+Type
+Description
+id
+INT
+AUTO_INCREMENT
+Primary Key
+title
+VARCHAR(255)
+Announcement headline
+body
+TEXT
+Full announcement content
+priority
+VARCHAR(50)
+Normal | Important | Urgent
+is_global
+BOOLEAN
+True = visible to all; False = team-targeted
+timestamp
+DATETIME
+Auto-recorded creation time
+4.8 teammemberlink ΓÇö Team Membership (M:N)
+Junction table linking members to teams. A member can belong to multiple teams; a team can have multiple
+members.
+Column
+Type
+Description
+team_id
+VARCHAR(255)
+FK ΓåÆ team.id (part of composite PK)
+member_id
+VARCHAR(255)
+FK ΓåÆ member.id (part of composite PK)
+
+4.9 announcementteamlink ΓÇö Targeted Announcements (M:N)
+Links non-global announcements to specific teams so targeted notifications are possible.
+Column
+Type
+Description
+announcement_id
+INT
+FK ΓåÆ announcement.id (part of composite PK)
+team_id
+VARCHAR(255)
+FK ΓåÆ team.id (part of composite PK)
+
+Part 5
+System Modules & Features
+Module 1 ΓÇö Admin Panel
+Feature
+What Admin Can Do
+User Management
+Create developer accounts with ID and password; reset any user's password
+Team Management
+Create teams, assign team leaders, add or remove members from teams
+Project Management
+Create projects, assign to teams, set type/deadline, track overall progress
+Announcement System
+Post global or team-specific announcements with priority levels
+Application Review
+View, accept, or reject recruitment applications from the landing page
+Dashboard Overview
+See total members, active projects, pending applications, and system health
+Module 2 ΓÇö Developer (Member) Portal
+Feature
+What Developer Can Do
+My Tasks
+View all tasks assigned to me ΓÇö filtered by status: TODO / IN_PROGRESS / DONE
+Task Updates
+Update task status; submit completed tasks for leader review
+My Projects
+View all projects the member's team is working on with current progress
+Announcements
+See global announcements and announcements targeted at my team
+Profile View
+View own profile including specialization, tech stack, and join date
+Module 3 ΓÇö Team Leader Portal
+Team Leaders have all Developer permissions plus the following additional capabilities:
+Feature
+What Team Leader Can Do
+Module Creation
+Define project modules and break them into individual tasks
+Task Assignment
+Assign tasks to specific team members
+Review System
+Review completed tasks, provide feedback, approve or request revision
+Progress Reporting
+Report team and project progress up to the Admin
+Team Overview
+See all team members' progress at a glance
+Module 4 ΓÇö Public Landing Page
+Section
+Content
+
+Navbar
+Navigation links: Projects, About, Recruitment Form + Login button
+Hero Section
+Bold SDC introduction ΓÇö what it is, its vision, and impact
+Founders Section
+Founder profiles with LinkedIn links
+Developers
+All current and passed-out members with GitHub & LinkedIn profile links
+Projects
+Public showcase of all SDC projects ΓÇö type, description, status badge
+Recruitment Form
+Application form: name, email, contact, class, area of interest
+
+Part 6
+API Overview
+The backend is built with FastAPI (Python). All endpoints return JSON. Authentication uses JWT Bearer
+tokens. Role-based access control (RBAC) is enforced on every protected route.
+Method
+Endpoint
+Access
+Description
+POST
+/api/auth/login
+Public
+Login with email & password ΓåÆ returns JWT
+token
+GET
+/api/auth/me
+Auth
+Returns current logged-in user profile
+POST
+/api/auth/reset-password
+Admin
+Admin resets a user's password
+GET
+/api/members
+Public
+List all members (for landing page)
+POST
+/api/members
+Admin
+Create a new member profile
+PATCH
+/api/members/{id}
+Admin
+Update member details
+DELET
+E
+/api/members/{id}
+Admin
+Remove member
+GET
+/api/teams
+Auth
+List all teams
+POST
+/api/teams
+Admin
+Create a new team with leader
+POST
+/api/teams/{id}/members
+Admin
+Add member to a team
+GET
+/api/projects
+Public
+List all projects (public showcase)
+POST
+/api/projects
+Admin
+Create a new project
+PATCH
+/api/projects/{id}
+Admin
+Update project status/progress
+GET
+/api/tasks
+Auth
+Get tasks (filtered by assignee for
+developers)
+POST
+/api/tasks
+Leader
+Create a new task in a module
+PATCH
+/api/tasks/{id}
+Auth
+Update task status or review feedback
+GET
+/api/applications
+Admin
+View all recruitment applications
+POST
+/api/applications
+Public
+Submit a new recruitment application
+PATCH
+/api/applications/{id}
+Admin
+Accept or reject an application
+GET
+/api/announcements
+Auth
+Get relevant announcements for user
+POST
+/api/announcements
+Admin
+Create a new announcement
+
+Part 7
+System Architecture
+The SDC Portal follows a clean client-server architecture with a clear separation of concerns across three
+layers.
+1. Presentation Layer
+(Frontend)
+React + TypeScript
+Tailwind CSS
+Public Landing Page (Next.js/React) Admin Dashboard
+(React) Developer Portal (React) All pages communicate
+with backend via REST API calls
+2. Application Layer
+(Backend)
+FastAPI (Python)
+JWT Auth
+SQLAlchemy ORM
+Handles all business logic Enforces role-based access
+control Processes requests from frontend Returns
+structured JSON responses Auto-generates Swagger API
+docs at /docs
+3. Data Layer
+(Database)
+MySQL Normalized
+Schema
+Stores all persistent data 9 relational tables with FK
+constraints Foreign keys ensure data integrity JSON
+columns used for flexible fields (techStack)
+Request Flow
+Step
+What Happens
+Step 1
+User opens SDC Portal (browser / mobile)
+Step 2
+React app sends HTTP request to FastAPI backend
+Step 3
+FastAPI validates JWT token and checks role permissions
+Step 4
+Backend queries MySQL database via SQLAlchemy ORM
+Step 5
+Database returns data to backend
+Step 6
+FastAPI formats and returns JSON response
+Step 7
+React renders the data to the user
+
+Glossary
+Technical Terms
+Term
+Meaning
+API
+Application Programming Interface ΓÇö a communication contract between frontend and backend
+Backend
+Server-side logic that processes requests, applies business rules, and talks to the database
+Frontend
+The user interface ΓÇö what users see and interact with in the browser
+Database
+Organized storage system for all application data (MySQL in this project)
+JWT
+JSON Web Token ΓÇö a secure, compact token used to identify logged-in users
+ORM
+Object-Relational Mapper ΓÇö tool that lets you query the database using code instead of raw SQL
+REST API
+A standard way of designing APIs using HTTP methods: GET, POST, PATCH, DELETE
+React
+A JavaScript library for building fast, component-based user interfaces
+FastAPI
+A modern Python web framework for building APIs; very fast and auto-generates documentation
+TypeScript
+A strongly-typed superset of JavaScript that catches bugs at compile time
+MySQL
+A popular open-source relational database management system
+Foreign Key
+A database constraint that links one table's column to another table's primary key
+RBAC
+Role-Based Access Control ΓÇö users can only access features permitted by their role
+PRD
+Product Requirements Document ΓÇö this document; defines what is being built and why
+SDC
+Software Development Cell ΓÇö the student organization this portal is built for
+

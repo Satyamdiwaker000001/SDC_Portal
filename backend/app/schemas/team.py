@@ -11,6 +11,7 @@ class TeamCreate(TeamBase):
     name: str
     leaderId: str
     memberIds: List[str] = []
+    specialCaseOverride: bool = False
 
 # Properties to receive via API on update
 class TeamUpdate(TeamBase):

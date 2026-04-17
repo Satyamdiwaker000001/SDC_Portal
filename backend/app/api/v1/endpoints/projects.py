@@ -1,5 +1,7 @@
+import csv
+import io
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 
@@ -7,7 +9,8 @@ from ....api import deps
 from ....models.models import Project, Task, Team, User, Member
 from ....schemas.project import (
     ProjectCreate, ProjectUpdate, ProjectOut, TaskCreate, TaskOut, 
-    ProjectBulkCreate, ProjectActivation, TaskReview, ProjectAdminPatch
+    ProjectBulkCreate, ProjectActivation, TaskReview, ProjectAdminPatch,
+    TaskPulse
 )
 from ....core.utils import generate_scifi_id
 
@@ -48,15 +51,18 @@ def public_project_reveal(
 @router.get("/", response_model=List[ProjectOut])
 def read_projects(
     db: Session = Depends(deps.get_db),
-    status: Optional[str] = None,
+    status: Optional[str] = Query(None),
+    academic_year: Optional[str] = Query(None),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    Retrieve projects.
+    Retrieve project matrix.
     """
     statement = select(Project)
     if status:
         statement = statement.where(Project.status == status)
+    if academic_year:
+        statement = statement.where(Project.academicYear == academic_year)
     return db.exec(statement).all()
 
 @router.post("/", response_model=ProjectOut)
@@ -76,9 +82,12 @@ def create_project(
         name=project_in.name,
         description=project_in.description,
         type=project_in.type,
-        status="PENDING",
+        status="DRAFT", # Starts as DRAFT
         deadline=project_in.deadline,
-        teamId=project_in.teamId
+        srsLink=project_in.srsLink,
+        teamId=project_in.teamId,
+        academicYear=project_in.academicYear,
+        gitHubRepo=project_in.gitHubRepo
     )
     db.add(project)
     db.commit()
@@ -115,6 +124,8 @@ def update_project_progress(
     if total_tasks == 0:
         project.progress = 0
     else:
+        # Formula: (Verified_Modules / Total_Modules) * 100
+        # Only status 'DONE' counts as verified (Sealed)
         done_tasks = len([t for t in project.tasks if t.status == "DONE"])
         project.progress = int((done_tasks / total_tasks) * 100)
     
@@ -176,6 +187,9 @@ def create_project_task(
         moduleName=task_in.moduleName,
         title=task_in.title,
         assignedTo=task_in.assignedTo,
+        whatsDone=task_in.whatsDone,
+        whatsGoingOn=task_in.whatsGoingOn,
+        remarks=task_in.remarks,
         status="TODO",
         project_id=id
     )
@@ -190,12 +204,12 @@ def create_project_task(
 @router.patch("/tasks/{task_id}/status", response_model=TaskOut)
 def update_task_status_protocol(
     task_id: str,
-    status: str,
+    pulse: TaskPulse,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    Update task status with hierarchical review logic.
+    Update task status with hierarchical review logic (AWAITING_SEAL).
     """
     task = db.get(Task, task_id)
     if not task:
@@ -205,23 +219,31 @@ def update_task_status_protocol(
     project = task.project
     is_leader = project.team and project.team.leaderId == current_user.id
     
+    status = pulse.status
     if status == "DONE":
         if is_leader and task.assignedTo == current_user.id:
             # Leader completing their own task -> Instant DONE
             task.status = "DONE"
             task.reviewFeedback = None
         else:
-            # Member or Leader completing others -> REVIEW_PENDING
-            task.status = "REVIEW_PENDING"
+            # Member or Leader completing others -> AWAITING_SEAL
+            task.status = "AWAITING_SEAL"
     else:
         # Other status updates (TODO -> IN_PROGRESS etc)
         task.status = status
+
+    # Pure Functional Data: Work Log and Progress
+    task.progress = pulse.progress or task.progress
+    task.whatsDone = pulse.whatsDone if pulse.whatsDone is not None else task.whatsDone
+    task.whatsGoingOn = pulse.whatsGoingOn if pulse.whatsGoingOn is not None else task.whatsGoingOn
+    task.remarks = pulse.remarks if pulse.remarks is not None else task.remarks
+    task.workLog = pulse.workLog or task.workLog
 
     db.add(task)
     db.commit()
     db.refresh(task)
     
-    # Sync progress
+    # Sync project progress
     update_project_progress(task.project_id, db)
     return task
 
@@ -284,6 +306,44 @@ def bulk_forge_projects(
         added_ids.append(p_id)
     db.commit()
     return {"status": "SUCCESS", "ids": added_ids}
+
+@router.post("/bulk/csv")
+async def bulk_inject_projects(
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """
+    Bulk operate: Inject projects via CSV.
+    Headers: name, type, deadline, description, srsLink
+    """
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+    
+    results = {"success": 0, "errors": []}
+    for i, row in enumerate(reader):
+        try:
+            if not row.get('name') or not row.get('deadline'):
+                raise ValueError("Missing name or deadline")
+            
+            p_id = generate_scifi_id(row['name'])
+            project = Project(
+                id=p_id,
+                name=row['name'],
+                description=row.get('description'),
+                type=row.get('type', 'Web_App'),
+                status="DRAFT",
+                deadline=row['deadline'],
+                srsLink=row.get('srsLink')
+            )
+            db.add(project)
+            results["success"] += 1
+        except Exception as e:
+            results["errors"].append({"row": i + 1, "error": str(e), "data": row})
+        
+    db.commit()
+    return results
 
 @router.patch("/{id}/activate", response_model=ProjectOut)
 def activate_project_protocol(

@@ -1,107 +1,173 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import GamingButton from '../common/GamingButton';
-import sdcLogo from '../../assets/logo.png';
+import { Hexagon } from 'lucide-react';
+import sdcLogo from '../../assets/sdclogo.png';
 
 const Navbar: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
-    <NavContainer
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 1, ease: 'easeOut' }}
+    <Nav 
+      initial={{ y: -100 }} 
+      animate={{ y: 0 }} 
+      transition={{ type: "spring", damping: 30, stiffness: 200 }}
     >
-      <LogoContainer>
-        <img src={sdcLogo} alt="SDC Logo" className="logo-img" />
-        <div className="pulse-indicator" />
-      </LogoContainer>
+      <div className="nav-container">
+        <LogoLink to="/">
+          <LogoWrapper>
+            <img src={sdcLogo} alt="SDC" />
+            <div className="brand-intel">
+              <span className="name">SDC_CENTRAL</span>
+              <span className="ver">STABLE_V2.5</span>
+            </div>
+          </LogoWrapper>
+        </LogoLink>
 
-      <NavLinks>
-        <NavLink whileHover={{ scale: 1.1, color: "var(--verdigris)" }}>SHOWCASE</NavLink>
-        <NavLink whileHover={{ scale: 1.1, color: "var(--verdigris)" }}>OPERATIVES</NavLink>
-        <NavLink whileHover={{ scale: 1.1, color: "var(--verdigris)" }}>APPLICATIONS</NavLink>
-      </NavLinks>
-
-      <ActionArea>
-        <div className="status-badge">UPLINK_STABLE</div>
-        <GamingButton label="LOGIN" onClick={() => console.log("Login Initiated")} />
-      </ActionArea>
-    </NavContainer>
+        <NavLinksSection>
+          <NavList>
+            <NavAction href="#about">SYSTEM_PHILOSOPHY</NavAction>
+            <NavAction href="#vanguard">OPERATIVES</NavAction>
+            <NavAction href="#recruitment">ENLISTMENT</NavAction>
+          </NavList>
+          
+          <AuthCluster>
+            <DashboardBtn onClick={() => navigate('/login')}>
+              <Hexagon size={16} className="deco" />
+              <span>COMMAND_ACCESS</span>
+            </DashboardBtn>
+          </AuthCluster>
+        </NavLinksSection>
+      </div>
+    </Nav>
   );
 };
 
-const NavContainer = styled(motion.nav)`
+const Nav = styled(motion.nav)`
   position: fixed;
-  top: 20px;
-  left: 5%;
-  right: 5%;
-  height: 120px;
+  top: 0; left: 0; right: 0;
+  height: 80px;
+  background: var(--bg-glass);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: var(--border-glass);
+  z-index: 2000;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 40px;
-  background: rgba(255, 250, 251, 0.4);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(125, 226, 209, 0.2);
-  border-radius: 99px;
-  z-index: 1000;
-  box-shadow: 0 8px 32px rgba(19, 21, 21, 0.05);
+  
+  .nav-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 `;
 
-const LogoContainer = styled.div`
+const LogoLink = styled(Link)`
+  text-decoration: none;
+`;
+
+const LogoWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 15px;
   
-  .logo-img {
-    height: 96px;
-    width: auto;
-    /* Clean & Seamless integration - No artificial borders or hovers */
-    transition: opacity 0.3s ease;
-    opacity: 0.9;
-    
-    &:hover {
-      opacity: 1;
-    }
-  }
-
-  .pulse-indicator {
-    width: 8px;
-    height: 8px;
-    background: var(--pearl-aqua);
-    border-radius: 50%;
-    box-shadow: 0 0 10px var(--pearl-aqua);
-    animation: pulse 2s infinite;
+  img {
+    height: 48px;
+    filter: drop-shadow(0 0 10px rgba(0, 118, 228, 0.3));
   }
   
-  @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+  .brand-intel {
+    display: flex;
+    flex-direction: column;
+    .name {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: 0.1em;
+    }
+    .ver {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      color: var(--ui-primary);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+    }
+  }
 `;
 
-const NavLinks = styled.div`
+const NavLinksSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 60px;
+  
+  @media (max-width: 1024px) { display: none; }
+`;
+
+const NavList = styled.div`
   display: flex;
   gap: 40px;
 `;
 
-const NavLink = styled(motion.span)`
+const NavAction = styled.a`
   font-family: var(--font-heading);
   font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  color: var(--onyx);
-  cursor: pointer;
-  transition: color 0.3s;
+  font-weight: 800;
+  color: var(--text-dim);
+  text-decoration: none;
+  letter-spacing: 0.15em;
+  transition: all 0.3s;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 1px;
+    background: var(--ui-accent);
+    transition: width 0.3s;
+  }
+  
+  &:hover {
+    color: var(--ui-accent);
+    text-shadow: 0 0 8px rgba(255, 213, 0, 0.3);
+    &::after { width: 100%; }
+  }
 `;
 
-const ActionArea = styled.div`
+const AuthCluster = styled.div``;
+
+const DashboardBtn = styled.button`
+  background: var(--bg-card);
+  border: 1px solid var(--ui-primary);
+  color: var(--ui-primary);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 12px;
+  transition: all 0.3s;
   
-  .status-badge {
-    font-size: 0.6rem;
-    letter-spacing: 0.4em;
-    color: var(--onyx);
-    opacity: 0.3;
-    font-family: var(--font-heading);
+  .deco {
+    color: var(--ui-accent);
+    transition: transform 0.5s;
+  }
+  
+  &:hover {
+    background: var(--ui-primary);
+    color: white;
+    border-color: var(--ui-primary);
+    box-shadow: 0 4px 20px rgba(0, 41, 107, 0.4);
+    .deco { transform: rotate(180deg); color: white; }
   }
 `;
 

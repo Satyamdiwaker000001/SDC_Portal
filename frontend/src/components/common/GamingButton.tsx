@@ -23,8 +23,8 @@ const GamingButton: React.FC<ButtonProps> = ({ label, onClick, type = 'button' }
 const StyledWrapper = styled.div`
   --anim--hover-time: 400ms;
   --anim--hover-ease: cubic-bezier(0.25, 1, 0.5, 1);
-  --verdigris: #339989;
-  --pearl-aqua: #7DE2D1;
+  --sky-blue: #87CEEB;
+  --deep-sky: #0095FF;
   --snow: #FFFAFB;
   --onyx: #131515;
 
@@ -45,7 +45,7 @@ const StyledWrapper = styled.div`
     z-index: 2;
     border-radius: 999vw;
     background: transparent;
-    pointer-events: none;
+    pointer-events: auto;
     transition: all var(--anim--hover-time) var(--anim--hover-ease);
     display: inline-block;
   }
@@ -68,7 +68,7 @@ const StyledWrapper = styled.div`
     z-index: 0;
     inset: 0;
     border-radius: 999vw;
-    background: linear-gradient(180deg, rgba(51, 153, 137, 0.2), rgba(125, 226, 209, 0.1));
+    background: linear-gradient(180deg, rgba(0, 149, 255, 0.2), rgba(135, 206, 235, 0.1));
     width: calc(100% - var(--shadow-cuttoff-fix) - 0.25em);
     height: calc(100% - var(--shadow-cuttoff-fix) - 0.25em);
     top: calc(var(--shadow-cuttoff-fix) - 0.5em);
@@ -87,21 +87,22 @@ const StyledWrapper = styled.div`
   button {
     --border-width: clamp(1px, 0.0625em, 4px);
     all: unset;
+    display: inline-block;
     cursor: pointer;
     position: relative;
     z-index: 3;
     background: linear-gradient(
       -75deg,
-      rgba(255, 250, 251, 0.1),
-      rgba(125, 226, 209, 0.3),
-      rgba(255, 250, 251, 0.1)
+      rgba(135, 206, 235, 0.1),
+      rgba(0, 149, 255, 0.3),
+      rgba(135, 206, 235, 0.1)
     );
     border-radius: 999vw;
     box-shadow:
       inset 0 0.125em 0.125em rgba(0, 0, 0, 0.05),
       inset 0 -0.125em 0.125em rgba(255, 255, 255, 1),
-      0 0.25em 0.125em -0.125em rgba(51, 153, 137, 0.3),
-      0 0 0.1em 0.25em inset rgba(125, 226, 209, 0.2),
+      0 0.25em 0.125em -0.125em rgba(0, 149, 255, 0.3),
+      0 0 0.1em 0.25em inset rgba(135, 206, 235, 0.2),
       0 0 0 0 white;
     backdrop-filter: blur(clamp(1px, 0.125em, 4px));
     transition: all var(--anim--hover-time) var(--anim--hover-ease);
@@ -113,8 +114,8 @@ const StyledWrapper = styled.div`
     box-shadow:
       inset 0 0.125em 0.125em rgba(0, 0, 0, 0.05),
       inset 0 -0.125em 0.125em rgba(255, 255, 255, 1),
-      0 0.15em 0.05em -0.1em rgba(51, 153, 137, 0.4),
-      0 0 0.05em 0.1em inset rgba(125, 226, 209, 0.5);
+      0 0.15em 0.05em -0.1em rgba(0, 149, 255, 0.4),
+      0 0 0.05em 0.1em inset rgba(135, 206, 235, 0.5);
   }
 
   button span {
@@ -141,11 +142,11 @@ const StyledWrapper = styled.div`
     box-sizing: border-box;
     background: conic-gradient(
         from var(--angle-1) at 50% 50%,
-        var(--verdigris),
+        var(--deep-sky),
         transparent 5% 40%,
-        var(--pearl-aqua) 50%,
+        var(--sky-blue) 50%,
         transparent 60% 95%,
-        var(--verdigris)
+        var(--deep-sky)
       ),
       linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5));
     mask:

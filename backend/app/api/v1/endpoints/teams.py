@@ -1,7 +1,9 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlmodel import Session, select, delete
 from datetime import datetime
+import csv
+import io
 
 from ....api import deps
 from ....models.models import Team, Member, TeamMemberLink, User
@@ -32,6 +34,11 @@ def create_team(
     """
     Create new squad (Admin only).
     """
+    # Squad Size Validation
+    if not (2 <= len(team_in.memberIds) <= 4):
+        raise HTTPException(status_code=400, detail="Squad size violation: Must be 2-4 operatives")
+
+    # Project multi-assignment allowed per admin protocols
     team = Team(
         id=team_in.id or f"TEAM-{int(datetime.utcnow().timestamp())}",
         name=team_in.name,
@@ -110,6 +117,47 @@ def bulk_create_teams(
             db.add(TeamMemberLink(team_id=team.id, member_id=mid))
     db.commit()
     return {"status": "SUCCESS", "message": f"{len(teams_in)} squads forged"}
+
+@router.post("/bulk/csv")
+async def bulk_forge_teams_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """
+    Bulk Forge squads via CSV.
+    Headers: name, leaderId, memberIds (semi-colon separated)
+    """
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+    
+    results = {"success": 0, "errors": []}
+    from ....models.models import Project
+    
+    for i, row in enumerate(reader):
+        try:
+            member_ids = [m.strip() for m in row['memberIds'].split(';') if m.strip()]
+            if not (2 <= len(member_ids) <= 4):
+                raise ValueError("Squad size violation: Must be 2-4 operatives")
+            
+            # Project multi-assignment allowed per admin protocols
+
+            team = Team(
+                id=f"TEAM-{int(datetime.utcnow().timestamp())}-{i}",
+                name=row['name'],
+                leaderId=row['leaderId']
+            )
+            db.add(team)
+            for mid in member_ids:
+                db.add(TeamMemberLink(team_id=team.id, member_id=mid))
+            results["success"] += 1
+            
+        except Exception as e:
+            results["errors"].append({"row": i + 1, "error": str(e), "data": row})
+        
+    db.commit()
+    return results
 
 @router.delete("/{id}")
 def delete_team(

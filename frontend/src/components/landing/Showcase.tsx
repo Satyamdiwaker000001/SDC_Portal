@@ -28,7 +28,7 @@ const Showcase: React.FC = () => {
   const prev = () => setIndex(prev => (prev - 1 + projects.length) % projects.length);
 
   return (
-    <ShowcaseSection>
+    <ShowcaseSection id="projects">
       <AnimatePresence mode="wait">
         {projects[index] && (
           <Slide
