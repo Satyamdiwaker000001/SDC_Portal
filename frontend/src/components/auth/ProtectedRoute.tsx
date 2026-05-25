@@ -1,10 +1,12 @@
-import { Outlet } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoute: React.FC = () => {
-  // const isAuthenticated = !!localStorage.getItem('sdc_token');
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  const token = localStorage.getItem('sdc_token');
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
   return <Outlet />;
 };

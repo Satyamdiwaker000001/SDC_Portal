@@ -1,88 +1,175 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../services/api';
-import sdcLogo from '../../assets/sdclogo.png';
+import { KeyRound, ShieldAlert } from 'lucide-react';
+import BunkerCard from '../../components/common/BunkerCard';
+import CombatButton from '../../components/common/CombatButton';
 
-const Container = styled.div`
+const LoginPage: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [status, setStatus] = useState<'IDLE' | 'COMPILING' | 'ERROR'>('IDLE');
+  const navigate = useNavigate();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setStatus('ERROR');
+      return;
+    }
+
+    setStatus('COMPILING');
+    setTimeout(() => {
+      // Set dummy token for bypass auth
+      localStorage.setItem('sdc_token', 'mock_resistance_uplink_token_v6');
+      localStorage.setItem('sdc_user', JSON.stringify({
+        id: 'OP-001',
+        name: 'COMMANDER_SINCERE',
+        email: email,
+        role: 'admin',
+        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Commander'
+      }));
+      navigate('/dashboard');
+    }, 1200);
+  };
+
+  return (
+    <LoginContainer>
+      <div className="alert-top">
+        <ShieldAlert size={16} />
+        <span>SECURE GATEWAY: UNRESOLVED SESSIONS WILL BE TERMINATED</span>
+      </div>
+
+      <CardWrapper variant="cyan" label="AUTHENTICATE: RESISTANCE_DECK">
+        <FormHeader>
+          <div className="icon-badge"><KeyRound size={28} /></div>
+          <h3>UPLINK PROTOCOL V6</h3>
+          <p className="subtitle">Enter your credential tokens to access SDC internal command grid.</p>
+        </FormHeader>
+
+        <Form onSubmit={handleLogin}>
+          <FormGroup>
+            <label>OPERATIVE_EMAIL_TOKEN:</label>
+            <input 
+              type="email" 
+              placeholder="e.g. agent@resistance.net"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={status === 'COMPILING'}
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <label>ENCRYPTION_PASSWORD_KEY:</label>
+            <input 
+              type="password" 
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={status === 'COMPILING'}
+            />
+          </FormGroup>
+
+          {status === 'ERROR' && (
+            <ErrorBadge>
+              <span>ACCESS_DENIED: COMPILATION DECRYPTION FAILURE</span>
+            </ErrorBadge>
+          )}
+
+          <div className="action-row">
+            <CombatButton 
+              type="submit" 
+              variant="cyan"
+              disabled={status === 'COMPILING'}
+            >
+              {status === 'COMPILING' ? "UPLINKING..." : "SECURE_UPLINK"}
+            </CombatButton>
+            <CombatButton 
+              type="button" 
+              variant="amber" 
+              glow={false}
+              onClick={() => navigate('/')}
+            >
+              ABORT_MISSION
+            </CombatButton>
+          </div>
+        </Form>
+      </CardWrapper>
+
+      <FooterCredits>
+        <span>SDC RESISTANCE CENTRAL // NODE_01 // SECURE CONSOLE</span>
+      </FooterCredits>
+    </LoginContainer>
+  );
+};
+
+const LoginContainer = styled.div`
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  background: ${props => props.theme.bgMain};
-  transition: background-color 0.5s ease;
-  position: relative;
-  overflow: hidden;
+  padding: 20px;
+  background-color: var(--bg-main);
+  background-image: 
+    linear-gradient(rgba(18, 30, 49, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 30, 49, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
 
-  /* Subtle background accent */
-  &::before {
-    content: '';
-    position: absolute;
-    top: -10%;
-    right: -10%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
-    border-radius: 50%;
-    z-index: 1;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -10%;
-    left: -10%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
-    border-radius: 50%;
-    z-index: 1;
+  .alert-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-amber);
+    border: 1px solid rgba(255, 170, 0, 0.2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: rgba(255, 170, 0, 0.05);
+    margin-bottom: 24px;
+    letter-spacing: 0.05em;
   }
 `;
 
-const GlassCard = styled(motion.div)`
+const CardWrapper = styled(BunkerCard)`
   width: 100%;
-  max-width: 440px;
-  background: ${props => props.theme.mode === 'light' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)'};
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid ${props => props.theme.border};
-  border-radius: 32px;
-  padding: 48px;
-  box-shadow: ${props => props.theme.shadow};
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
+  max-width: 450px;
 `;
 
-const LogoSection = styled.div`
+const FormHeader = styled.div`
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  margin-bottom: 24px;
 
-  img {
-    height: 56px;
-    filter: ${props => props.theme.mode === 'light' ? 'brightness(0)' : 'brightness(0) invert(1)'};
-    margin-bottom: 8px;
+  .icon-badge {
+    color: var(--text-cyan);
+    filter: drop-shadow(0 0 6px var(--border-cyan));
+    animation: pulse 2s infinite;
   }
 
-  h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: ${props => props.theme.textPrimary};
-    letter-spacing: -0.02em;
-    margin: 0;
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.1em;
   }
 
-  p {
-    font-size: 0.95rem;
-    color: ${props => props.theme.textSecondary};
-    font-weight: 500;
-    margin: 0;
+  .subtitle {
+    font-size: 0.65rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+    max-width: 320px;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
   }
 `;
 
@@ -90,214 +177,69 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 20px;
+
+  .action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(0, 240, 255, 0.15);
+    padding-top: 20px;
+    margin-top: 10px;
+  }
 `;
 
-const InputGroup = styled.div`
+const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  
+
   label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: ${props => props.theme.textSecondary};
-    margin-left: 4px;
+    font-size: 0.55rem;
+    font-weight: bold;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
   }
-`;
 
-const InputWrapper = styled.div<{ $focused?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: ${props => props.theme.mode === 'light' ? 'white' : 'rgba(255, 255, 255, 0.02)'};
-  border: 1px solid ${props => props.$focused ? '#6366F1' : props.theme.border};
-  padding: 0 18px;
-  border-radius: 16px;
-  transition: all 0.3s ease;
-  box-shadow: ${props => props.$focused ? '0 0 15px rgba(99, 102, 241, 0.1)' : 'none'};
-
-  svg {
-    color: ${props => props.$focused ? '#6366F1' : props.theme.textSecondary};
-    opacity: 0.6;
+  input {
+    background: rgba(5, 10, 18, 0.8);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 4px;
+    padding: 12px 14px;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    outline: none;
     transition: all 0.3s ease;
-  }
-`;
 
-const Input = styled.input`
-  width: 100%;
-  padding: 14px 0;
-  border: none;
-  background: transparent;
-  outline: none;
-  color: ${props => props.theme.textPrimary};
-  font-size: 0.95rem;
-  font-weight: 500;
-
-  &::placeholder {
-    color: ${props => props.theme.textSecondary};
-    opacity: 0.4;
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 16px;
-  background: #6366F1;
-  color: white;
-  border: none;
-  border-radius: 16px;
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
-  margin-top: 12px;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.4);
-    background: #4F46E5;
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorBanner = styled(motion.div)`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: #EF4444;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [focused, setFocused] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const response = await api.post('/auth/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-
-      const { access_token, name, role, id } = response.data;
-      localStorage.setItem('sdc_token', access_token);
-      localStorage.setItem('sdc_user', JSON.stringify({ name, role, id }));
-
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Identity verification failed. Please try again.');
-    } finally {
-      setLoading(false);
+    &:focus {
+      border-color: var(--border-cyan);
+      box-shadow: var(--hud-glow);
+      background: rgba(0, 240, 255, 0.02);
     }
-  };
+  }
+`;
 
-  return (
-    <Container>
-      <GlassCard
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
-      >
-        <LogoSection>
-          <img src={sdcLogo} alt="SDC" />
-          <h1>Central Command</h1>
-          <p>Access the mission control terminal</p>
-        </LogoSection>
+const ErrorBadge = styled.div`
+  background: rgba(239, 35, 60, 0.1);
+  border: 1px solid var(--border-red);
+  padding: 8px 12px;
+  border-radius: 4px;
+  color: var(--text-red);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.05em;
+`;
 
-        <Form onSubmit={handleLogin}>
-          <AnimatePresence>
-            {error && (
-              <ErrorBanner
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <AlertCircle size={18} />
-                {error}
-              </ErrorBanner>
-            )}
-          </AnimatePresence>
-
-          <InputGroup>
-            <label>Operative Email</label>
-            <InputWrapper $focused={focused === 'email'}>
-              <Mail size={18} />
-              <Input
-                type="email"
-                placeholder="agent@sdc.central"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setFocused('email')}
-                onBlur={() => setFocused(null)}
-                required
-              />
-            </InputWrapper>
-          </InputGroup>
-
-          <InputGroup>
-            <label>Encryption Key</label>
-            <InputWrapper $focused={focused === 'password'}>
-              <Lock size={18} />
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => setFocused('password')}
-                onBlur={() => setFocused(null)}
-                required
-              />
-            </InputWrapper>
-          </InputGroup>
-
-          <SubmitButton type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Establishing Uplink...
-              </>
-            ) : (
-              <>
-                Establish Connection
-                <ChevronRight size={20} />
-              </>
-            )}
-          </SubmitButton>
-        </Form>
-      </GlassCard>
-    </Container>
-  );
-};
+const FooterCredits = styled.div`
+  margin-top: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  font-weight: bold;
+  opacity: 0.7;
+`;
 
 export default LoginPage;

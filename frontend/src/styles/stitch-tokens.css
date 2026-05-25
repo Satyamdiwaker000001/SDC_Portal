@@ -1,0 +1,161 @@
+/* ─────────────────────────────────────────────────────────────
+   STITCH "OBSIDIAN NEXUS" DESIGN TOKENS
+   Sourced from Stitch project 2437235421874216561
+   ───────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;700&display=swap');
+
+:root {
+  /* ── Surface Colors ── */
+  --sn-bg:                  #131314;
+  --sn-surface:             #131314;
+  --sn-surface-low:         #1c1b1c;
+  --sn-surface-container:   #201f20;
+  --sn-surface-high:        #2a2a2b;
+  --sn-surface-highest:     #353436;
+  --sn-surface-bright:      #3a393a;
+  --sn-surface-lowest:      #0e0e0f;
+
+  /* ── Primary (Toxic Green) ── */
+  --sn-primary:             #ebffe2;
+  --sn-primary-container:   #00ff41;
+  --sn-primary-fixed:       #72ff70;
+  --sn-primary-dim:         #00e639;
+  --sn-on-primary:          #003907;
+  --sn-on-primary-container:#007117;
+
+  /* ── Secondary (Electric Cyan) ── */
+  --sn-secondary:           #bdf4ff;
+  --sn-secondary-container: #00e3fd;
+  --sn-secondary-dim:       #00daf3;
+  --sn-on-secondary:        #00363d;
+
+  /* ── Tertiary (Warning Red) ── */
+  --sn-tertiary:            #fff8f7;
+  --sn-tertiary-container:  #ffd2d4;
+  --sn-tertiary-dim:        #ffb2b8;
+
+  /* ── Text / On-Surface ── */
+  --sn-on-surface:          #e5e2e3;
+  --sn-on-surface-variant:  #b9ccb2;
+  --sn-outline:             #84967e;
+  --sn-outline-variant:     #3b4b37;
+
+  /* ── Typography ── */
+  --font-display:    'Sora', sans-serif;
+  --font-headline:   'Sora', sans-serif;
+  --font-body:       'Geist', sans-serif;
+  --font-label:      'JetBrains Mono', monospace;
+
+  /* ── Spacing ── */
+  --sn-margin-desktop: 64px;
+  --sn-margin-mobile:  20px;
+  --sn-gutter:         24px;
+  --sn-unit:           4px;
+  --sn-hud-safe:       40px;
+}
+
+/* ─── Global Reset & Base ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background: var(--sn-bg);
+  color: var(--sn-on-surface);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── HUD Corner Brackets ─────────────────────────────────── */
+.hud-corner-tl {
+  border-top:  2px solid currentColor;
+  border-left: 2px solid currentColor;
+  width: 14px; height: 14px;
+}
+.hud-corner-tr {
+  border-top:   2px solid currentColor;
+  border-right: 2px solid currentColor;
+  width: 14px; height: 14px;
+}
+.hud-corner-bl {
+  border-bottom: 2px solid currentColor;
+  border-left:   2px solid currentColor;
+  width: 14px; height: 14px;
+}
+.hud-corner-br {
+  border-bottom: 2px solid currentColor;
+  border-right:  2px solid currentColor;
+  width: 14px; height: 14px;
+}
+
+/* ─── Glow Utilities ─────────────────────────────────────── */
+.glow-green  { filter: drop-shadow(0 0 8px rgba(0, 230, 57, 0.6)); }
+.glow-cyan   { filter: drop-shadow(0 0 8px rgba(0, 218, 243, 0.6)); }
+.glow-red    { filter: drop-shadow(0 0 8px rgba(255, 178, 184, 0.6)); }
+
+/* ─── Scanline Animation ─────────────────────────────────── */
+@keyframes sn-scan {
+  from { top: -2px; }
+  to   { top: 100%; }
+}
+
+/* ─── Status Block (Segmented Bar) ──────────────────────── */
+.sn-status-block {
+  width: 8px; height: 14px;
+  background: currentColor;
+  opacity: 0.2;
+}
+.sn-status-block.active {
+  opacity: 1;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ─── Chromatic Glitch Hover ─────────────────────────────── */
+.chromatic-glitch:hover {
+  text-shadow: 2px 0 #00daf3, -2px 0 #ffb2b8;
+  transition: text-shadow 0.1s ease;
+}
+
+/* ─── Pulse Animation ─────────────────────────────────────── */
+@keyframes sn-pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+.sn-pulse { animation: sn-pulse-glow 2s ease-in-out infinite; }
+
+/* ─── Flicker Animation ────────────────────────────────────── */
+@keyframes sn-flicker {
+  0%, 100% { opacity: 1; }
+  92%       { opacity: 1; }
+  93%       { opacity: 0.4; }
+  94%       { opacity: 1; }
+  96%       { opacity: 0.6; }
+  97%       { opacity: 1; }
+}
+.sn-flicker { animation: sn-flicker 5s infinite; }
+
+/* ─── Slide-in Entrance ─────────────────────────────────── */
+@keyframes sn-slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sn-slide-up { animation: sn-slide-up 0.7s ease-out forwards; }
+
+/* ─── HUD Glass Panel ───────────────────────────────────── */
+.sn-glass {
+  background: rgba(32, 31, 32, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 230, 57, 0.12);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--sn-surface-lowest); }
+::-webkit-scrollbar-thumb { background: var(--sn-primary-dim); border-radius: 2px; }

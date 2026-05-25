@@ -1,22 +1,17 @@
 @echo off
 SETLOCAL EnableExtensions
 
-echo ==========================================
-echo    SDC Portal - Launching Services
-echo ==========================================
+echo ===================================================
+echo     SDC Resistance Command - Launching Portal
+echo ===================================================
 
-:: Start Backend
-echo Starting API Backend...
-start "SDC Backend" cmd /k "cd /d backend && .\venv\Scripts\python -m uvicorn app.main:app --reload"
-
-:: Start Frontend
-echo Starting Frontend Development Server...
+:: Start Frontend Dev Server
+echo Starting Frontend Node server...
 start "SDC Frontend" cmd /k "cd /d frontend && npm run dev"
 
 echo.
-echo All services are launching in separate windows.
-echo - Backend: http://127.0.0.1:8000
-echo - Frontend: Check the frontend window for the URL (usually http://localhost:5173)
+echo Launching finished.
+echo - Frontend: http://localhost:5173
 echo.
-echo Press any key to exit this launcher...
+echo Press any key to close this terminal...
 pause > nul
