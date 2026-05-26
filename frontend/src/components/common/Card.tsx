@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-interface BunkerCardProps {
+interface CardProps {
   variant?: 'cyan' | 'red' | 'amber' | 'pink';
   glow?: boolean;
   label?: string;
@@ -12,7 +12,7 @@ interface BunkerCardProps {
   id?: string;
 }
 
-const BunkerCard: React.FC<BunkerCardProps> = ({
+const Card: React.FC<CardProps> = ({
   variant = 'cyan',
   glow = true,
   label,
@@ -115,4 +115,4 @@ const CardLabel = styled.div<{ $variant: 'cyan' | 'red' | 'amber' | 'pink' }>`
   }
 `;
 
-export default BunkerCard;
+export default Card;

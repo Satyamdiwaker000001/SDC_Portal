@@ -2,13 +2,13 @@ import React from 'react';
 import styled from 'styled-components';
 import { useSound } from '../../context/SoundContext';
 
-interface CombatButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'cyan' | 'red' | 'amber';
   glow?: boolean;
   children: React.ReactNode;
 }
 
-const CombatButton: React.FC<CombatButtonProps> = ({
+const Button: React.FC<ButtonProps> = ({
   variant = 'cyan',
   glow = true,
   children,
@@ -19,17 +19,12 @@ const CombatButton: React.FC<CombatButtonProps> = ({
   const { playHover, playClick } = useSound();
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Sound is muted by default, but let context trigger if unmuted
-    try {
-      playHover();
-    } catch (_) {}
+    try { playHover(); } catch (_) {}
     if (onMouseEnter) onMouseEnter(e);
   };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    try {
-      playClick();
-    } catch (_) {}
+    try { playClick(); } catch (_) {}
     if (onClick) onClick(e);
   };
 
@@ -47,19 +42,19 @@ const CombatButton: React.FC<CombatButtonProps> = ({
 };
 
 const StyledButton = styled.button<{ $variant: 'cyan' | 'red' | 'amber'; $glow: boolean }>`
-  background: ${props => 
-    props.$variant === 'red' ? 'rgba(244, 63, 94, 0.1)' : 
-    props.$variant === 'amber' ? 'rgba(245, 158, 11, 0.1)' : 
+  background: ${props =>
+    props.$variant === 'red' ? 'rgba(244, 63, 94, 0.1)' :
+    props.$variant === 'amber' ? 'rgba(245, 158, 11, 0.1)' :
     'rgba(99, 102, 241, 0.1)'
   };
-  border: 1.5px solid ${props => 
-    props.$variant === 'red' ? 'var(--border-red)' : 
-    props.$variant === 'amber' ? 'var(--border-amber)' : 
+  border: 1.5px solid ${props =>
+    props.$variant === 'red' ? 'var(--border-red)' :
+    props.$variant === 'amber' ? 'var(--border-amber)' :
     'var(--border-cyan)'
   };
-  color: ${props => 
-    props.$variant === 'red' ? 'var(--text-red)' : 
-    props.$variant === 'amber' ? 'var(--text-amber)' : 
+  color: ${props =>
+    props.$variant === 'red' ? 'var(--text-red)' :
+    props.$variant === 'amber' ? 'var(--text-amber)' :
     'var(--text-cyan)'
   };
   cursor: pointer;
@@ -76,16 +71,16 @@ const StyledButton = styled.button<{ $variant: 'cyan' | 'red' | 'amber'; $glow: 
   outline: none;
 
   &:hover {
-    background: ${props => 
-      props.$variant === 'red' ? 'var(--border-red)' : 
-      props.$variant === 'amber' ? 'var(--border-amber)' : 
+    background: ${props =>
+      props.$variant === 'red' ? 'var(--border-red)' :
+      props.$variant === 'amber' ? 'var(--border-amber)' :
       'var(--border-cyan)'
     };
     color: #060813;
-    box-shadow: ${props => 
+    box-shadow: ${props =>
       !props.$glow ? 'none' :
-      props.$variant === 'red' ? '0 0 15px rgba(244, 63, 94, 0.4)' : 
-      props.$variant === 'amber' ? '0 0 15px rgba(245, 158, 11, 0.4)' : 
+      props.$variant === 'red' ? '0 0 15px rgba(244, 63, 94, 0.4)' :
+      props.$variant === 'amber' ? '0 0 15px rgba(245, 158, 11, 0.4)' :
       '0 0 15px rgba(99, 102, 241, 0.4)'
     };
     transform: translateY(-1px);
@@ -106,4 +101,4 @@ const StyledButton = styled.button<{ $variant: 'cyan' | 'red' | 'amber'; $glow: 
   }
 `;
 
-export default CombatButton;
+export default Button;

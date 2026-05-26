@@ -1,129 +1,88 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-/* ── Geist via CDN fallback ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* ══════════════════════════════════════════════
-   OBSIDIAN NEXUS — STITCH DESIGN TOKENS
-   Project: 2437235421874216561
-══════════════════════════════════════════════ */
 :root {
-  /* Surfaces */
-  --bg:           #0e0e0f;
-  --surface:      #131314;
-  --surface-low:  #1c1b1c;
-  --surface-mid:  #201f20;
-  --surface-high: #2a2a2b;
-  --surface-top:  #353436;
+  /* Surface Colors - Modern SaaS Glassmorphism & Dark Mode */
+  --bg-main:        #060813;
+  --bg-panel:       rgba(15, 23, 42, 0.5);
+  --bg-panel-solid: #0b0f19;
+  
+  /* Modern Accents (Soft Indigo, Violet, Amber, Rose/Crimson) */
+  --border-cyan:    #6366f1; /* Indigo */
+  --border-pink:    #a855f7; /* Violet */
+  --border-amber:   #f59e0b; /* Amber */
+  --border-red:     #f43f5e; /* Rose */
+  
+  /* Subtle Premium Shadows & Glows */
+  --hud-glow:       0 8px 24px rgba(99, 102, 241, 0.12);
+  --hud-glow-pink:  0 8px 24px rgba(168, 85, 247, 0.12);
+  --hud-glow-amber: 0 8px 24px rgba(245, 158, 11, 0.1);
+  --hud-glow-red:   0 8px 24px rgba(244, 63, 94, 0.1);
 
-  /* Primary — Toxic Green */
-  --green:        #00ff41;
-  --green-dim:    #00e639;
-  --green-glow:   rgba(0, 230, 57, 0.5);
-  --green-muted:  rgba(0, 230, 57, 0.12);
-  --on-green:     #003907;
-
-  /* Secondary — Electric Cyan */
-  --cyan:         #00e3fd;
-  --cyan-dim:     #00daf3;
-  --cyan-glow:    rgba(0, 218, 243, 0.4);
-  --cyan-muted:   rgba(0, 218, 243, 0.1);
-
-  /* Tertiary — Alert Red */
-  --red:          #ffb2b8;
-  --red-glow:     rgba(255, 178, 184, 0.4);
-
-  /* Text */
-  --text-primary: #e5e2e3;
-  --text-muted:   #b9ccb2;
-  --text-dim:     #84967e;
-  --text-dimmer:  #3b4b37;
+  /* Typography Colors */
+  --text-primary:   #f8fafc; /* Slate 50 */
+  --text-dim:       #94a3b8; /* Slate 400 */
+  
+  /* Text Accent Colors */
+  --text-cyan:      #818cf8; /* Soft Indigo */
+  --text-pink:      #c084fc; /* Soft Purple */
+  --text-amber:     #fbbf24; /* Soft Amber */
+  --text-red:       #f87171; /* Soft Crimson */
 
   /* Fonts */
-  --font-display: 'Sora', sans-serif;
-  --font-body:    'Inter', sans-serif;
-  --font-mono:    'JetBrains Mono', monospace;
-
-  /* Spacing */
-  --margin-desk:  64px;
-  --gutter:       24px;
+  --font-body:      'Outfit', sans-serif;
+  --font-mono:      'JetBrains Mono', monospace;
 }
 
-/* ── Reset ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+/* Reset */
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+
+html { 
+  scroll-behavior: smooth; 
+}
+
 body {
-  background: var(--bg);
+  background: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
-a { text-decoration: none; color: inherit; }
-button { cursor: pointer; border: none; background: none; font: inherit; }
-img { max-width: 100%; display: block; }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 2px; }
-
-/* ── Global Selection ── */
-::selection { background: var(--green); color: var(--on-green); }
-
-/* ── Film Grain Overlay ── */
-.film-grain {
-  position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-  opacity: 0.025;
-  pointer-events: none;
-  z-index: 9999;
+/* Styled Scrollbars */
+::-webkit-scrollbar { 
+  width: 6px; 
+  height: 6px;
+}
+::-webkit-scrollbar-track { 
+  background: #030408; 
+}
+::-webkit-scrollbar-thumb { 
+  background: linear-gradient(180deg, var(--border-cyan), var(--border-pink)); 
+  border-radius: 6px; 
 }
 
-/* ── Vignette ── */
-.vignette {
-  position: fixed; inset: 0;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.75) 100%);
-  pointer-events: none;
-  z-index: 9998;
+/* Common Interactive Classes */
+.cyan-glow-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  &:hover {
+    box-shadow: var(--hud-glow);
+    border-color: var(--border-cyan);
+    transform: translateY(-1px);
+  }
 }
 
-/* ── HUD Brackets ── */
-.hud-tl { border-top: 2px solid currentColor; border-left: 2px solid currentColor; width: 16px; height: 16px; }
-.hud-tr { border-top: 2px solid currentColor; border-right: 2px solid currentColor; width: 16px; height: 16px; }
-.hud-bl { border-bottom: 2px solid currentColor; border-left: 2px solid currentColor; width: 16px; height: 16px; }
-.hud-br { border-bottom: 2px solid currentColor; border-right: 2px solid currentColor; width: 16px; height: 16px; }
-
-/* ── Animations ── */
-@keyframes scanline {
-  from { top: -2px; }
-  to   { top: 100%; }
-}
-@keyframes pulse-glow {
-  0%,100% { opacity: 0.5; }
-  50%     { opacity: 1; }
-}
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes float-in-right {
-  from { opacity: 0; transform: translateX(60px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes flicker {
-  0%,100% { opacity: 1; }
-  93%     { opacity: 1; }
-  93.5%   { opacity: 0.3; }
-  94%     { opacity: 1; }
-  96.5%   { opacity: 0.7; }
-  97%     { opacity: 1; }
-}
-@keyframes rotate-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes blink {
-  0%,100% { opacity: 1; }
-  50%     { opacity: 0; }
+.pink-glow-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  &:hover {
+    box-shadow: var(--hud-glow-pink);
+    border-color: var(--border-pink);
+    transform: translateY(-1px);
+  }
 }
