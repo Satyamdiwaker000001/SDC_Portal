@@ -19,16 +19,8 @@ function App() {
           
           {/* Protected Internal Deck */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="members" element={<Dashboard />} />
-              <Route path="teams" element={<Dashboard />} />
-              <Route path="projects" element={<Dashboard />} />
-              <Route path="tasks" element={<Dashboard />} />
-              <Route path="settings" element={<Dashboard />} />
-              <Route path="applications" element={<Dashboard />} />
-              <Route path="announcements" element={<Dashboard />} />
-              <Route path="leaderboard" element={<Dashboard />} />
+            <Route path="/dashboard/*" element={<DashboardLayout />}>
+              <Route path="*" element={<Dashboard />} />
             </Route>
           </Route>
 
