@@ -9,6 +9,8 @@ interface BunkerCardProps {
   children: React.ReactNode;
   style?: React.CSSProperties;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
+  onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
   id?: string;
 }
 
@@ -20,6 +22,8 @@ const BunkerCard: React.FC<BunkerCardProps> = ({
   children,
   style,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   id,
 }) => {
   return (
@@ -30,6 +34,8 @@ const BunkerCard: React.FC<BunkerCardProps> = ({
       className={className}
       style={style}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       id={id}
     >
       {label && (

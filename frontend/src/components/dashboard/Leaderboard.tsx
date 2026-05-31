@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Award, Zap, Box, CheckSquare, Folder, X, Trophy, Crown, Flame, Star } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Base Data Models
 interface BaseDev {
@@ -56,6 +57,7 @@ const baseDevs: BaseDev[] = [
 ];
 
 const Leaderboard: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'DEVELOPERS' | 'PROJECTS'>('DEVELOPERS');
   const [activeProjectFilter, setActiveProjectFilter] = useState("All Projects");
 
@@ -94,7 +96,7 @@ const Leaderboard: React.FC = () => {
     // Rank 1 always gets 'Top' badge alongside anything else, 
     // but for the UI slot we prioritize 'all_round' or 'top'
     if (idx === 0 && dev.badge !== 'all_round') {
-      dev.badge = 'top';
+      (dev as any).badge = 'top';
     }
   });
 
@@ -168,17 +170,17 @@ const Leaderboard: React.FC = () => {
         <div className="h-left">
           <div className="title-row">
             <Trophy size={28} color="#fbbf24" fill="#fbbf24" style={{ filter: 'drop-shadow(0 2px 5px rgba(251,191,36,0.5))' }} />
-            <h1>Student Leaderboard</h1>
+            <h1>{t('Student Leaderboard')}</h1>
           </div>
-          <p className="subtitle">Live rankings - Academic Year 2025-26</p>
+          <p className="subtitle">{t('Live rankings - Academic Year 2025-26')}</p>
         </div>
         <div className="h-right">
           <ToggleGroup>
             <ToggleButton $active={activeTab === 'DEVELOPERS'} onClick={() => setActiveTab('DEVELOPERS')}>
-              <Award size={14} /> DEVELOPERS
+              <Award size={14} /> {t('Developers')}
             </ToggleButton>
             <ToggleButton $active={activeTab === 'PROJECTS'} onClick={() => setActiveTab('PROJECTS')}>
-              <Folder size={14} /> PROJECTS
+              <Folder size={14} /> {t('Projects')}
             </ToggleButton>
           </ToggleGroup>
           <CloseButton><X size={16} /></CloseButton>
@@ -239,15 +241,15 @@ const Leaderboard: React.FC = () => {
                       </ProgressBarTrack>
                       
                       <div className="stats-row">
-                        <span><Box size={10} style={{ color: 'rgba(255,255,255,0.4)' }} /> {entry.modules} modules</span>
-                        <span className="success"><CheckSquare size={10} /> {entry.done} done</span>
-                        <span className="active"><Zap size={10} fill="#f97316" color="#f97316" /> {entry.active} active</span>
+                        <span><Box size={10} style={{ color: 'rgba(255,255,255,0.4)' }} /> {entry.modules} {t('Modules')}</span>
+                        <span className="success"><CheckSquare size={10} /> {entry.done} {t('Done')}</span>
+                        <span className="active"><Zap size={10} fill="#f97316" color="#f97316" /> {entry.active} {t('Active')}</span>
                       </div>
                     </div>
 
                     <div className="row-right">
                       <span className="score" style={{ color: theme.color === 'rgba(255,255,255,0.2)' ? '#fff' : theme.color }}>{(entry as any).score}%</span>
-                      <span className="score-label">AVG PROGRESS</span>
+                      <span className="score-label">{t('Avg Progress')}</span>
                     </div>
                   </ListRow>
                 );
@@ -265,7 +267,7 @@ const Leaderboard: React.FC = () => {
                   $active={activeProjectFilter === f}
                   onClick={() => setActiveProjectFilter(f)}
                 >
-                  {f}
+                  {t(f)}
                 </FilterTag>
               ))}
             </FilterScroll>
@@ -280,13 +282,13 @@ const Leaderboard: React.FC = () => {
                       <MedalImg rank={(proj as any).rank} color={(proj as any).rank === 1 ? '#fbbf24' : (proj as any).rank === 2 ? '#94a3b8' : '#d97706'} small />
                       <div className="status-dot" style={{ background: proj.themeColor }} />
                       <div className="p-titles">
-                        <h3>{proj.name}</h3>
-                        <span>{proj.team}</span>
+                        <h3>{t(proj.name)}</h3>
+                        <span>{t(proj.team)}</span>
                       </div>
                     </div>
                     <div className="ph-right">
                       <span className="p-score" style={{ color: proj.statusColor }}>{proj.progress}</span>
-                      <span className="p-status" style={{ color: proj.statusColor }}>{proj.statusText}</span>
+                      <span className="p-status" style={{ color: proj.statusColor }}>{t(proj.statusText)}</span>
                     </div>
                   </div>
 
@@ -299,24 +301,24 @@ const Leaderboard: React.FC = () => {
                   <div className="p-stats-grid">
                     <div className="stat-box">
                       <span className="val" style={{ color: proj.themeColor }}>{proj.progress}%</span>
-                      <span className="lbl">PROGRESS</span>
+                      <span className="lbl">{t('Progress')}</span>
                     </div>
                     <div className="stat-box">
                       <span className="val">{proj.modules}</span>
-                      <span className="lbl">MODULES</span>
+                      <span className="lbl">{t('Modules')}</span>
                     </div>
                     <div className="stat-box">
                       <span className="val" style={{ color: '#34d399' }}>{proj.done}</span>
-                      <span className="lbl">DONE</span>
+                      <span className="lbl">{t('Done')}</span>
                     </div>
                     <div className="stat-box">
                       <span className="val" style={{ color: '#fbbf24' }}>{proj.daysLeft}</span>
-                      <span className="lbl">DAYS LEFT</span>
+                      <span className="lbl">{t('Days Left')}</span>
                     </div>
                   </div>
 
                   <div className="team-rankings-section">
-                    <div className="tr-header">TEAM RANKINGS</div>
+                    <div className="tr-header">{t('Team Rankings')}</div>
                     <div className="tr-list">
                       {proj.members.map((m: any, idx: number) => (
                         <div className="tr-row" key={m.id}>
@@ -340,13 +342,13 @@ const Leaderboard: React.FC = () => {
 
       <Footer>
         <div className="f-left">
-          <MedalImg rank={1} color="#fbbf24" small /> Rankings update in real-time
+          <MedalImg rank={1} color="#fbbf24" small /> {t('Rankings update in real-time', 'Rankings update in real-time')}
         </div>
         <div className="f-right">
-          <span><Crown size={14} color="#fbbf24" /> Top</span>
-          <span><Star size={14} color="#a855f7" /> Perfect</span>
-          <span><Zap size={14} color="#34d399" /> Fast</span>
-          <span><span title="All-Round Legend" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>🌟</span> All-Round</span>
+          <span><Crown size={14} color="#fbbf24" /> {t('Top')}</span>
+          <span><Star size={14} color="#a855f7" /> {t('Perfect')}</span>
+          <span><Zap size={14} color="#34d399" /> {t('Fast')}</span>
+          <span><span title={t('All-Round Legend', 'All-Round Legend')} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>🌟</span> {t('All-Round')}</span>
         </div>
       </Footer>
     </Container>

@@ -2,21 +2,23 @@ import React from 'react';
 import styled from 'styled-components';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const AudioToggle: React.FC = () => {
   const { isMuted, toggleMute } = useSound();
+  const { t } = useTranslation();
 
   return (
     <ToggleWrapper
       onClick={toggleMute}
       $muted={isMuted}
-      title={isMuted ? 'Enable Audio' : 'Disable Audio'}
+      title={isMuted ? t('Enable Audio', 'Enable Audio') : t('Disable Audio', 'Disable Audio')}
     >
-      <span className="uplink-label">AUDIO:</span>
+      <span className="uplink-label">{t('AUDIO:')}</span>
       <IconBox>
         {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} className="pulse-icon" />}
       </IconBox>
-      <span className="status-text">{isMuted ? 'MUTE' : 'ON'}</span>
+      <span className="status-text">{isMuted ? t('MUTE') : t('ON')}</span>
       <VisualBars $active={!isMuted}>
         <div className="bar bar-1" />
         <div className="bar bar-2" />

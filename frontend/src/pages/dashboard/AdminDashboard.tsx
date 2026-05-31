@@ -8,11 +8,18 @@ import {
 import Button from '../../components/common/Button';
 import Leaderboard from '../../components/dashboard/Leaderboard';
 import { useSound } from '../../context/SoundContext';
+import { t } from '../../hooks/useTranslation';
 
 /* ─── Types ─── */
 interface Application {
-  id: string; name: string; role: string; year: string;
-  reason: string; status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  id: string;
+  name: string;
+  email: string;
+  branch: string;
+  semester: number;
+  role: string;
+  message?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 interface ServerNode {
   id: string; name: string;
@@ -34,9 +41,36 @@ interface Task {
 
 /* ─── Seed ─── */
 const seedApplications: Application[] = [
-  { id: 'APP-882', name: 'Alex Karr',    role: 'Backend Developer',  year: 'Sophomore / CS', reason: 'Familiar with microservices. Looking to build real-world REST APIs with FastAPI.', status: 'PENDING' },
-  { id: 'APP-883', name: 'Valerie Vane', role: 'DevOps Engineer',    year: 'Junior / IT',    reason: 'Experienced with Docker, CI/CD pipelines, and cloud hosting architecture.',        status: 'PENDING' },
-  { id: 'APP-884', name: 'Damien Rush',  role: 'Frontend Developer', year: 'Sophomore / CS', reason: 'React enthusiast. Love crafting animations and responsive fluid interfaces.',       status: 'PENDING' },
+  { 
+    id: 'APP-882', 
+    name: 'Alex Karr', 
+    email: 'alex.karr@college.edu', 
+    branch: 'CSE', 
+    semester: 4, 
+    role: 'WEB DEVELOPER', 
+    message: 'Familiar with microservices. Looking to build real-world REST APIs with FastAPI.', 
+    status: 'PENDING' 
+  },
+  { 
+    id: 'APP-883', 
+    name: 'Valerie Vane', 
+    email: 'valerie.vane@college.edu', 
+    branch: 'IT', 
+    semester: 6, 
+    role: 'DEVOPS', 
+    message: 'Experienced with Docker, CI/CD pipelines, and cloud hosting architecture.', 
+    status: 'PENDING' 
+  },
+  { 
+    id: 'APP-884', 
+    name: 'Damien Rush', 
+    email: 'damien.rush@college.edu', 
+    branch: 'CSE', 
+    semester: 4, 
+    role: 'WEB DEVELOPER', 
+    message: 'React enthusiast. Love crafting animations and responsive fluid interfaces.', 
+    status: 'PENDING' 
+  },
 ];
 const seedNodes: ServerNode[] = [
   { id: 'NODE-1', name: 'Primary Database Host',  status: 'ONLINE',   load: 98, ip: '10.0.12.4'  },
@@ -70,6 +104,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
   const { playClick, playTypeClick } = useSound();
 
   const [applications, setApplications] = useState<Application[]>(seedApplications);
+  const [selectedIds,  setSelectedIds]  = useState<string[]>([]);
   const [nodes,        setNodes]         = useState<ServerNode[]>(seedNodes);
   const [members,      setMembers]       = useState<Member[]>(seedMembers);
   const [projects,     setProjects]      = useState<Project[]>(seedProjects);
@@ -125,8 +160,54 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     m.focus.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const approveApp  = (id: string) => { try { playClick(); } catch (_) {} setApplications(p => p.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a)); };
-  const rejectApp   = (id: string) => { try { playClick(); } catch (_) {} setApplications(p => p.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a)); };
+  const approveApp  = (id: string) => {
+    try { playClick(); } catch (_) {}
+    setApplications(p => p.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
+    setSelectedIds(prev => prev.filter(x => x !== id));
+  };
+  const rejectApp   = (id: string) => {
+    try { playClick(); } catch (_) {}
+    setApplications(p => p.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
+    setSelectedIds(prev => prev.filter(x => x !== id));
+  };
+  const toggleSelectApp = (id: string) => {
+    try { playClick(); } catch (_) {}
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+  const toggleSelectAllApps = () => {
+    try { playClick(); } catch (_) {}
+    const pendingApps = applications.filter(a => a.status === 'PENDING');
+    const allPendingSelected = pendingApps.length > 0 && pendingApps.every(a => selectedIds.includes(a.id));
+    if (allPendingSelected) {
+      const pendingIds = pendingApps.map(a => a.id);
+      setSelectedIds(prev => prev.filter(id => !pendingIds.includes(id)));
+    } else {
+      const pendingIds = pendingApps.map(a => a.id);
+      setSelectedIds(prev => {
+        const next = [...prev];
+        pendingIds.forEach(id => {
+          if (!next.includes(id)) next.push(id);
+        });
+        return next;
+      });
+    }
+  };
+  const bulkApproveApps = () => {
+    try { playClick(); } catch (_) {}
+    setApplications(prev =>
+      prev.map(a => selectedIds.includes(a.id) && a.status === 'PENDING' ? { ...a, status: 'APPROVED' } : a)
+    );
+    setSelectedIds([]);
+  };
+  const bulkRejectApps = () => {
+    try { playClick(); } catch (_) {}
+    setApplications(prev =>
+      prev.map(a => selectedIds.includes(a.id) && a.status === 'PENDING' ? { ...a, status: 'REJECTED' } : a)
+    );
+    setSelectedIds([]);
+  };
   const cycleNode   = (id: string) => {
     try { playClick(); } catch (_) {}
     setNodes(p => p.map(n => {
@@ -140,7 +221,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     setMembers(p => p.map(m => {
       if (m.id !== id) return m;
       const roles: Member['role'][] = ['JUNIOR', 'MEMBER', 'SENIOR', 'LEAD'];
-      return { ...m, role: roles[Math.min(roles.indexOf(m.role) + 1, roles.length - 1)] };
+      return { ...m, role: Reflect.get(roles, Math.min(roles.indexOf(m.role) + 1, roles.length - 1)) };
     }));
   };
   const cycleMemberStatus = (id: string) => {
@@ -148,7 +229,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     setMembers(p => p.map(m => {
       if (m.id !== id) return m;
       const s: Member['status'][] = ['ACTIVE', 'IDLE', 'OFFLINE'];
-      return { ...m, status: s[(s.indexOf(m.status) + 1) % s.length] };
+      return { ...m, status: Reflect.get(s, (s.indexOf(m.status) + 1) % s.length) };
     }));
   };
   const createProject = (e: React.FormEvent) => {
@@ -163,7 +244,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     setTasks(p => p.map(t => {
       if (t.id !== id) return t;
       const s: Task['status'][] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
-      return { ...t, status: s[(s.indexOf(t.status) + 1) % s.length] };
+      return { ...t, status: Reflect.get(s, (s.indexOf(t.status) + 1) % s.length) };
     }));
   };
   const sendBroadcast = (e: React.FormEvent) => {
@@ -176,31 +257,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
 
   /* KPI data */
   const kpis = [
-    { icon: Users,        label: 'OPERATIVE_REGISTRY', value: `${members.length}`,                                                  trend: '+4.2%',  trendUp: true,  accent: 'indigo'  },
-    { icon: Shield,       label: 'PENDING_DIRECTIVES',  value: String(tasks.filter(t => t.status !== 'DONE').length),               trend: 'ACTIVE', trendUp: true,  accent: 'violet'  },
-    { icon: Radio,        label: 'ACTIVE_MISSIONS',     value: String(projects.length),                                              trend: '+2',     trendUp: true,  accent: 'cyan'    },
-    { icon: Activity,     label: 'CORE_INTEGRITY',      value: `${nodes.filter(n => n.status === 'ONLINE').length}/${nodes.length}`, trend: 'SECURE', trendUp: true,  accent: 'emerald' },
+    { icon: Users,        label: 'Operative Registry', value: `${members.length}`,                                                  trend: '+4.2%',  trendUp: true,  accent: 'indigo'  },
+    { icon: Shield,       label: 'Pending Directives',  value: String(tasks.filter(t => t.status !== 'DONE').length),               trend: 'ACTIVE', trendUp: true,  accent: 'violet'  },
+    { icon: Radio,        label: 'Active Missions',     value: String(projects.length),                                              trend: '+2',     trendUp: true,  accent: 'cyan'    },
+    { icon: Activity,     label: 'Core Integrity',      value: `${nodes.filter(n => n.status === 'ONLINE').length}/${nodes.length}`, trend: 'SECURE', trendUp: true,  accent: 'emerald' },
   ];
 
   const rawUser = localStorage.getItem('sdc_user');
   const user = rawUser ? JSON.parse(rawUser) : { name: 'Admin' };
-  const firstName = user.name?.split(' ')[0]?.toUpperCase() ?? 'OVERSEER';
+  const firstName = user.name?.split(' ')[0] ?? 'Overseer';
 
   const viewTitles: Record<string, string> = {
-    desk: `WELCOME_BACK, ${firstName}`, members: 'OPERATIVE_REGISTRY',
-    teams: 'TEAMS', projects: 'MISSION_MATRIX', tasks: 'TASK_CONSOLE',
-    applications: 'RECRUIT_PIPELINE', announcements: 'TERMINAL_FEED',
-    leaderboard: 'TACTICAL_LEADERBOARD',
+    desk: `Welcome Back, ${firstName}`, members: 'Operative Registry',
+    teams: 'Teams', projects: 'Mission Matrix', tasks: 'Task Console',
+    applications: 'Recruit Pipeline', announcements: 'Terminal Feed',
+    leaderboard: 'Tactical Leaderboard',
   };
   const viewSubs: Record<string, string> = {
-    desk: 'SYSTEM_STATUS: ALL_SYSTEMS_NOMINAL // UPLINK_STABLE',
-    members: 'ACTIVE MEMBER DIRECTORY — FULL ROSTER',
-    teams: 'TEAM REGISTRY — SQUAD DIRECTORY',
-    projects: 'MISSION ARCHIVE — MANAGE ALL PROJECTS',
-    tasks: 'TASK MANAGEMENT — ASSIGN AND TRACK DIRECTIVES',
-    applications: 'RECRUIT PIPELINE — REVIEW NEW APPLICATIONS',
-    announcements: 'TERMINAL FEED — BROADCAST GLOBAL MESSAGES',
-    leaderboard: 'RANKING_CYCLE: ACTIVE_2024.Q2',
+    desk: 'System Status: All Systems Nominal. Uplink Stable',
+    members: 'Active Member Directory - Full Roster',
+    teams: 'Team Registry - Squad Directory',
+    projects: 'Mission Archive - Manage All Projects',
+    tasks: 'Task Management - Assign and Track Directives',
+    applications: 'Recruit Pipeline - Review New Applications',
+    announcements: 'Terminal Feed - Broadcast Global Messages',
+    leaderboard: 'Ranking Cycle: Active 2024 Q2',
   };
 
   const renderContent = () => {
@@ -215,9 +296,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                 <KpiCard key={kpi.label} $accent={kpi.accent}>
                   <KpiTop>
                     <IconWrap $accent={kpi.accent}><Icon size={18} /></IconWrap>
-                    <TrendBadge $up={kpi.trendUp}><TrendingUp size={10} />{kpi.trend}</TrendBadge>
+                    <TrendBadge $up={kpi.trendUp}><TrendingUp size={10} />{t(kpi.trend)}</TrendBadge>
                   </KpiTop>
-                  <KpiLabel>{kpi.label}</KpiLabel>
+                  <KpiLabel>{t(kpi.label)}</KpiLabel>
                   <KpiValue>{kpi.value}</KpiValue>
                 </KpiCard>
               );
@@ -228,8 +309,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
             {/* Server Nodes */}
             <SectionCard>
               <SectionHead>
-                <div className="title-row"><Server size={16} className="icon cyan" /><span className="title">INFRASTRUCTURE_NODES</span></div>
-                <span className="subtitle">HOSTING NODE STATUS — LIVE MONITOR</span>
+                <div className="title-row"><Server size={16} className="icon cyan" /><span className="title">{t('Infrastructure Nodes')}</span></div>
+                <span className="subtitle">{t('Hosting Node Status - Live Monitor')}</span>
               </SectionHead>
               <NodeList>
                 {nodes.map(node => (
@@ -239,13 +320,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                       <span className="node-ip">{node.ip}</span>
                     </div>
                     <div className="node-load">
-                      <span className="load-txt">Load: {node.load}%</span>
+                      <span className="load-txt">{t('Load: ')}{node.load}%</span>
                       <ProgressFill $level={node.load} />
                     </div>
                     <div className="node-right">
                       <StatusPill className={node.status.toLowerCase()}>{node.status}</StatusPill>
                       <Button variant={node.status === 'ONLINE' ? 'cyan' : node.status === 'STANDBY' ? 'amber' : 'red'} glow={false} onClick={() => cycleNode(node.id)}>
-                        <RefreshCw size={11} style={{ marginRight: 5 }} />Toggle
+                        <RefreshCw size={11} style={{ marginRight: 5 }} />{t('Toggle')}
                       </Button>
                     </div>
                   </NodeRow>
@@ -256,8 +337,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
             {/* Broadcast Feed */}
             <SectionCard style={{ maxWidth: 360 }}>
               <SectionHead>
-                <div className="title-row"><Terminal size={16} className="icon amber" /><span className="title">TERMINAL_FEED</span></div>
-                <span className="subtitle">UPLINK_BUILD_MONITOR</span>
+                <div className="title-row"><Terminal size={16} className="icon amber" /><span className="title">{t('Terminal Feed')}</span></div>
+                <span className="subtitle">{t('Uplink Build Monitor')}</span>
               </SectionHead>
               <LogConsole>
                 {broadcastLogs.map((log, idx) => (
@@ -273,8 +354,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
       case 'members': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">OPERATIVE_REGISTRY</span></div>
-            <span className="subtitle">ACTIVE MEMBER DIRECTORY — FULL ROSTER</span>
+            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">{t('Operative Registry')}</span></div>
+            <span className="subtitle">{t('Active Member Directory - Full Roster')}</span>
           </SectionHead>
           
           <MemberControls>
@@ -282,7 +363,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
               <Search size={14} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search operatives by name, role, focus..."
+                placeholder={t("Search operatives by name, role, focus...", "Search operatives by name, role, focus...")}
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); try { playTypeClick(); } catch (_) {} }}
               />
@@ -293,13 +374,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
               )}
             </SearchWrapper>
             <Button variant="cyan" onClick={() => setIsAddModalOpen(true)}>
-              <Plus size={14} style={{ marginRight: 6 }} /> Add Member
+              <Plus size={14} style={{ marginRight: 6 }} /> {t('Add Member', 'Add Member')}
             </Button>
           </MemberControls>
 
           <TableWrap>
             <DataTable>
-              <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Focus Area</th><th>XP</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>{t('ID', 'ID')}</th><th>{t('Name')}</th><th>{t('ROLE')}</th><th>{t('FOCUS AREA')}</th><th>{t('XP', 'XP')}</th><th>{t('STATUS')}</th><th>{t('Actions', 'Actions')}</th></tr></thead>
               <tbody>
                 {filteredMembers.length > 0 ? (
                   filteredMembers.map(m => (
@@ -312,8 +393,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                       <td><StatusPill className={m.status.toLowerCase()}>{m.status}</StatusPill></td>
                       <td>
                         <ActionRow>
-                          <Button variant="cyan" glow={false} onClick={() => promoteMember(m.id)}>Promote</Button>
-                          <Button variant="red"  glow={false} onClick={() => cycleMemberStatus(m.id)}>Toggle</Button>
+                          <Button variant="cyan" glow={false} onClick={() => promoteMember(m.id)}>{t('Promote')}</Button>
+                          <Button variant="red"  glow={false} onClick={() => cycleMemberStatus(m.id)}>{t('Toggle')}</Button>
                         </ActionRow>
                       </td>
                     </tr>
@@ -321,7 +402,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                 ) : (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: '24px 0' }}>
-                      No members found matching your search.
+                      {t('No members found matching your search.', 'No members found matching your search.')}
                     </td>
                   </tr>
                 )}
@@ -335,11 +416,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
       case 'teams': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">TEAM_REGISTRY</span></div>
-            <span className="subtitle">ACTIVE SQUADS AND TEAMS</span>
+            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">{t('Team Registry')}</span></div>
+            <span className="subtitle">{t('Active Squads and Teams')}</span>
           </SectionHead>
           <div style={{ color: 'rgba(255,255,255,0.4)', padding: '20px 0' }}>
-            <p>Teams view is currently under construction.</p>
+            <p>{t('Teams view is currently under construction.')}</p>
           </div>
         </SectionCard>
       );
@@ -349,8 +430,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
         <ContentRow>
           <SectionCard>
             <SectionHead>
-              <div className="title-row"><Cpu size={16} className="icon violet" /><span className="title">MISSION_MATRIX</span></div>
-              <span className="subtitle">ACTIVE PROJECT PORTFOLIO</span>
+              <div className="title-row"><Cpu size={16} className="icon violet" /><span className="title">{t('Mission Matrix')}</span></div>
+              <span className="subtitle">{t('Active Project Portfolio')}</span>
             </SectionHead>
             <ProjectList>
               {projects.map(p => (
@@ -360,8 +441,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                     <PriorityBadge className={p.priority.toLowerCase()}>{p.priority}</PriorityBadge>
                   </div>
                   <div className="proj-mid">
-                    <span>Lead: {p.lead}</span>
-                    <span>Completion: {p.progress}%</span>
+                    <span>{t('Lead: ')}{p.lead}</span>
+                    <span>{t('Completion: ')}{p.progress}%</span>
                   </div>
                   <ProgressFill $level={p.progress} />
                 </ProjectItem>
@@ -371,23 +452,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
 
           <SectionCard style={{ maxWidth: 340 }}>
             <SectionHead>
-              <div className="title-row"><Plus size={16} className="icon emerald" /><span className="title">CREATE_MISSION</span></div>
-              <span className="subtitle">INITIALIZE A NEW PROJECT</span>
+              <div className="title-row"><Plus size={16} className="icon emerald" /><span className="title">{t('Create Mission')}</span></div>
+              <span className="subtitle">{t('Initialize a New Project')}</span>
             </SectionHead>
             <StyledForm onSubmit={createProject}>
               <div className="field-group">
-                <label>PROJECT NAME</label>
-                <input type="text" placeholder="e.g. SDC Recruitment Portal" value={newProjectName}
+                <label>{t('Project Name')}</label>
+                <input type="text" placeholder={t("e.g. SDC Recruitment Portal", "e.g. SDC Recruitment Portal")} value={newProjectName}
                   onChange={e => { setNewProjectName(e.target.value); try { playTypeClick(); } catch (_) {} }} />
               </div>
               <div className="field-group">
-                <label>ASSIGN LEAD</label>
+                <label>{t('Assign Lead')}</label>
                 <select value={newProjectLead} onChange={e => { setNewProjectLead(e.target.value); try { playClick(); } catch (_) {} }}>
                   {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
                 </select>
               </div>
               <Button variant="cyan" type="submit" glow={true} className="submit-btn">
-                <Plus size={14} style={{ marginRight: 8 }} /> Initialize Mission
+                <Plus size={14} style={{ marginRight: 8 }} /> {t('Initialize Mission', 'Initialize Mission')}
               </Button>
             </StyledForm>
           </SectionCard>
@@ -398,8 +479,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
       case 'tasks': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><CheckCircle2 size={16} className="icon emerald" /><span className="title">TASK_CONSOLE</span></div>
-            <span className="subtitle">MISSION DIRECTIVES — MANAGE ALL TASKS</span>
+            <div className="title-row"><CheckCircle2 size={16} className="icon emerald" /><span className="title">{t('Task Console')}</span></div>
+            <span className="subtitle">{t('Mission Directives - Manage All Tasks')}</span>
           </SectionHead>
           <div className="task-list">
             {tasks.map(task => (
@@ -410,7 +491,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                 </div>
                 <div className="t-body">
                   <p className="t-title">{task.title}</p>
-                  <span className="t-assignee">Assignee: {task.assignee}</span>
+                  <span className="t-assignee">{t('Assignee: ')}{task.assignee}</span>
                 </div>
                 <Button variant={task.status === 'DONE' ? 'cyan' : task.status === 'IN_PROGRESS' ? 'amber' : 'red'} glow={false} onClick={() => cycleTask(task.id)}>
                   {task.status.replace('_', ' ')}
@@ -422,61 +503,125 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
       );
 
       /* ── Applications ── */
-      case 'applications': return (
-        <SectionCard>
-          <SectionHead>
-            <div className="title-row"><AlertCircle size={16} className="icon amber" /><span className="title">RECRUIT_PIPELINE</span></div>
-            <span className="subtitle">PENDING MEMBERSHIP APPLICATIONS — REVIEW QUEUE</span>
-          </SectionHead>
-          <AppListList>
-            {applications.map(app => (
-              <AppRowItem key={app.id} className={app.status.toLowerCase()}>
-                <AppRowLeft>
-                  <AppRowMeta>
-                    <span className="app-id">{app.id}</span>
-                    <span className="app-year">{app.year}</span>
-                  </AppRowMeta>
-                  <AppRowMain>
-                    <span className="app-name">{app.name}</span>
-                    <span className="app-role">{app.role}</span>
-                  </AppRowMain>
-                </AppRowLeft>
-                <AppRowMiddle>
-                  <p className="app-reason">"{app.reason}"</p>
-                </AppRowMiddle>
-                <AppRowRight>
-                  {app.status === 'PENDING' ? (
-                    <AppRowActions>
-                      <Button variant="cyan" glow={false} onClick={() => approveApp(app.id)}>
-                        <Check size={12} style={{ marginRight: 4 }} /> Approve
-                      </Button>
-                      <Button variant="red" glow={false} onClick={() => rejectApp(app.id)}>
-                        <X size={12} style={{ marginRight: 4 }} /> Reject
-                      </Button>
-                    </AppRowActions>
-                  ) : (
-                    <StatusPill className={app.status.toLowerCase()}>{app.status}</StatusPill>
+      case 'applications': {
+        const pendingApps = applications.filter(a => a.status === 'PENDING');
+        return (
+          <SectionCard>
+            <SectionHead>
+              <div className="title-row"><AlertCircle size={16} className="icon amber" /><span className="title">{t('Recruit Pipeline')}</span></div>
+              <span className="subtitle">{t('Pending Membership Applications - Review Queue')}</span>
+            </SectionHead>
+
+            {/* Bulk Actions Bar */}
+            {pendingApps.length > 0 && (
+              <BulkActionBar>
+                <div className="bulk-left">
+                  <input 
+                    type="checkbox" 
+                    id="select-all-pending"
+                    checked={pendingApps.length > 0 && pendingApps.every(a => selectedIds.includes(a.id))}
+                    onChange={toggleSelectAllApps} 
+                    className="bulk-checkbox"
+                  />
+                  <label htmlFor="select-all-pending" className="select-all-label">
+                    {t('Select All Pending')}
+                  </label>
+                  {selectedIds.length > 0 && (
+                    <span className="selection-count">
+                      ({selectedIds.length} {t('selected')})
+                    </span>
                   )}
-                </AppRowRight>
-              </AppRowItem>
-            ))}
-          </AppListList>
-        </SectionCard>
-      );
+                </div>
+                <div className="bulk-right">
+                  <Button 
+                    variant="cyan" 
+                    glow={false}
+                    disabled={selectedIds.length === 0} 
+                    onClick={bulkApproveApps}
+                  >
+                    <Check size={12} style={{ marginRight: 6 }} />
+                    {t('Bulk Approve')}
+                  </Button>
+                  <Button 
+                    variant="red" 
+                    glow={false}
+                    disabled={selectedIds.length === 0} 
+                    onClick={bulkRejectApps}
+                  >
+                    <X size={12} style={{ marginRight: 6 }} />
+                    {t('Bulk Reject')}
+                  </Button>
+                </div>
+              </BulkActionBar>
+            )}
+
+            <AppListList>
+              {applications.map(app => (
+                <AppRowItem key={app.id} className={app.status.toLowerCase()}>
+                  {app.status === 'PENDING' ? (
+                    <input 
+                      type="checkbox" 
+                      checked={selectedIds.includes(app.id)} 
+                      onChange={() => toggleSelectApp(app.id)}
+                      className="app-checkbox"
+                    />
+                  ) : (
+                    <div className="app-checkbox-placeholder" />
+                  )}
+                  <AppRowLeft>
+                    <AppRowMeta>
+                      <span className="app-id">{app.id}</span>
+                      <span className="app-year">{t('SEM-')}{app.semester} / {app.branch}</span>
+                    </AppRowMeta>
+                    <AppRowMain>
+                      <span className="app-name">{app.name}</span>
+                      <span className="app-email">{app.email}</span>
+                    </AppRowMain>
+                  </AppRowLeft>
+                  <AppRowMiddle>
+                    <div className="role-and-msg">
+                      <div className="app-role">
+                        {t('Preferred Role:')} <RolePill className={app.role.toLowerCase().replace(' ', '_')}>{app.role}</RolePill>
+                      </div>
+                      {app.message && (
+                        <p className="app-reason">"{app.message}"</p>
+                      )}
+                    </div>
+                  </AppRowMiddle>
+                  <AppRowRight>
+                    {app.status === 'PENDING' ? (
+                      <AppRowActions>
+                        <Button variant="cyan" glow={false} onClick={() => approveApp(app.id)}>
+                          <Check size={12} style={{ marginRight: 4 }} /> {t('Approve', 'Approve')}
+                        </Button>
+                        <Button variant="red" glow={false} onClick={() => rejectApp(app.id)}>
+                          <X size={12} style={{ marginRight: 4 }} /> {t('Reject', 'Reject')}
+                        </Button>
+                      </AppRowActions>
+                    ) : (
+                      <StatusPill className={app.status.toLowerCase()}>{app.status}</StatusPill>
+                    )}
+                  </AppRowRight>
+                </AppRowItem>
+              ))}
+            </AppListList>
+          </SectionCard>
+        );
+      }
 
       /* ── Announcements ── */
       case 'announcements': return (
         <ContentRow>
           <SectionCard>
             <SectionHead>
-              <div className="title-row"><Send size={16} className="icon amber" /><span className="title">BROADCAST_CONSOLE</span></div>
-              <span className="subtitle">TRANSMIT GLOBAL ANNOUNCEMENTS</span>
+              <div className="title-row"><Send size={16} className="icon amber" /><span className="title">{t('Broadcast Console')}</span></div>
+              <span className="subtitle">{t('Transmit Global Announcements')}</span>
             </SectionHead>
             <StyledForm onSubmit={sendBroadcast} style={{ marginBottom: 16 }}>
               <div className="field-group">
-                <label>BROADCAST MESSAGE</label>
+                <label>{t('Broadcast Message')}</label>
                 <div className="input-row">
-                  <input type="text" placeholder="Type an announcement..." value={broadcastMsg}
+                  <input type="text" placeholder={t("Type an announcement...", "Type an announcement...")} value={broadcastMsg}
                     onChange={e => { setBroadcastMsg(e.target.value); try { playTypeClick(); } catch (_) {} }} />
                   <Button variant="amber" type="submit" glow={true}><Send size={14} /></Button>
                 </div>
@@ -491,8 +636,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
 
           <SectionCard style={{ maxWidth: 360 }}>
             <SectionHead>
-              <div className="title-row"><Terminal size={16} className="icon cyan" /><span className="title">SYSTEM_DIAGNOSTICS</span></div>
-              <span className="subtitle">SERVER HEALTH CHECK</span>
+              <div className="title-row"><Terminal size={16} className="icon cyan" /><span className="title">{t('System Diagnostics')}</span></div>
+              <span className="subtitle">{t('Server Health Check')}</span>
             </SectionHead>
             <LogConsole>
               <p className="log info">&gt; Checking node security status...</p>
@@ -511,7 +656,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
         <Leaderboard />
       );
 
-      default: return <div style={{ color: 'rgba(255,255,255,0.3)' }}>Section not found.</div>;
+      default: return <div style={{ color: 'rgba(255,255,255,0.3)' }}>{t('Section not found.')}</div>;
     }
   };
 
@@ -519,13 +664,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     <PageContainer>
       <WelcomeHeader>
         <div className="left">
-          <h1 className="page-title">{viewTitles[view] ?? view.toUpperCase()}</h1>
-          <p className="page-sub">{viewSubs[view] ?? ''}</p>
+          <h1 className="page-title">{t((Reflect.get(viewTitles, view) as string) ?? view.toUpperCase())}</h1>
+          <p className="page-sub">{t((Reflect.get(viewSubs, view) as string) ?? '')}</p>
         </div>
         {view === 'desk' && (
           <SessionBadge>
             <TrendingUp size={12} />
-            <span>SESSION_UPTIME: 04:12:09</span>
+            <span>{t('SESSION_UPTIME: 04:12:09')}</span>
           </SessionBadge>
         )}
       </WelcomeHeader>
@@ -537,17 +682,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
         <ModalOverlay onClick={() => setIsAddModalOpen(false)}>
           <ModalContent onClick={e => e.stopPropagation()}>
             <ModalHead>
-              <h3>ADD NEW MEMBER</h3>
+              <h3>{t('Add New Member')}</h3>
               <button className="close-btn" onClick={() => setIsAddModalOpen(false)}>
                 <X size={16} />
               </button>
             </ModalHead>
             <ModalBody onSubmit={handleAddMemberSubmit}>
               <div className="field-group">
-                <label>NAME</label>
+                <label>{t('Name')}</label>
                 <input
                   type="text"
-                  placeholder="Enter full name"
+                  placeholder={t("Enter full name", "Enter full name")}
                   required
                   value={newMember.name}
                   onChange={e => {
@@ -558,7 +703,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label>ROLE</label>
+                  <label>{t('Role')}</label>
                   <select
                     value={newMember.role}
                     onChange={e => {
@@ -566,14 +711,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                       try { playClick(); } catch (_) {}
                     }}
                   >
-                    <option value="JUNIOR">JUNIOR</option>
-                    <option value="MEMBER">MEMBER</option>
-                    <option value="SENIOR">SENIOR</option>
-                    <option value="LEAD">LEAD</option>
+                    <option value="JUNIOR">{t('JUNIOR')}</option>
+                    <option value="MEMBER">{t('MEMBER')}</option>
+                    <option value="SENIOR">{t('SENIOR')}</option>
+                    <option value="LEAD">{t('LEAD')}</option>
                   </select>
                 </div>
                 <div className="field-group">
-                  <label>STATUS</label>
+                  <label>{t('Status')}</label>
                   <select
                     value={newMember.status}
                     onChange={e => {
@@ -581,18 +726,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                       try { playClick(); } catch (_) {}
                     }}
                   >
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="IDLE">IDLE</option>
-                    <option value="OFFLINE">OFFLINE</option>
+                    <option value="ACTIVE">{t('ACTIVE')}</option>
+                    <option value="IDLE">{t('IDLE')}</option>
+                    <option value="OFFLINE">{t('OFFLINE')}</option>
                   </select>
                 </div>
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label>FOCUS AREA</label>
+                  <label>{t('Focus Area')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. Backend Architecture"
+                    placeholder={t("e.g. Backend Architecture", "e.g. Backend Architecture")}
                     required
                     value={newMember.focus}
                     onChange={e => {
@@ -602,7 +747,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
                   />
                 </div>
                 <div className="field-group">
-                  <label>INITIAL XP</label>
+                  <label>{t('Initial XP')}</label>
                   <input
                     type="number"
                     placeholder="e.g. 500"
@@ -618,10 +763,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
               </div>
               <ModalFooter>
                 <Button type="button" variant="red" glow={false} onClick={() => setIsAddModalOpen(false)}>
-                  Cancel
+                  {t('Cancel', 'Cancel')}
                 </Button>
                 <Button type="submit" variant="cyan" glow={true}>
-                  Initialize Operative
+                  {t('Initialize Operative', 'Initialize Operative')}
                 </Button>
               </ModalFooter>
             </ModalBody>
@@ -706,9 +851,14 @@ const accentColors: Record<string, { border: string; bg: string; color: string; 
   emerald: { border: 'rgba(52,211,153,0.25)',  bg: 'rgba(52,211,153,0.06)',  color: '#34d399', glow: 'rgba(52,211,153,0.12)' },
 };
 
+const getAccentValue = (accent: string, key: 'border' | 'bg' | 'glow' | 'color'): string | undefined => {
+  const obj = Reflect.get(accentColors, accent);
+  return obj ? (Reflect.get(obj, key) as string) : undefined;
+};
+
 const KpiCard = styled.div<{ $accent: string }>`
   background: rgba(10, 14, 30, 0.65);
-  border: 1px solid ${p => accentColors[p.$accent]?.border ?? 'rgba(255,255,255,0.08)'};
+  border: 1px solid ${p => getAccentValue(p.$accent, 'border') ?? 'rgba(255,255,255,0.08)'};
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -723,13 +873,13 @@ const KpiCard = styled.div<{ $accent: string }>`
     content: '';
     position: absolute;
     inset: 0;
-    background: ${p => accentColors[p.$accent]?.bg ?? 'transparent'};
+    background: ${p => getAccentValue(p.$accent, 'bg') ?? 'transparent'};
     pointer-events: none;
   }
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${p => accentColors[p.$accent]?.glow ?? 'transparent'};
+    box-shadow: 0 8px 24px ${p => getAccentValue(p.$accent, 'glow') ?? 'transparent'};
   }
 `;
 
@@ -741,11 +891,11 @@ const KpiTop = styled.div`
 
 const IconWrap = styled.div<{ $accent: string }>`
   width: 36px; height: 36px;
-  background: ${p => accentColors[p.$accent]?.bg ?? 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${p => accentColors[p.$accent]?.border ?? 'rgba(255,255,255,0.08)'};
+  background: ${p => getAccentValue(p.$accent, 'bg') ?? 'rgba(255,255,255,0.05)'};
+  border: 1px solid ${p => getAccentValue(p.$accent, 'border') ?? 'rgba(255,255,255,0.08)'};
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  color: ${p => accentColors[p.$accent]?.color ?? '#fff'};
+  color: ${p => getAccentValue(p.$accent, 'color') ?? '#fff'};
 `;
 
 const TrendBadge = styled.div<{ $up: boolean }>`
@@ -909,6 +1059,12 @@ const RolePill = styled.span`
   &.senior { border-color: rgba(139,92,246,0.35); color: #a78bfa; }
   &.member { border-color: rgba(255,255,255,0.1); }
   &.junior { border-color: rgba(251,191,36,0.3); color: #fbbf24; }
+
+  &.web_developer { border-color: rgba(34,211,238,0.35); color: #22d3ee; }
+  &.mobile   { border-color: rgba(139,92,246,0.35); color: #a78bfa; }
+  &.ui\/ux   { border-color: rgba(244,63,94,0.35);  color: #f43f5e; }
+  &.devops   { border-color: rgba(251,191,36,0.3);  color: #fbbf24; }
+  &.ai\/ml   { border-color: rgba(52,211,153,0.3);  color: #34d399; }
 `;
 
 const StatusPill = styled.span`
@@ -987,6 +1143,59 @@ const StyledForm = styled.form`
   .submit-btn { align-self: flex-start; }
 `;
 
+const BulkActionBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .bulk-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    input[type="checkbox"] {
+      accent-color: #818cf8;
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+
+    .select-all-label {
+      color: rgba(255, 255, 255, 0.75);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .selection-count {
+      color: #818cf8;
+      font-weight: 700;
+    }
+  }
+
+  .bulk-right {
+    display: flex;
+    gap: 10px;
+
+    button {
+      padding: 6px 12px;
+      font-size: 0.68rem;
+    }
+  }
+`;
+
 const AppListList = styled.div`
   display: flex;
   flex-direction: column;
@@ -1018,6 +1227,20 @@ const AppRowItem = styled.div`
 
   &.rejected {
     border-left-color: #f87171;
+  }
+
+  .app-checkbox {
+    accent-color: #818cf8;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .app-checkbox-placeholder {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
   }
 
   @media (max-width: 900px) {
@@ -1073,6 +1296,12 @@ const AppRowMain = styled.div`
     color: #fff;
   }
 
+  .app-email {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: var(--font-mono);
+  }
+
   .app-role {
     font-size: 0.68rem;
     color: #818cf8;
@@ -1084,7 +1313,24 @@ const AppRowMain = styled.div`
 
 const AppRowMiddle = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   
+  .role-and-msg {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    
+    .app-role {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.45);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
   .app-reason {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.4);

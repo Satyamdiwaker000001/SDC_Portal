@@ -1,9 +1,10 @@
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const LoginPage: React.FC = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'IDLE' | 'COMPILING' | 'ERROR'>('IDLE');
@@ -172,7 +173,7 @@ const LoginPage: React.FC = () => {
         boxShadow: "0 0 20px rgba(0,136,255,0.1)"
       }}>
         <ShieldAlert size={16} />
-        <span>SECURE PORTAL: INTERNAL ACCESS ONLY</span>
+        <span>{t('SECURE PORTAL: INTERNAL ACCESS ONLY')}</span>
       </div>
 
       {/* Main Glassmorphic Card */}
@@ -189,10 +190,10 @@ const LoginPage: React.FC = () => {
           <img src="/logo.png" alt="SDC Logo" style={{ height: "70px", width: "auto", objectFit: "contain", filter: "drop-shadow(0 0 15px rgba(0,136,255,0.4))" }} />
           <div>
             <h3 style={{ fontFamily: display, fontSize: "1.4rem", fontWeight: 800, color: "#fff", letterSpacing: "0.05em", marginBottom: "6px" }}>
-              UPLINK PROTOCOL
+              {t('UPLINK PROTOCOL', 'UPLINK PROTOCOL')}
             </h3>
             <p style={{ fontFamily: mono, fontSize: "0.65rem", color: "#6b7e67", letterSpacing: "0.05em" }}>
-              Authenticate to access SDC command grid.
+              {t('Authenticate to access SDC command grid.', 'Authenticate to access SDC command grid.')}
             </p>
           </div>
         </div>
@@ -202,7 +203,7 @@ const LoginPage: React.FC = () => {
           
           {/* Email Group */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontFamily: mono, fontSize: "0.6rem", fontWeight: 700, color: "#84967e", letterSpacing: "0.1em" }}>OPERATIVE EMAIL</label>
+            <label style={{ fontFamily: mono, fontSize: "0.6rem", fontWeight: 700, color: "#84967e", letterSpacing: "0.1em" }}>{t('OPERATIVE EMAIL')}</label>
             <input 
               type="email" 
               placeholder="e.g. recruit@sdc.net"
@@ -221,7 +222,7 @@ const LoginPage: React.FC = () => {
 
           {/* Password Group */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontFamily: mono, fontSize: "0.6rem", fontWeight: 700, color: "#84967e", letterSpacing: "0.1em" }}>ENCRYPTION KEY</label>
+            <label style={{ fontFamily: mono, fontSize: "0.6rem", fontWeight: 700, color: "#84967e", letterSpacing: "0.1em" }}>{t('ENCRYPTION KEY')}</label>
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
               <input 
                 type={showPassword ? "text" : "password"} 
@@ -257,7 +258,7 @@ const LoginPage: React.FC = () => {
               borderRadius: "4px", color: "#ff8888", fontFamily: mono, fontSize: "0.65rem", fontWeight: 700,
               textAlign: "center", letterSpacing: "0.05em"
             }}>
-              ACCESS DENIED: INVALID CREDENTIALS
+              {t('ACCESS DENIED: INVALID CREDENTIALS', 'ACCESS DENIED: INVALID CREDENTIALS')}
             </div>
           )}
 
@@ -274,7 +275,7 @@ const LoginPage: React.FC = () => {
               onMouseEnter={(e) => { if (status !== 'COMPILING') { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 0 30px rgba(0,136,255,0.6)"; } }}
               onMouseLeave={(e) => { if (status !== 'COMPILING') { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 0 20px rgba(0,136,255,0.4)"; } }}
             >
-              {status === 'COMPILING' ? "AUTHENTICATING..." : "SECURE UPLINK"}
+              {status === 'COMPILING' ? t('AUTHENTICATING...', 'AUTHENTICATING...') : t('SECURE UPLINK', 'SECURE UPLINK')}
             </button>
 
             <button type="button" onClick={() => navigate('/')}
@@ -285,7 +286,7 @@ const LoginPage: React.FC = () => {
               onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
               onMouseLeave={(e) => e.currentTarget.style.color = "#84967e"}
             >
-              ABORT MISSION
+              {t('ABORT MISSION', 'ABORT MISSION')}
             </button>
 
           </div>
@@ -294,7 +295,7 @@ const LoginPage: React.FC = () => {
 
       {/* Footer */}
       <div style={{ marginTop: "40px", fontFamily: mono, fontSize: "0.55rem", color: "rgba(132,150,126,0.6)", letterSpacing: "0.15em", fontWeight: 700, zIndex: 10 }}>
-        SDC PORTAL | SECURE ACCESS TERMINAL
+        {t('SDC PORTAL | SECURE ACCESS TERMINAL', 'SDC PORTAL | SECURE ACCESS TERMINAL')}
       </div>
     </div>
   );

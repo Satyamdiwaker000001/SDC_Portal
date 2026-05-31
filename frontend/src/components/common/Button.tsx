@@ -14,7 +14,12 @@ const Button: React.FC<ButtonProps> = ({
   children,
   onClick,
   onMouseEnter,
-  ...props
+  disabled,
+  type = 'button',
+  className,
+  style,
+  id,
+  title,
 }) => {
   const { playHover, playClick } = useSound();
 
@@ -34,7 +39,12 @@ const Button: React.FC<ButtonProps> = ({
       $glow={glow}
       onMouseEnter={handleMouseEnter}
       onClick={handleClick}
-      {...props}
+      disabled={disabled}
+      type={type}
+      className={className}
+      style={style}
+      id={id}
+      title={title}
     >
       <span className="btn-text">{children}</span>
     </StyledButton>

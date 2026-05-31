@@ -17,13 +17,13 @@ const ConstellationScene: React.FC = () => {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
 
-      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      pos[i * 3 + 2] = r * Math.cos(phi);
+      Reflect.set(pos, i * 3, r * Math.sin(phi) * Math.cos(theta));
+      Reflect.set(pos, i * 3 + 1, r * Math.sin(phi) * Math.sin(theta));
+      Reflect.set(pos, i * 3 + 2, r * Math.cos(phi));
 
-      vel[i * 3] = (Math.random() - 0.5) * 0.005;
-      vel[i * 3 + 1] = (Math.random() - 0.5) * 0.005;
-      vel[i * 3 + 2] = (Math.random() - 0.5) * 0.005;
+      Reflect.set(vel, i * 3, (Math.random() - 0.5) * 0.005);
+      Reflect.set(vel, i * 3 + 1, (Math.random() - 0.5) * 0.005);
+      Reflect.set(vel, i * 3 + 2, (Math.random() - 0.5) * 0.005);
     }
     return [pos, vel];
   }, []);
@@ -37,13 +37,17 @@ const ConstellationScene: React.FC = () => {
     if (particleRef.current) {
       const positionAttr = particleRef.current.geometry.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < particleCount; i++) {
-        let x = positionAttr.getX(i) + velocities[i * 3];
-        let y = positionAttr.getY(i) + velocities[i * 3 + 1];
-        let z = positionAttr.getZ(i) + velocities[i * 3 + 2];
+        const vx = Reflect.get(velocities, i * 3) as number;
+        const vy = Reflect.get(velocities, i * 3 + 1) as number;
+        const vz = Reflect.get(velocities, i * 3 + 2) as number;
 
-        if (Math.abs(x) > 15) velocities[i * 3] *= -1;
-        if (Math.abs(y) > 15) velocities[i * 3 + 1] *= -1;
-        if (Math.abs(z) > 15) velocities[i * 3 + 2] *= -1;
+        const x = positionAttr.getX(i) + vx;
+        const y = positionAttr.getY(i) + vy;
+        const z = positionAttr.getZ(i) + vz;
+
+        if (Math.abs(x) > 15) Reflect.set(velocities, i * 3, vx * -1);
+        if (Math.abs(y) > 15) Reflect.set(velocities, i * 3 + 1, vy * -1);
+        if (Math.abs(z) > 15) Reflect.set(velocities, i * 3 + 2, vz * -1);
 
         positionAttr.setXYZ(i, x, y, z);
       }
