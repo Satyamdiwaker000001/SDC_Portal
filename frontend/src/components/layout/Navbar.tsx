@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { User, Menu } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const Navbar: React.FC = () => {
   const [activeTab, setActiveTab] = useState('HOME');
   const { playClick, playHover } = useSound();
+  const { t } = useTranslation();
 
   const handleTabClick = (tabName: string, sectionId: string) => {
     setActiveTab(tabName);
@@ -23,7 +25,7 @@ const Navbar: React.FC = () => {
         <div className="logo-outer">
           <div className="logo-inner" />
         </div>
-        <span className="logo-text">SDC // PORTAL</span>
+        <span className="logo-text">{t('SDC // PORTAL')}</span>
       </LogoContainer>
 
       {/* Centered Navigation */}
@@ -33,21 +35,21 @@ const Navbar: React.FC = () => {
           onClick={() => handleTabClick('HOME', 'home')}
           onMouseEnter={playHover}
         >
-          HOME
+          {t('HOME', 'HOME')}
         </TabButton>
         <TabButton
           className={activeTab === 'FOUNDERS' ? 'active' : ''}
           onClick={() => handleTabClick('FOUNDERS', 'founders')}
           onMouseEnter={playHover}
         >
-          FOUNDERS
+          {t('FOUNDERS', 'FOUNDERS')}
         </TabButton>
         <TabButton
           className={activeTab === 'DEVELOPERS' ? 'active' : ''}
           onClick={() => handleTabClick('DEVELOPERS', 'developers')}
           onMouseEnter={playHover}
         >
-          DEVELOPERS
+          {t('DEVELOPERS', 'DEVELOPERS')}
         </TabButton>
       </NavLinks>
 
@@ -59,7 +61,7 @@ const Navbar: React.FC = () => {
           title="Portal Login"
         >
           <User size={18} />
-          <span className="login-txt">PORTAL LOGIN</span>
+          <span className="login-txt">{t('PORTAL LOGIN')}</span>
         </IconButton>
         <IconButton onClick={playClick} onMouseEnter={playHover} title="Main Menu" className="menu-btn">
           <Menu size={18} />
@@ -75,8 +77,9 @@ const NavWrapper = styled.nav`
   left: 0;
   width: 100%;
   height: 60px;
-  background: #050a11;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -1,12 +1,14 @@
 import React from 'react';
 import styled from 'styled-components';
 import Navbar from './Navbar';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface SiteLayoutProps {
   children: React.ReactNode;
 }
 
 const SiteLayout: React.FC<SiteLayoutProps> = ({ children }) => {
+  const { t } = useTranslation();
   return (
     <LayoutContainer>
       <Navbar />
@@ -15,13 +17,13 @@ const SiteLayout: React.FC<SiteLayoutProps> = ({ children }) => {
       <SideBorderLeft>
         <div className="vertical-label">
           <span className="line" />
-          <span className="text">SOFTWARE_DEVELOPMENT_CELL // PORTAL_v1.0</span>
+          <span className="text">{t('SOFTWARE_DEVELOPMENT_CELL // PORTAL_v1.0')}</span>
         </div>
       </SideBorderLeft>
 
       <SideBorderRight>
         <div className="vertical-label">
-          <span className="text">BUILD_TOGETHER // GROW_TOGETHER</span>
+          <span className="text">{t('BUILD_TOGETHER // GROW_TOGETHER')}</span>
           <span className="line" />
         </div>
       </SideBorderRight>

@@ -3,37 +3,111 @@ import styled, { keyframes } from 'styled-components';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Cpu, CheckSquare, ShieldAlert,
-  MessageSquare, Award, LogOut, Zap, Bell,
-  ChevronRight, Wifi
+  MessageSquare, Award, LogOut, Bell,
+  ChevronRight, Wifi, Info, Trash2, BellOff, X
 } from 'lucide-react';
 import BackgroundCanvas3D from './BackgroundCanvas3D';
+import { t } from '../../hooks/useTranslation';
 
 // Extracted UI Strings to completely bypass rigid JSX linter rules
 const UI_STRINGS = {
   BRAND: 'SDC',
-  SIGN_OUT: 'SIGN_OUT',
+  SIGN_OUT: 'Sign Out',
   DEFAULT_NAME: 'Student Developer',
   DEFAULT_ROLE: 'developer',
   FALLBACK_INITIALS: 'SD',
-  OPERATIVE: 'OPERATIVE',
-  ROOT_ADMIN: 'SDC_ROOT_ADMIN',
-  DEVELOPER_ROLE: 'SDC_DEVELOPER',
-  UPLINK_SECURE: 'UPLINK: SECURE',
-  UPLINK_OFFLINE: 'UPLINK: OFFLINE',
-  TOAST_SECURED: 'UPLINK SECURED: RECRUITER FORM ONLINE',
-  TOAST_SEVERED: 'UPLINK SEVERED: RECRUITER FORM OFFLINE'
+  OPERATIVE: 'Operative',
+  ROOT_ADMIN: 'SDC Root Admin',
+  DEVELOPER_ROLE: 'SDC Developer',
+  UPLINK_SECURE: 'Uplink: Secure',
+  UPLINK_OFFLINE: 'Uplink: Offline',
+  TOAST_SECURED: 'Uplink Secured: Recruiter Form Online',
+  TOAST_SEVERED: 'Uplink Severed: Recruiter Form Offline'
 };
+
+interface NotificationItem {
+  id: string;
+  type: 'info' | 'warning' | 'success' | 'alert';
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [uplinkActive, setUplinkActive] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 'notif-1',
+      type: 'alert',
+      title: 'New Recruit Application',
+      message: 'Valerie Vane submitted a DevOps application.',
+      time: '10m ago',
+      read: false
+    },
+    {
+      id: 'notif-2',
+      type: 'warning',
+      title: 'High Load: FastAPI Core',
+      message: 'FastAPI Production Core server load reached 85%.',
+      time: '25m ago',
+      read: false
+    },
+    {
+      id: 'notif-3',
+      type: 'success',
+      title: 'DB Sync Success',
+      message: 'Database backup synchronized successfully.',
+      time: '1h ago',
+      read: true
+    },
+    {
+      id: 'notif-4',
+      type: 'info',
+      title: 'System Update Deployed',
+      message: 'Admin Panel Core upgraded to v1.2.0 stable release.',
+      time: '2h ago',
+      read: true
+    }
+  ]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        const drawer = document.getElementById('sdc-notif-drawer');
+        if (drawer && drawer.contains(event.target as Node)) {
+          return;
+        }
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const toggleRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n));
+  };
 
   const handleUplinkToggle = () => {
     const newState = !uplinkActive;
     setUplinkActive(newState);
-    setToastMsg(newState ? UI_STRINGS.TOAST_SECURED : UI_STRINGS.TOAST_SEVERED);
+    setToastMsg(newState ? t(UI_STRINGS.TOAST_SECURED) : t(UI_STRINGS.TOAST_SEVERED));
     setTimeout(() => setToastMsg(''), 4000);
   };
 
@@ -45,14 +119,14 @@ const DashboardLayout: React.FC = () => {
   const role = user.role === 'admin' ? 'admin' : 'developer';
 
   const menuItems = [
-    { path: `/dashboard/${role}`,                  label: 'DASHBOARD',       icon: LayoutDashboard },
-    { path: `/dashboard/${role}/applications`,       label: 'APPLICATIONS',   icon: ShieldAlert     },
-    { path: `/dashboard/${role}/projects`,           label: 'PROJECTS',       icon: Cpu             },
-    { path: `/dashboard/${role}/tasks`,              label: 'TASK_CONSOLE',   icon: CheckSquare     },
-    { path: `/dashboard/${role}/teams`,              label: 'TEAMS',          icon: Users           },
-    { path: `/dashboard/${role}/members`,            label: 'MEMBERS',        icon: Users           },
-    { path: `/dashboard/${role}/announcements`,      label: 'ANNOUNCEMENT',   icon: MessageSquare   },
-    { path: `/dashboard/${role}/leaderboard`,        label: 'LEADERBOARD',    icon: Award           },
+    { path: `/dashboard/${role}`,                  label: 'Dashboard',       icon: LayoutDashboard },
+    { path: `/dashboard/${role}/applications`,       label: 'Applications',   icon: ShieldAlert     },
+    { path: `/dashboard/${role}/projects`,           label: 'Projects',       icon: Cpu             },
+    { path: `/dashboard/${role}/tasks`,              label: 'Task Console',   icon: CheckSquare     },
+    { path: `/dashboard/${role}/teams`,              label: 'Teams',          icon: Users           },
+    { path: `/dashboard/${role}/members`,            label: 'Members',        icon: Users           },
+    { path: `/dashboard/${role}/announcements`,      label: 'Announcement',   icon: MessageSquare   },
+    { path: `/dashboard/${role}/leaderboard`,        label: 'Leaderboard',    icon: Award           },
   ];
 
   const handleLogout = () => {
@@ -62,11 +136,11 @@ const DashboardLayout: React.FC = () => {
   };
 
   const initials = user.name
-    ? user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    ? user.name.split(' ').map((n: string) => n.charAt(0)).join('').slice(0, 2).toUpperCase()
     : UI_STRINGS.FALLBACK_INITIALS;
 
   const roleLabel = user.role === 'admin' ? UI_STRINGS.ROOT_ADMIN : UI_STRINGS.DEVELOPER_ROLE;
-  const displayName = user.name?.toUpperCase().replace(' ', '_') ?? UI_STRINGS.OPERATIVE;
+  const displayName = user.name ?? UI_STRINGS.OPERATIVE;
 
   return (
     <LayoutRoot>
@@ -75,11 +149,8 @@ const DashboardLayout: React.FC = () => {
       {/* ── Left Sidebar ── */}
       <Sidebar>
         {/* Logo */}
-        <SidebarLogo onClick={() => navigate('/')}>
-          <LogoMark>
-            <Zap size={16} />
-          </LogoMark>
-          <LogoText>{UI_STRINGS.BRAND}</LogoText>
+        <SidebarLogo className="sidebar-logo" onClick={() => navigate('/')}>
+          <img src="/logo.png" alt="SDC Logo" />
         </SidebarLogo>
 
         <SidebarDivider />
@@ -96,7 +167,7 @@ const DashboardLayout: React.FC = () => {
                 onClick={() => navigate(item.path)}
               >
                 <Icon size={15} className="nav-icon" />
-                <span className="nav-label">{item.label}</span>
+                <span className="nav-label">{t(item.label)}</span>
                 {isActive && <ChevronRight size={12} className="nav-arrow" />}
               </NavItem>
             );
@@ -107,7 +178,7 @@ const DashboardLayout: React.FC = () => {
           <SidebarDivider />
           <NavItem $active={false} onClick={handleLogout} className="logout-item">
             <LogOut size={15} className="nav-icon" />
-            <span className="nav-label">{UI_STRINGS.SIGN_OUT}</span>
+            <span className="nav-label">{t(UI_STRINGS.SIGN_OUT)}</span>
           </NavItem>
         </SidebarBottom>
       </Sidebar>
@@ -123,18 +194,20 @@ const DashboardLayout: React.FC = () => {
           <TopBarRight>
             <UplinkButton $active={uplinkActive} onClick={handleUplinkToggle}>
               <Wifi size={12} />
-              <span>{uplinkActive ? UI_STRINGS.UPLINK_SECURE : UI_STRINGS.UPLINK_OFFLINE}</span>
+              <span>{uplinkActive ? t(UI_STRINGS.UPLINK_SECURE) : t(UI_STRINGS.UPLINK_OFFLINE)}</span>
             </UplinkButton>
 
-            <NotifBell>
-              <Bell size={16} />
-              <span className="badge" />
-            </NotifBell>
+            <div style={{ position: 'relative' }} ref={dropdownRef}>
+              <NotifBell onClick={() => setShowNotifications(!showNotifications)}>
+                <Bell size={16} />
+                {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+              </NotifBell>
+            </div>
 
             <UserChip>
               <div className="user-info">
                 <span className="user-name">{displayName}</span>
-                <span className="user-role">{roleLabel}</span>
+                <span className="user-role">{t(roleLabel)}</span>
               </div>
               <AvatarCircle>
                 {user.avatar && user.avatar.includes('http')
@@ -147,9 +220,71 @@ const DashboardLayout: React.FC = () => {
         </TopBar>
 
         {/* ── Scrollable Content ── */}
-        <ContentScroll>
-          <Outlet />
-        </ContentScroll>
+        <DashboardBody>
+          <ContentScroll $isDashboardDesk={location.pathname === `/dashboard/${role}` || location.pathname === `/dashboard/${role}/`}>
+            <Outlet />
+          </ContentScroll>
+
+          <NotifDrawer $visible={showNotifications} id="sdc-notif-drawer">
+            <NotifHeader>
+              <span className="title">{t('Notifications')}</span>
+              <CloseBtn onClick={() => setShowNotifications(false)}>
+                <X size={14} />
+              </CloseBtn>
+            </NotifHeader>
+
+            <NotifActionsBar>
+              <span className="count-txt">
+                {unreadCount} {t('Unread Directives')}
+              </span>
+              {notifications.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="action-btn" onClick={markAllAsRead}>
+                    {t('Mark all read')}
+                  </button>
+                  <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.6rem' }}>|</span>
+                  <button className="action-btn" onClick={clearAllNotifications}>
+                    <Trash2 size={10} style={{ marginRight: '3px' }} />
+                    {t('Clear all')}
+                  </button>
+                </div>
+              )}
+            </NotifActionsBar>
+
+            <NotifList>
+              {notifications.length > 0 ? (
+                notifications.map(notif => {
+                  let IconComponent = Info;
+                  if (notif.type === 'alert') IconComponent = ShieldAlert;
+                  if (notif.type === 'success') IconComponent = CheckSquare;
+                  if (notif.type === 'warning') IconComponent = Cpu;
+
+                  return (
+                    <NotifRow 
+                      key={notif.id} 
+                      $read={notif.read}
+                      onClick={() => toggleRead(notif.id)}
+                    >
+                      <div className={`icon-wrap ${notif.type}`}>
+                        <IconComponent size={14} />
+                      </div>
+                      <div className="content-wrap">
+                        <span className="row-title">{t(notif.title)}</span>
+                        <span className="row-msg">{t(notif.message)}</span>
+                        <span className="row-time">{notif.time}</span>
+                      </div>
+                    </NotifRow>
+                  );
+                })
+              ) : (
+                <EmptyState>
+                  <BellOff size={24} style={{ opacity: 0.5 }} />
+                  <span>{t('No New Notifications')}</span>
+                </EmptyState>
+              )}
+            </NotifList>
+          </NotifDrawer>
+        </DashboardBody>
       </RightPanel>
 
       {/* Custom Notification Toast */}
@@ -199,37 +334,29 @@ const Sidebar = styled.aside`
 
     .nav-label, .version, .logo-text { display: none; }
     .nav-arrow { display: none; }
+    
+    .sidebar-logo {
+      padding: 16px 8px;
+    }
   }
 `;
 
 const SidebarLogo = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 20px 18px;
+  justify-content: center;
+  padding: 24px 18px;
   cursor: pointer;
   user-select: none;
+
+  img {
+    height: 55px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
 `;
 
-const LogoMark = styled.div`
-  width: 32px; height: 32px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-  box-shadow: 0 0 14px rgba(99,102,241,0.35);
-`;
-
-const LogoText = styled.span`
-  font-family: var(--font-mono);
-  font-size: 1.1rem;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: 0.1em;
-`;
 
 const SidebarDivider = styled.div`
   height: 1px;
@@ -327,6 +454,7 @@ const RightPanel = styled.div`
   height: 100vh;
   overflow: hidden;
   z-index: 10;
+  position: relative;
 `;
 
 const TopBar = styled.header`
@@ -340,6 +468,8 @@ const TopBar = styled.header`
   flex-shrink: 0;
   gap: 16px;
   backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 500;
 `;
 
 const TopBarRight = styled.div`
@@ -391,13 +521,183 @@ const NotifBell = styled.div`
 
   .badge {
     position: absolute;
-    top: 6px; right: 7px;
-    width: 7px; height: 7px;
+    top: -4px; right: -4px;
     background: #6366f1;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    font-weight: 800;
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
     border-radius: 50%;
-    border: 1.5px solid #060913;
+    border: 1px solid #060913;
     box-shadow: 0 0 6px #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+`;
+
+const DashboardBody = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  height: calc(100vh - 58px);
+  overflow: hidden;
+  position: relative;
+`;
+
+const NotifDrawer = styled.div<{ $visible: boolean }>`
+  width: ${p => p.$visible ? '360px' : '0px'};
+  min-width: ${p => p.$visible ? '360px' : '0px'};
+  height: 100%;
+  background: #080c1c;
+  border-left: ${p => p.$visible ? '1px solid rgba(99, 102, 241, 0.2)' : 'none'};
+  box-shadow: ${p => p.$visible ? '-10px 0 30px rgba(0, 0, 0, 0.7)' : 'none'};
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+`;
+
+const CloseBtn = styled.button`
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const NotifActionsBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+
+  .count-txt {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  button.action-btn {
+    background: none;
+    border: none;
+    color: #818cf8;
+    cursor: pointer;
+    text-decoration: underline;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    white-space: nowrap;
+    &:hover {
+      color: #a5b4fc;
+    }
+  }
+`;
+
+const NotifHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  span.title {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.08em;
+  }
+`;
+
+const NotifList = styled.div`
+  flex-grow: 1;
+  overflow: hidden;
+`;
+
+const NotifRow = styled.div<{ $read: boolean }>`
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.15s;
+  background: ${p => p.$read ? 'transparent' : 'rgba(99, 102, 241, 0.04)'};
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    
+    &.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    &.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    &.success { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    &.alert { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+  }
+
+  .content-wrap {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .row-title {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: ${p => p.$read ? '400' : '700'};
+    color: #ffffff;
+  }
+
+  .row-msg {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.3;
+  }
+
+  .row-time {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.25);
+    margin-top: 4px;
+  }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  gap: 8px;
 `;
 
 const UserChip = styled.div`
@@ -456,20 +756,28 @@ const AvatarCircle = styled.div`
   img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
 `;
 
-const ContentScroll = styled.main`
+const ContentScroll = styled.main<{ $isDashboardDesk: boolean }>`
   flex-grow: 1;
-  overflow-y: auto;
+  overflow-y: ${p => p.$isDashboardDesk ? 'hidden' : 'auto'};
   padding: 28px 28px 40px 28px;
   animation: ${fadeUp} 0.3s ease both;
 
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
   &::-webkit-scrollbar-thumb {
-    background: rgba(99,102,241,0.2);
+    background: rgba(99, 102, 241, 0.2);
     border-radius: 4px;
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(99,102,241,0.4);
+    background: rgba(99, 102, 241, 0.4);
+  }
+
+  @media (max-width: 900px) {
+    overflow-y: auto;
   }
 `;
 
@@ -477,7 +785,7 @@ const ToastContainer = styled.div`
   position: absolute;
   top: 75px;
   right: 24px;
-  background: rgba(8, 12, 28, 0.95);
+  background: #080c1c;
   border: 1px solid rgba(99, 102, 241, 0.3);
   padding: 12px 20px;
   border-radius: 8px;

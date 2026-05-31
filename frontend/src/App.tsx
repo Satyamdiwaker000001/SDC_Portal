@@ -6,6 +6,9 @@ import LoginPage from './pages/auth/LoginPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import Dashboard from './pages/dashboard/Dashboard';
+import PublicLayout from './components/layout/PublicLayout';
+import AboutPage from './pages/about/AboutPage';
+import ProjectsPage from './pages/projects/ProjectsPage';
 
 function App() {
   return (
@@ -13,7 +16,12 @@ function App() {
       <BrowserRouter>
         <GlobalStyles />
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
+          </Route>
+
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<LoginPage />} />
           

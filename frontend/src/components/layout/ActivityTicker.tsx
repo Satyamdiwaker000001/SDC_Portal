@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Activity } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const activityLogs = [
   "DB backup synchronization completed successfully",
@@ -13,12 +14,13 @@ const activityLogs = [
   "Nginx proxy health check: all nodes responsive",
 ];
 
-const ActivityTicker: React.FC = () => {
+const Ticker: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<string[]>(activityLogs);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const randomLog = activityLogs[Math.floor(Math.random() * activityLogs.length)];
+      const randomLog = Reflect.get(activityLogs, Math.floor(Math.random() * activityLogs.length)) as string;
       setLogs((prev) => {
         const next = [...prev.slice(1), `${new Date().toLocaleTimeString()} — ${randomLog}`];
         return next;
@@ -32,7 +34,7 @@ const ActivityTicker: React.FC = () => {
     <TickerWrapper>
       <div className="status-label">
         <Activity size={12} className="heartbeat" />
-        <span>ACTIVITY FEED</span>
+        <span>{t('ACTIVITY FEED')}</span>
       </div>
       <div className="ticker-container">
         <div className="ticker-track">
@@ -110,4 +112,4 @@ const TickerWrapper = styled.div`
   }
 `;
 
-export default ActivityTicker;
+export default Ticker;

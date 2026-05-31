@@ -7,6 +7,7 @@ import {
 import Button from '../../components/common/Button';
 import Leaderboard from '../../components/dashboard/Leaderboard';
 import { useSound } from '../../context/SoundContext';
+import { t } from '../../hooks/useTranslation';
 
 /* ─── Types ─── */
 interface Member {
@@ -26,8 +27,13 @@ interface Task {
 }
 
 interface Application {
-  id: string; name: string; role: string;
-  year: string; reason: string;
+  id: string;
+  name: string;
+  email: string;
+  branch: string;
+  semester: number;
+  role: string;
+  message?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
@@ -53,9 +59,36 @@ const seedTasks: Task[] = [
 ];
 
 const seedApplications: Application[] = [
-  { id: 'APP-882', name: 'Alex Karr',    role: 'Backend Developer',  year: 'Sophomore / CS', reason: 'Familiar with microservices. Looking to build real-world REST APIs with FastAPI.', status: 'PENDING' },
-  { id: 'APP-883', name: 'Valerie Vane', role: 'DevOps Engineer',    year: 'Junior / IT',    reason: 'Experienced with Docker, CI/CD pipelines, and cloud hosting architecture.',        status: 'PENDING' },
-  { id: 'APP-884', name: 'Damien Rush',  role: 'Frontend Developer', year: 'Sophomore / CS', reason: 'React enthusiast. Love crafting animations and responsive fluid interfaces.',       status: 'PENDING' },
+  { 
+    id: 'APP-882', 
+    name: 'Alex Karr', 
+    email: 'alex.karr@college.edu', 
+    branch: 'CSE', 
+    semester: 4, 
+    role: 'WEB DEVELOPER', 
+    message: 'Familiar with microservices. Looking to build real-world REST APIs with FastAPI.', 
+    status: 'PENDING' 
+  },
+  { 
+    id: 'APP-883', 
+    name: 'Valerie Vane', 
+    email: 'valerie.vane@college.edu', 
+    branch: 'IT', 
+    semester: 6, 
+    role: 'DEVOPS', 
+    message: 'Experienced with Docker, CI/CD pipelines, and cloud hosting architecture.', 
+    status: 'PENDING' 
+  },
+  { 
+    id: 'APP-884', 
+    name: 'Damien Rush', 
+    email: 'damien.rush@college.edu', 
+    branch: 'CSE', 
+    semester: 4, 
+    role: 'WEB DEVELOPER', 
+    message: 'React enthusiast. Love crafting animations and responsive fluid interfaces.', 
+    status: 'PENDING' 
+  },
 ];
 
 interface DeveloperDashboardProps {
@@ -78,37 +111,37 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
     setTasks(prev => prev.map(t => {
       if (t.id !== id) return t;
       const s: Task['status'][] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
-      return { ...t, status: s[(s.indexOf(t.status) + 1) % s.length] };
+      return { ...t, status: Reflect.get(s, (s.indexOf(t.status) + 1) % s.length) };
     }));
   };
 
   /* ── Shared Welcome + KPI header ── */
   const rawUser = localStorage.getItem('sdc_user');
   const user = rawUser ? JSON.parse(rawUser) : { name: 'Developer' };
-  const firstName = user.name?.split(' ')[0]?.toUpperCase() ?? 'DEVELOPER';
+  const firstName = user.name?.split(' ')[0] ?? 'Developer';
 
   const kpis = [
-    { icon: Users,    label: 'OPERATIVE_REGISTRY', value: `${members.filter(m => m.status === 'ACTIVE').length} / ${members.length}`, trend: '+4.2%',  trendUp: true,  accent: 'indigo' },
-    { icon: Cpu,      label: 'ACTIVE_MISSIONS',    value: String(projects.length),                                                     trend: '+2',      trendUp: true,  accent: 'violet' },
-    { icon: CheckCircle2, label: 'MY_DIRECTIVES',  value: String(tasks.filter(t => t.status !== 'DONE').length),                      trend: 'OPTIMAL', trendUp: true,  accent: 'emerald'},
-    { icon: TrendingUp,   label: 'CORE_INTEGRITY', value: '98.4%',                                                                    trend: 'SECURE',  trendUp: true,  accent: 'cyan'   },
+    { icon: Users,    label: 'Operative Registry', value: `${members.filter(m => m.status === 'ACTIVE').length} / ${members.length}`, trend: '+4.2%',  trendUp: true,  accent: 'indigo' },
+    { icon: Cpu,      label: 'Active Missions',    value: String(projects.length),                                                     trend: '+2',      trendUp: true,  accent: 'violet' },
+    { icon: CheckCircle2, label: 'My Directives',  value: String(tasks.filter(t => t.status !== 'DONE').length),                      trend: 'Optimal', trendUp: true,  accent: 'emerald'},
+    { icon: TrendingUp,   label: 'Core Integrity', value: '98.4%',                                                                    trend: 'Secure',  trendUp: true,  accent: 'cyan'   },
   ];
 
   const viewTitles: Record<string, string> = {
-    desk: `WELCOME_BACK, ${firstName}`, members: 'OPERATIVE_REGISTRY',
-    teams: 'TEAMS', projects: 'MISSION_MATRIX', tasks: 'TASK_CONSOLE',
-    applications: 'RECRUIT_PIPELINE', announcements: 'TERMINAL_FEED',
-    leaderboard: 'LEADERBOARD',
+    desk: `Welcome Back, ${firstName}`, members: 'Operative Registry',
+    teams: 'Teams', projects: 'Mission Matrix', tasks: 'Task Console',
+    applications: 'Recruit Pipeline', announcements: 'Terminal Feed',
+    leaderboard: 'Leaderboard',
   };
   const viewSubs: Record<string, string> = {
-    desk: 'SYSTEM_STATUS: ALL_SYSTEMS_NOMINAL // UPLINK_STABLE',
-    members: 'REGISTERED MEMBERS — SDC DEVELOPER ROSTER',
-    teams: 'TEAM REGISTRY — SQUAD DIRECTORY',
-    projects: 'ACTIVE MISSIONS — CURRENT PROJECT PORTFOLIO',
-    tasks: 'ASSIGNED DIRECTIVES — YOUR TASK QUEUE',
-    applications: 'RECRUIT PIPELINE — PENDING APPLICATIONS',
-    announcements: 'TERMINAL FEED — GLOBAL BROADCASTS',
-    leaderboard: 'CONTRIBUTION RANKINGS — ACTIVE CYCLE 2024.Q2',
+    desk: 'System Status: All Systems Nominal. Uplink Stable',
+    members: 'Registered Members - SDC Developer Roster',
+    teams: 'Team Registry - Squad Directory',
+    projects: 'Active Missions - Current Project Portfolio',
+    tasks: 'Assigned Directives - Your Task Queue',
+    applications: 'Recruit Pipeline - Pending Applications',
+    announcements: 'Terminal Feed - Global Broadcasts',
+    leaderboard: 'Contribution Rankings - Active Cycle 2024 Q2',
   };
 
   const renderContent = () => {
@@ -125,10 +158,10 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
                     <IconWrap $accent={kpi.accent}><Icon size={18} /></IconWrap>
                     <TrendBadge $up={kpi.trendUp}>
                       <TrendingUp size={10} />
-                      {kpi.trend}
+                      {t(kpi.trend)}
                     </TrendBadge>
                   </KpiTop>
-                  <KpiLabel>{kpi.label}</KpiLabel>
+                  <KpiLabel>{t(kpi.label)}</KpiLabel>
                   <KpiValue $accent={kpi.accent}>{kpi.value}</KpiValue>
                   <ArrowUpRight size={14} className="corner-arrow" />
                 </KpiCard>
@@ -143,9 +176,9 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
               <SectionHead>
                 <div className="title-row">
                   <ListTodo size={16} className="icon indigo" />
-                  <span className="title">TASK_CONSOLE</span>
+                  <span className="title">{t('Task Console')}</span>
                 </div>
-                <span className="subtitle">ASSIGNED_DIRECTIVES: ACTIVE_Q</span>
+                <span className="subtitle">{t('Assigned Directives: Active Queue')}</span>
               </SectionHead>
               <div className="task-list">
                 {tasks.slice(0, 4).map(task => (
@@ -163,7 +196,7 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
                       glow={false}
                       onClick={() => cycleTask(task.id)}
                     >
-                      {task.status.replace('_', ' ')}
+                      {t(task.status)}
                     </Button>
                   </TaskEntry>
                 ))}
@@ -175,9 +208,9 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
               <SectionHead>
                 <div className="title-row">
                   <Terminal size={16} className="icon amber" />
-                  <span className="title">SYSTEM_LOG</span>
+                  <span className="title">{t('System Log')}</span>
                 </div>
-                <span className="subtitle">UPLINK_BUILD_MONITOR</span>
+                <span className="subtitle">{t('Uplink Build Monitor')}</span>
               </SectionHead>
               <LogConsole>
                 <p className="log success">&gt; uvicorn app.main:app --reload --port 8000</p>
@@ -195,12 +228,12 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       case 'members': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">OPERATIVE_REGISTRY</span></div>
-            <span className="subtitle">SDC REGISTERED DEVELOPERS</span>
+            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">{t('Operative Registry')}</span></div>
+            <span className="subtitle">{t('SDC Registered Developers')}</span>
           </SectionHead>
           <TableWrap>
             <DataTable>
-              <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Focus Area</th><th>XP</th><th>Status</th></tr></thead>
+              <thead><tr><th>{t('ID')}</th><th>{t('Name')}</th><th>{t('Role')}</th><th>{t('Focus Area')}</th><th>{t('XP')}</th><th>{t('Status')}</th></tr></thead>
               <tbody>
                 {members.map(m => (
                   <tr key={m.id}>
@@ -221,11 +254,11 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       case 'teams': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">TEAM_REGISTRY</span></div>
-            <span className="subtitle">ACTIVE SQUADS AND TEAMS</span>
+            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">{t('Team Registry')}</span></div>
+            <span className="subtitle">{t('Active Squads and Teams')}</span>
           </SectionHead>
           <div style={{ color: 'rgba(255,255,255,0.4)', padding: '20px 0' }}>
-            <p>Teams view is currently under construction.</p>
+            <p>{t('Teams view is currently under construction.')}</p>
           </div>
         </SectionCard>
       );
@@ -233,8 +266,8 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       case 'projects': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><Cpu size={16} className="icon violet" /><span className="title">MISSION_MATRIX</span></div>
-            <span className="subtitle">ACTIVE PROJECT PORTFOLIO</span>
+            <div className="title-row"><Cpu size={16} className="icon violet" /><span className="title">{t('Mission Matrix')}</span></div>
+            <span className="subtitle">{t('Active Project Portfolio')}</span>
           </SectionHead>
           <ProjectGrid>
             {projects.map(p => (
@@ -244,8 +277,8 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
                   <PriorityBadge className={p.priority.toLowerCase()}>{p.priority}</PriorityBadge>
                 </div>
                 <div className="proj-mid">
-                  <span>Lead: {p.lead}</span>
-                  <span>Progress: {p.progress}%</span>
+                  <span>{t('Lead: ')}{p.lead}</span>
+                  <span>{t('Progress: ')}{p.progress}%</span>
                 </div>
                 <ProgressFill $level={p.progress} />
               </ProjectItem>
@@ -257,8 +290,8 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       case 'tasks': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><CheckCircle2 size={16} className="icon emerald" /><span className="title">TASK_CONSOLE</span></div>
-            <span className="subtitle">MY ASSIGNED DIRECTIVES</span>
+            <div className="title-row"><CheckCircle2 size={16} className="icon emerald" /><span className="title">{t('Task Console')}</span></div>
+            <span className="subtitle">{t('My Assigned Directives')}</span>
           </SectionHead>
           <div className="task-list">
             {tasks.map(task => (
@@ -269,14 +302,14 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
                 </div>
                 <div className="t-body">
                   <p className="t-title">{task.title}</p>
-                  <span className="t-assignee">Assignee: {task.assignee}</span>
+                  <span className="t-assignee">{t('Assignee: ')}{task.assignee}</span>
                 </div>
                 <Button
                   variant={task.status === 'DONE' ? 'cyan' : task.status === 'IN_PROGRESS' ? 'amber' : 'red'}
                   glow={false}
                   onClick={() => cycleTask(task.id)}
                 >
-                  {task.status.replace('_', ' ')}
+                  {t(task.status)}
                 </Button>
               </TaskEntry>
             ))}
@@ -287,20 +320,27 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       case 'applications': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><AlertCircle size={16} className="icon amber" /><span className="title">RECRUIT_PIPELINE</span></div>
-            <span className="subtitle">PENDING MEMBERSHIP APPLICATIONS</span>
+            <div className="title-row"><AlertCircle size={16} className="icon amber" /><span className="title">{t('Recruit Pipeline')}</span></div>
+            <span className="subtitle">{t('Pending Membership Applications')}</span>
           </SectionHead>
           <AppGrid>
             {applications.map(app => (
-              <AppCard key={app.id}>
+              <AppCard key={app.id} className={app.status.toLowerCase()}>
                 <div className="app-top">
                   <span className="app-id">{app.id}</span>
                   <span className="app-role">{app.role}</span>
                 </div>
-                <span className="app-name">{app.name}</span>
-                <span className="app-year">{app.year}</span>
-                <p className="app-reason">"{app.reason}"</p>
-                <StatusPill className="pending">Pending Review</StatusPill>
+                <div className="app-info-block">
+                  <span className="app-name">{app.name}</span>
+                  <span className="app-email">{app.email}</span>
+                </div>
+                <div className="app-meta-row">
+                  <span className="app-branch-sem">{t('SEM-')}{app.semester} / {app.branch}</span>
+                  <StatusPill className={app.status.toLowerCase()}>{t(app.status)}</StatusPill>
+                </div>
+                {app.message && (
+                  <p className="app-reason">"{app.message}"</p>
+                )}
               </AppCard>
             ))}
           </AppGrid>
@@ -310,8 +350,8 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       case 'announcements': return (
         <SectionCard>
           <SectionHead>
-            <div className="title-row"><Terminal size={16} className="icon amber" /><span className="title">TERMINAL_FEED</span></div>
-            <span className="subtitle">GLOBAL BROADCAST STREAM</span>
+            <div className="title-row"><Terminal size={16} className="icon amber" /><span className="title">{t('Terminal Feed')}</span></div>
+            <span className="subtitle">{t('Global Broadcast Stream')}</span>
           </SectionHead>
           <LogConsole style={{ height: 300 }}>
             {broadcastLogs.map((log, i) => (
@@ -325,7 +365,7 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
         <Leaderboard />
       );
 
-      default: return <div style={{ color: 'var(--text-dim)' }}>Section not found.</div>;
+      default: return <div style={{ color: 'var(--text-dim)' }}>{t('Section not found.')}</div>;
     }
   };
 
@@ -334,13 +374,13 @@ const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ view }) => {
       {/* Welcome Header */}
       <WelcomeHeader>
         <div className="left">
-          <h1 className="page-title">{viewTitles[view] ?? view.toUpperCase()}</h1>
-          <p className="page-sub">{viewSubs[view] ?? ''}</p>
+          <h1 className="page-title">{t((Reflect.get(viewTitles, view) as string) ?? view.toUpperCase())}</h1>
+          <p className="page-sub">{t((Reflect.get(viewSubs, view) as string) ?? '')}</p>
         </div>
         {view === 'desk' && (
           <SessionBadge>
             <TrendingUp size={12} />
-            <span>SESSION_UPTIME: 04:12:09</span>
+            <span>{t('Session Uptime: 04:12:09')}</span>
           </SessionBadge>
         )}
       </WelcomeHeader>
@@ -428,9 +468,14 @@ const accentColors: Record<string, { border: string; bg: string; color: string; 
   cyan:    { border: 'rgba(34,211,238,0.25)',  bg: 'rgba(34,211,238,0.06)',  color: '#22d3ee', glow: 'rgba(34,211,238,0.12)' },
 };
 
+const getAccentValue = (accent: string, key: 'border' | 'bg' | 'glow' | 'color'): string | undefined => {
+  const obj = Reflect.get(accentColors, accent);
+  return obj ? (Reflect.get(obj, key) as string) : undefined;
+};
+
 const KpiCard = styled.div<{ $accent: string }>`
   background: rgba(10, 14, 30, 0.6);
-  border: 1px solid ${p => accentColors[p.$accent]?.border ?? 'rgba(255,255,255,0.08)'};
+  border: 1px solid ${p => getAccentValue(p.$accent, 'border') ?? 'rgba(255,255,255,0.08)'};
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -445,13 +490,13 @@ const KpiCard = styled.div<{ $accent: string }>`
     content: '';
     position: absolute;
     inset: 0;
-    background: ${p => accentColors[p.$accent]?.bg ?? 'transparent'};
+    background: ${p => getAccentValue(p.$accent, 'bg') ?? 'transparent'};
     pointer-events: none;
   }
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${p => accentColors[p.$accent]?.glow ?? 'transparent'};
+    box-shadow: 0 8px 24px ${p => getAccentValue(p.$accent, 'glow') ?? 'transparent'};
   }
 
   .corner-arrow {
@@ -461,7 +506,7 @@ const KpiCard = styled.div<{ $accent: string }>`
     transition: color 0.2s;
   }
 
-  &:hover .corner-arrow { color: ${p => accentColors[p.$accent]?.color ?? '#818cf8'}; }
+  &:hover .corner-arrow { color: ${p => getAccentValue(p.$accent, 'color') ?? '#818cf8'}; }
 `;
 
 const KpiTop = styled.div`
@@ -472,13 +517,13 @@ const KpiTop = styled.div`
 
 const IconWrap = styled.div<{ $accent: string }>`
   width: 36px; height: 36px;
-  background: ${p => accentColors[p.$accent]?.bg ?? 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${p => accentColors[p.$accent]?.border ?? 'rgba(255,255,255,0.08)'};
+  background: ${p => getAccentValue(p.$accent, 'bg') ?? 'rgba(255,255,255,0.05)'};
+  border: 1px solid ${p => getAccentValue(p.$accent, 'border') ?? 'rgba(255,255,255,0.08)'};
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => accentColors[p.$accent]?.color ?? '#fff'};
+  color: ${p => getAccentValue(p.$accent, 'color') ?? '#fff'};
 `;
 
 const TrendBadge = styled.div<{ $up: boolean }>`
@@ -802,10 +847,13 @@ const AppCard = styled.div`
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   transition: all 0.2s;
 
-  &:hover { transform: translateY(-2px); }
+  &:hover { transform: translateY(-2px); border-color: rgba(99, 102, 241, 0.25); }
+
+  &.approved { border-left-color: #34d399; }
+  &.rejected { border-left-color: #f87171; }
 
   .app-top {
     display: flex;
@@ -813,12 +861,27 @@ const AppCard = styled.div`
     align-items: center;
 
     .app-id   { font-family: var(--font-mono); font-size: 0.65rem; color: rgba(255,255,255,0.4); }
-    .app-role { font-size: 0.68rem; color: #818cf8; font-weight: 600; }
+    .app-role { font-size: 0.62rem; color: #22d3ee; font-weight: 700; font-family: var(--font-mono); border: 1px solid rgba(34,211,238,0.25); padding: 2px 8px; border-radius: 20px; }
   }
 
-  .app-name   { font-size: 0.9rem; font-weight: 700; color: #fff; }
-  .app-year   { font-size: 0.65rem; color: rgba(255,255,255,0.3); font-family: var(--font-mono); }
-  .app-reason { font-size: 0.72rem; color: rgba(255,255,255,0.4); font-style: italic; line-height: 1.5; }
+  .app-info-block {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    .app-name { font-size: 0.9rem; font-weight: 700; color: #fff; }
+    .app-email { font-size: 0.65rem; color: rgba(255,255,255,0.35); font-family: var(--font-mono); }
+  }
+
+  .app-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .app-branch-sem { font-size: 0.65rem; color: rgba(255,255,255,0.35); font-family: var(--font-mono); }
+  }
+
+  .app-reason { font-size: 0.72rem; color: rgba(255,255,255,0.4); font-style: italic; line-height: 1.5; margin: 0; }
 `;
 
 
