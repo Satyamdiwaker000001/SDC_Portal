@@ -34,7 +34,11 @@ const PublicLayout: React.FC = () => {
           width: "100%", maxWidth: "1280px",
           padding: "4px 24px",
           transition: "all 0.35s ease",
-          background: scrolled ? "rgba(255,255,255,0.06)" : "transparent"
+          background: scrolled ? "rgba(10, 10, 10, 0.9)" : "rgba(15, 15, 15, 0.75)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: scrolled ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(255, 255, 255, 0.08)",
+          boxShadow: scrolled ? "0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1)" : "inset 0 1px 1px rgba(255, 255, 255, 0.05)",
         }}>
           {/* Logo */}
           <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "12px", background: "none", border: "none", cursor: "pointer" }}>

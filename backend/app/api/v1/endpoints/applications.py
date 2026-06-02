@@ -274,7 +274,10 @@ def enlist_aspirant(
         id=app.email, # Use email or a new ID protocol
         name=app.name,
         email=app.email,
-        hashed_password="hashed_placeholder_123", # System-generated hash placeholder
+        branch="N/A",
+        admission_year=0,
+        passout_year=0,
+        password_hash="hashed_placeholder_123", # System-generated hash placeholder
         role="developer"
     )
     db.add(new_user)
@@ -310,7 +313,10 @@ def bulk_enlist_aspirants(
             id=app.email,
             name=app.name,
             email=app.email,
-            hashed_password="hashed_placeholder_123", # System-generated
+            branch="N/A",
+            admission_year=0,
+            passout_year=0,
+            password_hash="hashed_placeholder_123", # System-generated
             role="developer"
         )
         db.add(new_user)

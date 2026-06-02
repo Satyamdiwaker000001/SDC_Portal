@@ -13,7 +13,16 @@ engine = create_engine(
 )
 
 def init_db():
-    from ..models.models import User # Import models to register them
+    # Import all 31 models to register them on SQLModel metadata
+    from ..models.models import (
+        File, User, Team, TeamMember, TeamMentor, Project, ProjectTeam,
+        ProjectSRS, SRSReview, Module, Task, TaskComment, Submission,
+        ProjectReview, ProgressReport, Notice, NoticeTarget, NoticeReply,
+        NoticeReaction, RecruitmentDrive, Application, ApplicationNote,
+        Interview, InterviewFeedback, ProjectShowcase, Notification,
+        Activity, AuditLog, SubmissionReview, ProgressFeedback, NoticeAcknowledgement,
+        Setting, HallOfEchoes
+    )
     SQLModel.metadata.create_all(engine)
     
     with Session(engine) as session:
@@ -24,7 +33,10 @@ def init_db():
                 email="admin@sdc.com",
                 name="SDC_ROOT_ADMIN",
                 role="admin",
-                hashed_password=get_password_hash("admin123"),
+                branch="N/A",
+                admission_year=0,
+                passout_year=0,
+                password_hash=get_password_hash("admin123"),
             )
             session.add(admin_user)
             session.commit()

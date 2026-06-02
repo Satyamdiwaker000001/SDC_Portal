@@ -10,7 +10,7 @@ from sqlmodel import SQLModel
 def recreate_database():
     print("WARNING: All data will be deleted. Proceeding...")
     # Register all models
-    from app.models.models import User, Member, Team, Project, Task, Application, Announcement, Setting, HallOfEchoes
+    import app.models.models
     
     # Drop all tables
     SQLModel.metadata.drop_all(engine)

@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.db.session import engine
 from app.models.models import Member, Team, Project, Task, Setting, User
+from app.core.security import get_password_hash
 from sqlmodel import Session, select
 
 def seed_premium_data():
@@ -18,37 +19,56 @@ def seed_premium_data():
             id="MEM-001", 
             name="Satyam Diwaker", 
             email="satyam@sdc.com", 
-            spec="Fullstack Lead", 
-            joinDate="2023-01-15", 
-            status="ACTIVE", 
-            isFounder=True,
+            branch="Fullstack Lead", 
+            role="developer",
+            password_hash=get_password_hash("password123"),
+            admission_year=2023,
+            passout_year=2027,
+            is_active=True,
+            disabled=False,
+            created_at=datetime.strptime("2023-01-15", "%Y-%m-%d"),
             image="https://api.dicebear.com/7.x/avataaars/svg?seed=Satyam"
         )
         m2 = Member(
             id="MEM-002", 
             name="Aryan Raj", 
             email="aryan@sdc.com", 
-            spec="Backend Dev", 
-            joinDate="2023-06-10", 
-            status="ACTIVE",
+            branch="Backend Dev", 
+            role="developer",
+            password_hash=get_password_hash("password123"),
+            admission_year=2023,
+            passout_year=2027,
+            is_active=True,
+            disabled=False,
+            created_at=datetime.strptime("2023-06-10", "%Y-%m-%d"),
             image="https://api.dicebear.com/7.x/avataaars/svg?seed=Aryan"
         )
         m3 = Member(
             id="MEM-003", 
             name="Ananya Singh", 
             email="ananya@sdc.com", 
-            spec="UI/UX Designer", 
-            joinDate="2024-02-01", 
-            status="ACTIVE",
+            branch="UI/UX Designer", 
+            role="developer",
+            password_hash=get_password_hash("password123"),
+            admission_year=2024,
+            passout_year=2028,
+            is_active=True,
+            disabled=False,
+            created_at=datetime.strptime("2024-02-01", "%Y-%m-%d"),
             image="https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya"
         )
         m4 = Member(
             id="MEM-004", 
             name="Rohan Gupta", 
             email="rohan@sdc.com", 
-            spec="Cyber Security", 
-            joinDate="2024-01-20", 
-            status="ACTIVE",
+            branch="Cyber Security", 
+            role="developer",
+            password_hash=get_password_hash("password123"),
+            admission_year=2024,
+            passout_year=2028,
+            is_active=True,
+            disabled=False,
+            created_at=datetime.strptime("2024-01-20", "%Y-%m-%d"),
             image="https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan"
         )
         

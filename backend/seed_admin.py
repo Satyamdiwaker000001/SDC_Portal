@@ -30,7 +30,10 @@ def seed_admin_protocol():
             email="admin@sdc.portal",
             name="SDC Mainframe Admin",
             role="admin",
-            hashed_password=get_password_hash("SDC@ADMIN_2026") # Secure default
+            branch="N/A",
+            admission_year=0,
+            passout_year=0,
+            password_hash=get_password_hash("SDC@ADMIN_2026") # Secure default
         )
         
         session.add(admin_data)
