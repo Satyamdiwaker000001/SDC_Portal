@@ -1,12 +1,15 @@
 import os
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text, SQLModel
 from backend.app.db.session import engine, init_db
 from backend.app.models.models import Member, Team, Project, Task, Announcement, User
 from datetime import datetime, timedelta
 
 
 def create_sample_data():
-    # Ensure tables exist
+    # Ensure a fresh database state
+    print("[*] Dropping existing database tables...")
+    SQLModel.metadata.drop_all(engine)
+    print("[+] Recreating database schema...")
     init_db()
     with Session(engine) as session:
         # Create sample members
@@ -40,7 +43,7 @@ def create_sample_data():
         # Link members to team via association table
         for m in members:
             session.execute(
-                "INSERT INTO teammemberlink (team_id, member_id) VALUES (:team_id, :member_id)",
+                text("INSERT INTO teammemberlink (team_id, member_id) VALUES (:team_id, :member_id)"),
                 {"team_id": team.id, "member_id": m.id},
             )
 
@@ -93,12 +96,12 @@ def create_sample_data():
         session.flush()
         # Link announcement to team
         session.execute(
-            "INSERT INTO announcementteamlink (announcement_id, team_id) VALUES (:ann_id, :team_id)",
+            text("INSERT INTO announcementteamlink (announcement_id, team_id) VALUES (:ann_id, :team_id)"),
             {"ann_id": announcement_target.id, "team_id": team.id},
         )
 
         session.commit()
-        print("✅ Sample data seeded successfully.")
+        print("[SUCCESS] Sample data seeded successfully.")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,9 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SDC_Portal_API"

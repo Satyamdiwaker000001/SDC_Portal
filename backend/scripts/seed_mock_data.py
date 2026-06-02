@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from sqlmodel import Session, create_engine, select
 from sqlalchemy import text
-from app.models.models import Member, Team, Project, Task, TeamMemberLink, User
+from app.models.models import Member, Team, Project, Task, TeamMemberLink, User, Module
 from app.core.config import settings
 from app.core.security import get_password_hash
 
@@ -27,21 +27,74 @@ def seed_data():
             email="admin@sdc.com",
             name="SDC_ROOT_ADMIN",
             role="admin",
-            hashed_password=get_password_hash("admin123"), # Need this import
+            branch="N/A",
+            admission_year=0,
+            passout_year=0,
+            password_hash=get_password_hash("admin123"),
+            is_active=True,
+            disabled=False,
         )
         session.add(admin_user)
         session.commit()
 
         print("--- CREATING_MOCK_OPERATIVES ---")
         operatives = [
-            Member(id="MEM-001", name="Abhishek", email="abhishek@sdc.com", spec="Backend Lead", joinDate="2023-01-15", status="ACTIVE", techStack=["Python", "FastAPI", "PostgreSQL"]),
-            Member(id="MEM-002", name="Vaishnavi", email="vaishnavi@sdc.com", spec="UI/UX Designer", joinDate="2023-02-10", status="ACTIVE", techStack=["React", "Figma", "Tailwind"]),
-            Member(id="MEM-003", name="Satyam", email="satyam@sdc.com", spec="Cybersecurity Analyst", joinDate="2023-03-05", status="ACTIVE", techStack=["Go", "Vulnerability Scanning", "Networks"]),
-            Member(id="MEM-004", name="Vayu", email="vayu@sdc.com", spec="Frontend Developer", joinDate="2023-05-20", status="ACTIVE", techStack=["Vue.js", "Three.js"]),
-            Member(id="MEM-005", name="Bhavna", email="bhavna@sdc.com", spec="Data Scientist", joinDate="2023-06-12", status="ACTIVE", techStack=["Python", "PyTorch", "Pandas"]),
-            Member(id="MEM-006", name="Akansha", email="akansha@sdc.com", spec="DevOps Engineer", joinDate="2023-08-01", status="ACTIVE", techStack=["Docker", "K8s", "CI/CD"]),
-            Member(id="MEM-007", name="Vighnesh", email="vighnesh@sdc.com", spec="Full Stack Dev", joinDate="2023-09-15", status="ACTIVE", techStack=["Next.js", "Node.js", "Prisma"]),
-            Member(id="MEM-008", name="Nivedita", email="nivedita@sdc.com", spec="QA Engineer", joinDate="2023-10-20", status="ACTIVE", techStack=["Selenium", "Jest", "Cypress"]),
+            Member(
+                id="MEM-001", name="Abhishek", email="abhishek@sdc.com", branch="Backend Lead",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-01-15", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-002", name="Vaishnavi", email="vaishnavi@sdc.com", branch="UI/UX Designer",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-02-10", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-003", name="Satyam", email="satyam@sdc.com", branch="Cybersecurity Analyst",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-03-05", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-004", name="Vayu", email="vayu@sdc.com", branch="Frontend Developer",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-05-20", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-005", name="Bhavna", email="bhavna@sdc.com", branch="Data Scientist",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-06-12", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-006", name="Akansha", email="akansha@sdc.com", branch="DevOps Engineer",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-08-01", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-007", name="Vighnesh", email="vighnesh@sdc.com", branch="Full Stack Dev",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-09-15", "%Y-%m-%d")
+            ),
+            Member(
+                id="MEM-008", name="Nivedita", email="nivedita@sdc.com", branch="QA Engineer",
+                role="developer", password_hash=get_password_hash("password123"),
+                admission_year=2023, passout_year=2027,
+                is_active=True, disabled=False,
+                created_at=datetime.strptime("2023-10-20", "%Y-%m-%d")
+            ),
         ]
         for op in operatives:
             session.add(op)
@@ -49,9 +102,9 @@ def seed_data():
 
         print("--- FORMING_TACTICAL_SQUADS ---")
         teams = [
-            Team(id="TEAM-ALPHA", name="Team Alpha", leaderId="MEM-001"),
-            Team(id="TEAM-EPSILON", name="Team Epsilon", leaderId="MEM-004"),
-            Team(id="TEAM-GAMMA", name="Team Gamma", leaderId="MEM-008"),
+            Team(id="TEAM-ALPHA", name="Team Alpha", created_by="ROOT-ADMIN"),
+            Team(id="TEAM-EPSILON", name="Team Epsilon", created_by="ROOT-ADMIN"),
+            Team(id="TEAM-GAMMA", name="Team Gamma", created_by="ROOT-ADMIN"),
         ]
         for team in teams:
             session.add(team)
@@ -59,15 +112,15 @@ def seed_data():
 
         # Link members to teams
         links = [
-            TeamMemberLink(team_id="TEAM-ALPHA", member_id="MEM-001"),
-            TeamMemberLink(team_id="TEAM-ALPHA", member_id="MEM-002"),
-            TeamMemberLink(team_id="TEAM-ALPHA", member_id="MEM-003"),
-            TeamMemberLink(team_id="TEAM-EPSILON", member_id="MEM-004"),
-            TeamMemberLink(team_id="TEAM-EPSILON", member_id="MEM-005"),
-            TeamMemberLink(team_id="TEAM-EPSILON", member_id="MEM-006"),
-            TeamMemberLink(team_id="TEAM-EPSILON", member_id="MEM-007"),
-            TeamMemberLink(team_id="TEAM-GAMMA", member_id="MEM-008"),
-            TeamMemberLink(team_id="TEAM-GAMMA", member_id="MEM-002"), # Shared designers
+            TeamMemberLink(id="TML-1", team_id="TEAM-ALPHA", user_id="MEM-001", designation="lead"),
+            TeamMemberLink(id="TML-2", team_id="TEAM-ALPHA", user_id="MEM-002", designation="member"),
+            TeamMemberLink(id="TML-3", team_id="TEAM-ALPHA", user_id="MEM-003", designation="member"),
+            TeamMemberLink(id="TML-4", team_id="TEAM-EPSILON", user_id="MEM-004", designation="lead"),
+            TeamMemberLink(id="TML-5", team_id="TEAM-EPSILON", user_id="MEM-005", designation="member"),
+            TeamMemberLink(id="TML-6", team_id="TEAM-EPSILON", user_id="MEM-006", designation="member"),
+            TeamMemberLink(id="TML-7", team_id="TEAM-EPSILON", user_id="MEM-007", designation="member"),
+            TeamMemberLink(id="TML-8", team_id="TEAM-GAMMA", user_id="MEM-008", designation="lead"),
+            TeamMemberLink(id="TML-9", team_id="TEAM-GAMMA", user_id="MEM-002", designation="member"),
         ]
         for link in links:
             session.add(link)
@@ -79,48 +132,69 @@ def seed_data():
                 id="PROJ-001", name="CareNest (DR Hospital)", status="LIVE", 
                 type="HealthTech",
                 deadline=(datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d"),
-                progress=53, teamId="TEAM-EPSILON"
+                teamId="TEAM-EPSILON", created_by="ROOT-ADMIN"
             ),
             Project(
                 id="PROJ-002", name="Software Development Portal", status="LIVE", 
                 type="Web_App",
                 deadline=(datetime.now() + timedelta(days=45)).strftime("%Y-%m-%d"),
-                progress=18, teamId="TEAM-ALPHA"
+                teamId="TEAM-ALPHA", created_by="ROOT-ADMIN"
             ),
             Project(
                 id="PROJ-003", name="Library Management (Koha)", status="PENDING_ADMIN", 
                 type="EdTech",
                 deadline=(datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d"),
-                progress=48, teamId="TEAM-GAMMA"
+                teamId="TEAM-GAMMA", created_by="ROOT-ADMIN"
             ),
             Project(
                 id="PROJ-004", name="Mephquish Club", status="COMPLETED", 
                 type="Social",
                 deadline=(datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d"),
-                progress=100, teamId="TEAM-ALPHA"
+                teamId="TEAM-ALPHA", created_by="ROOT-ADMIN"
             ),
         ]
         for proj in projects:
             session.add(proj)
         session.commit()
 
+        print("--- CREATING_PROJECT_MODULES ---")
+        modules = [
+            # CareNest Modules
+            Module(id="MOD-UI-1", project_id="PROJ-001", owner_id="MEM-004", name="UI Layer", description="User Interface Layer"),
+            Module(id="MOD-API-1", project_id="PROJ-001", owner_id="MEM-005", name="Core API", description="Backend APIs"),
+            Module(id="MOD-SEC-1", project_id="PROJ-001", owner_id="MEM-006", name="Security", description="HIPAA Security compliance"),
+            Module(id="MOD-DB-1", project_id="PROJ-001", owner_id="MEM-007", name="Database", description="Relational Database storage"),
+
+            # SDC Portal Modules
+            Module(id="MOD-UI-2", project_id="PROJ-002", owner_id="MEM-002", name="UI Layer", description="Portal frontend"),
+            Module(id="MOD-API-2", project_id="PROJ-002", owner_id="MEM-001", name="Core API", description="Portal backend APIs"),
+            Module(id="MOD-NET-2", project_id="PROJ-002", owner_id="MEM-003", name="Networks", description="V5 Bridge connections"),
+
+            # Library Koha Modules
+            Module(id="MOD-FE-3", project_id="PROJ-003", owner_id="MEM-008", name="Frontend", description="Search UI"),
+            Module(id="MOD-UX-3", project_id="PROJ-003", owner_id="MEM-002", name="UX Flow", description="Checkout flow"),
+        ]
+        for mod in modules:
+            session.add(mod)
+        session.commit()
+
         print("--- ALLOCATING_MODULES ---")
         # Define tasks to generate progress data
         tasks = [
             # CareNest Tasks (EPSILON)
-            Task(id="TSK-001", moduleName="UI_LAYER", title="Patient Dashboard", assignedTo="MEM-004", status="DONE", progress=100, project_id="PROJ-001"),
-            Task(id="TSK-002", moduleName="CORE_API", title="Doctor Scheduling", assignedTo="MEM-005", status="DONE", progress=100, project_id="PROJ-001"),
-            Task(id="TSK-003", moduleName="SECURITY", title="HIPAA Encryption", assignedTo="MEM-006", status="IN_PROGRESS", progress=40, project_id="PROJ-001"),
-            Task(id="TSK-004", moduleName="DATABASE", title="Medical Records", assignedTo="MEM-007", status="TODO", progress=0, project_id="PROJ-001"),
+            Task(id="TSK-001", module_id="MOD-UI-1", assigned_to="MEM-004", created_by="ROOT-ADMIN", title="Patient Dashboard", status="DONE"),
+            Task(id="TSK-002", module_id="MOD-API-1", assigned_to="MEM-005", created_by="ROOT-ADMIN", title="Doctor Scheduling", status="DONE"),
+            Task(id="TSK-003", module_id="MOD-SEC-1", assigned_to="MEM-006", created_by="ROOT-ADMIN", title="HIPAA Encryption", status="IN_PROGRESS"),
+            Task(id="TSK-004", module_id="MOD-DB-1", assigned_to="MEM-007", created_by="ROOT-ADMIN", title="Medical Records", status="TODO"),
             
             # SDC Portal Tasks (ALPHA)
-            Task(id="TSK-005", moduleName="UI_LAYER", title="Leaderboard Redesign", assignedTo="MEM-002", status="IN_PROGRESS", progress=90, project_id="PROJ-002"),
-            Task(id="TSK-006", moduleName="CORE_API", title="User Registry", assignedTo="MEM-001", status="IN_PROGRESS", progress=20, project_id="PROJ-002"),
-            Task(id="TSK-007", moduleName="NETWORKS", title="V5 Bridge Connection", assignedTo="MEM-003", status="TODO", progress=0, project_id="PROJ-002"),
+            Task(id="TSK-005", module_id="MOD-UI-2", assigned_to="MEM-002", created_by="ROOT-ADMIN", title="Leaderboard Redesign", status="IN_PROGRESS"),
+            Task(id="TSK-006", module_id="MOD-API-2", assigned_to="MEM-001", created_by="ROOT-ADMIN", title="User Registry", status="IN_PROGRESS"),
+            Task(id="TSK-007", module_id="MOD-NET-2", assigned_to="MEM-003", created_by="ROOT-ADMIN", title="V5 Bridge Connection", status="TODO"),
 
             # Library Tasks (GAMMA)
-            Task(id="TSK-008", moduleName="FRONTEND", title="Book Search UI", assignedTo="MEM-008", status="DONE", progress=100, project_id="PROJ-003"),
-            Task(id="TSK-009", moduleName="UX_FLOW", title="Member Checkout", assignedTo="MEM-002", status="IN_PROGRESS", progress=40, project_id="PROJ-003"),
+            Task(id="TSK-008", module_id="MOD-FE-3", assigned_to="MEM-008", created_by="ROOT-ADMIN", title="Book Search UI", status="DONE"),
+            Task(id="TSK-009", module_id="MOD-UX-3", assigned_to="MEM-002", created_by="ROOT-ADMIN", title="Member Checkout", status="IN_PROGRESS"),
         ]
         for task in tasks:
             session.add(task)

@@ -77,15 +77,16 @@ const NavWrapper = styled.nav`
   left: 0;
   width: 100%;
   height: 60px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 10, 10, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
   z-index: 1000;
-  box-shadow: 0 4px 20px rgba(3, 6, 10, 0.6);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
 `;
 
 const LogoContainer = styled.div`

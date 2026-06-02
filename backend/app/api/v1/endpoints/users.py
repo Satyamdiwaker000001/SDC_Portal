@@ -91,36 +91,35 @@ def create_member(
         except ValueError:
             pass
 
-    member = Member(
+    created_at = datetime.utcnow()
+    if member_in.joinDate:
+        try:
+            created_at = datetime.strptime(member_in.joinDate, "%Y-%m-%d")
+        except ValueError:
+            pass
+
+    password = member_in.password or "SDC@2026"
+    user = User(
         id=member_id,
         name=member_in.name,
         email=member_in.email,
-        spec=member_in.spec,
-        joinDate=member_in.joinDate,
-        retirementDate=member_in.retirementDate,
-        status=status,
-        image=member_in.image,
-        techStack=member_in.techStack,
-        githubUrl=member_in.githubUrl,
-        linkedinUrl=member_in.linkedinUrl,
-        isFounder=member_in.isFounder
-    )
-    db.add(member)
-    
-    # Also create a User record for login
-    password = member_in.password or "SDC@2026"
-    user = User(
-        id=member.id,
-        email=member.email,
-        name=member.name,
+        branch=member_in.spec,
+        admission_year=0,
+        passout_year=0,
         role="developer",
-        hashed_password=security.get_password_hash(password)
+        password_hash=security.get_password_hash(password),
+        profile_image=member_in.image,
+        linkedin_url=member_in.linkedinUrl,
+        github_url=member_in.githubUrl,
+        is_active=True,
+        disabled=False,
+        created_at=created_at
     )
     db.add(user)
     
     db.commit()
-    db.refresh(member)
-    return member
+    db.refresh(user)
+    return user
 
 @router.post("/bulk")
 async def bulk_data_forge(
@@ -165,24 +164,25 @@ async def bulk_data_forge(
             if row.get('techStack'):
                 tech_stack = [s.strip() for s in row['techStack'].split(';') if s.strip()]
 
-            member = Member(
+            created_at = datetime.utcnow()
+            if row.get('joinDate'):
+                try:
+                    created_at = datetime.strptime(row['joinDate'], "%Y-%m-%d")
+                except ValueError:
+                    pass
+
+            user = User(
                 id=member_id,
                 name=row['name'],
                 email=row['email'],
-                spec=row['spec'],
-                joinDate=row['joinDate'],
-                retirementDate=retirement_date_str,
-                status=status,
-                techStack=tech_stack
-            )
-            db.add(member)
-            
-            user = User(
-                id=member.id,
-                email=member.email,
-                name=member.name,
+                branch=row['spec'],
+                admission_year=0,
+                passout_year=0,
                 role="developer",
-                hashed_password=security.get_password_hash("SDC@2026")
+                password_hash=security.get_password_hash("SDC@2026"),
+                is_active=True,
+                disabled=False,
+                created_at=created_at
             )
             db.add(user)
             results["success"] += 1

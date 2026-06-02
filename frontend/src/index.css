@@ -1,7 +1,31 @@
+@import "tailwindcss";
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;700&display=swap');
 
 :root {
+  /* Shadcn / Tailwind Colors (Obsidian Dark Theme) */
+  --background: 233 50% 5%;
+  --foreground: 210 40% 98%;
+  --card: 233 30% 9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 233 50% 5%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 233 30% 12%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 233 20% 15%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 233 30% 15%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 350 80% 55%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 233 20% 15%;
+  --input: 233 20% 15%;
+  --ring: 263 90% 70%;
+  --radius: 0.75rem;
+
   /* Surface Colors - Modern SaaS Glassmorphism & Dark Mode */
   --bg-main:        #060813;
   --bg-panel:       rgba(15, 23, 42, 0.5);
