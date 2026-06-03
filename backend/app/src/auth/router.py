@@ -26,7 +26,11 @@ def login(request_data: LoginRequest, db: Session = Depends(deps.get_db)) -> Any
     """
     Standard user authentication endpoint
     """
-    user = db.exec(select(User).where(User.id == request_data.user_id)).first()
+    user = db.exec(
+        select(User).where(
+            (User.id == request_data.user_id) | (User.email == request_data.user_id)
+        )
+    ).first()
     if not user or user.disabled or not security.verify_password(request_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect user ID or password")
     

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { authService } from '../../services/authService';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ const LoginPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setStatus('ERROR');
@@ -31,18 +32,13 @@ const LoginPage: React.FC = () => {
     }
 
     setStatus('COMPILING');
-    setTimeout(() => {
-      // Set dummy token for bypass auth
-      localStorage.setItem('sdc_token', 'mock_resistance_uplink_token_v6');
-      localStorage.setItem('sdc_user', JSON.stringify({
-        id: 'OP-001',
-        name: 'COMMANDER_SINCERE',
-        email: email,
-        role: 'admin',
-        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Commander'
-      }));
+    try {
+      await authService.login(email, password);
       navigate('/dashboard');
-    }, 1200);
+    } catch (err) {
+      console.error(err);
+      setStatus('ERROR');
+    }
   };
 
   const mono = "'JetBrains Mono', 'Fira Code', monospace";
@@ -201,12 +197,12 @@ const LoginPage: React.FC = () => {
         {/* Form */}
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
           
-          {/* Email Group */}
+          {/* Email/ID Group */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontFamily: mono, fontSize: "0.6rem", fontWeight: 700, color: "#84967e", letterSpacing: "0.1em" }}>{t('OPERATIVE EMAIL')}</label>
+            <label style={{ fontFamily: mono, fontSize: "0.6rem", fontWeight: 700, color: "#84967e", letterSpacing: "0.1em" }}>{t('OPERATIVE ID / EMAIL')}</label>
             <input 
-              type="email" 
-              placeholder="e.g. recruit@sdc.net"
+              type="text" 
+              placeholder="e.g. ROOT-ADMIN or admin@sdc.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={status === 'COMPILING'}

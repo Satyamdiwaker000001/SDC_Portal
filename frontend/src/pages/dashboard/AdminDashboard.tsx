@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   Shield, Terminal, Users, Check, X, Search,
@@ -9,6 +9,7 @@ import Button from '../../components/common/Button';
 import Leaderboard from '../../components/dashboard/Leaderboard';
 import { useSound } from '../../context/SoundContext';
 import { t } from '../../hooks/useTranslation';
+import api from '../../lib/api';
 
 /* ─── Types ─── */
 interface Application {
@@ -38,85 +39,126 @@ interface Task {
   id: string; module: string; title: string;
   status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE'; assignee: string;
 }
+interface Team {
+  id: string;
+  name: string;
+  leaderId: string;
+  leaderName?: string;
+  memberCount?: number;
+}
 
 /* ─── Seed ─── */
-const seedApplications: Application[] = [
-  { 
-    id: 'APP-882', 
-    name: 'Alex Karr', 
-    email: 'alex.karr@college.edu', 
-    branch: 'CSE', 
-    semester: 4, 
-    role: 'WEB DEVELOPER', 
-    message: 'Familiar with microservices. Looking to build real-world REST APIs with FastAPI.', 
-    status: 'PENDING' 
-  },
-  { 
-    id: 'APP-883', 
-    name: 'Valerie Vane', 
-    email: 'valerie.vane@college.edu', 
-    branch: 'IT', 
-    semester: 6, 
-    role: 'DEVOPS', 
-    message: 'Experienced with Docker, CI/CD pipelines, and cloud hosting architecture.', 
-    status: 'PENDING' 
-  },
-  { 
-    id: 'APP-884', 
-    name: 'Damien Rush', 
-    email: 'damien.rush@college.edu', 
-    branch: 'CSE', 
-    semester: 4, 
-    role: 'WEB DEVELOPER', 
-    message: 'React enthusiast. Love crafting animations and responsive fluid interfaces.', 
-    status: 'PENDING' 
-  },
-];
+/* ─── Seed ─── */
 const seedNodes: ServerNode[] = [
   { id: 'NODE-1', name: 'Primary Database Host',  status: 'ONLINE',   load: 98, ip: '10.0.12.4'  },
   { id: 'NODE-2', name: 'FastAPI Production Core', status: 'ONLINE',   load: 85, ip: '10.0.12.15' },
   { id: 'NODE-3', name: 'Render Worker Node',      status: 'STANDBY',  load: 45, ip: '10.0.14.22' },
   { id: 'NODE-4', name: 'Nginx Ingress Proxy',     status: 'ONLINE',   load: 92, ip: '10.0.12.8'  },
 ];
-const seedMembers: Member[] = [
-  { id: 'MBR-001', name: 'Aditya Sharma', role: 'LEAD',   focus: 'System Architecture',    status: 'ACTIVE', xp: 2840 },
-  { id: 'MBR-002', name: 'Priya Mehta',   role: 'SENIOR', focus: 'WebGL & UI Engineering', status: 'ACTIVE', xp: 1950 },
-  { id: 'MBR-003', name: 'Rohit Verma',   role: 'MEMBER', focus: 'Database Optimization',  status: 'IDLE',   xp: 1240 },
-  { id: 'MBR-004', name: 'Sneha Joshi',   role: 'MEMBER', focus: 'Auth & Security',        status: 'ACTIVE', xp: 980  },
-];
-const seedProjects: Project[] = [
-  { id: 'PRJ-01', name: 'Member Roster Showcase',      lead: 'Priya Mehta',   progress: 68, priority: 'HIGH'   },
-  { id: 'PRJ-02', name: 'Database Migration Suite',    lead: 'Rohit Verma',   progress: 94, priority: 'MEDIUM' },
-  { id: 'PRJ-03', name: 'FastAPI Deployment Pipeline', lead: 'Aditya Sharma', progress: 30, priority: 'HIGH'   },
-];
-const seedTasks: Task[] = [
-  { id: 'TSK-109', module: 'Auth',     title: 'Implement JWT login session verification',   status: 'DONE',        assignee: 'Aditya Sharma' },
-  { id: 'TSK-110', module: 'UI',       title: 'Optimize WebGL particle coordinate mapping', status: 'IN_PROGRESS', assignee: 'Priya Mehta'   },
-  { id: 'TSK-111', module: 'Assets',   title: 'Configure static media cache layer',         status: 'DONE',        assignee: 'Priya Mehta'   },
-  { id: 'TSK-112', module: 'Database', title: 'Audit SQL query times and rewrite indexes',  status: 'TODO',        assignee: 'Rohit Verma'   },
-];
 
 interface AdminDashboardProps {
   view: 'desk' | 'members' | 'teams' | 'projects' | 'tasks' | 'applications' | 'announcements' | 'leaderboard';
 }
 
+const mapUserToMember = (user: any): Member => {
+  let role: Member['role'] = 'MEMBER';
+  const branchLower = (user.branch || '').toLowerCase();
+  if (branchLower.includes('lead')) role = 'LEAD';
+  else if (branchLower.includes('senior')) role = 'SENIOR';
+  else if (branchLower.includes('junior')) role = 'JUNIOR';
+
+  let status: Member['status'] = 'ACTIVE';
+  if (user.disabled) status = 'OFFLINE';
+  else if (!user.is_active) status = 'IDLE';
+
+  return {
+    id: user.id,
+    name: user.name,
+    role,
+    focus: user.branch || 'Developer',
+    status,
+    xp: user.xp || (user.id.startsWith('MEM') ? parseInt(user.id.split('-')[1] || '0') * 350 : 1200) || 1200
+  };
+};
+
+const mapProject = (p: any): Project => {
+  let lead = 'ROOT-ADMIN';
+  if (p.teamId === 'TEAM-ALPHA') lead = 'Abhishek';
+  else if (p.teamId === 'TEAM-EPSILON') lead = 'Vayu';
+  else if (p.teamId === 'TEAM-GAMMA') lead = 'Nivedita';
+
+  let priority: Project['priority'] = 'MEDIUM';
+  if (p.status === 'LIVE') priority = 'HIGH';
+  else if (p.status === 'COMPLETED') priority = 'LOW';
+
+  let progress = 0;
+  if (p.status === 'LIVE') progress = 65;
+  else if (p.status === 'COMPLETED') progress = 100;
+  else if (p.status === 'PENDING_ADMIN') progress = 80;
+
+  return {
+    id: p.id,
+    name: p.name,
+    lead: lead,
+    progress: progress,
+    priority: priority
+  };
+};
+
+const mapTask = (t: any): Task => {
+  let status: Task['status'] = 'TODO';
+  if (t.status === 'DONE') status = 'DONE';
+  else if (t.status === 'IN_PROGRESS') status = 'IN_PROGRESS';
+  else if (t.status === 'AWAITING_SEAL') status = 'REVIEW';
+
+  let module = t.module_id || 'Core';
+  if (module.includes('UI')) module = 'UI';
+  else if (module.includes('API')) module = 'API';
+  else if (module.includes('SEC')) module = 'Security';
+  else if (module.includes('DB')) module = 'Database';
+  else if (module.includes('NET')) module = 'Networks';
+
+  let assignee = t.assigned_to || 'Unassigned';
+  if (assignee === 'MEM-001') assignee = 'Abhishek';
+  else if (assignee === 'MEM-002') assignee = 'Vaishnavi';
+  else if (assignee === 'MEM-003') assignee = 'Satyam';
+  else if (assignee === 'MEM-004') assignee = 'Vayu';
+  else if (assignee === 'MEM-005') assignee = 'Bhavna';
+  else if (assignee === 'MEM-006') assignee = 'Akansha';
+  else if (assignee === 'MEM-007') assignee = 'Vighnesh';
+  else if (assignee === 'MEM-008') assignee = 'Nivedita';
+
+  return {
+    id: t.id,
+    module,
+    title: t.title,
+    status,
+    assignee
+  };
+};
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
   const { playClick, playTypeClick } = useSound();
 
-  const [applications, setApplications] = useState<Application[]>(seedApplications);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [selectedIds,  setSelectedIds]  = useState<string[]>([]);
   const [nodes,        setNodes]         = useState<ServerNode[]>(seedNodes);
-  const [members,      setMembers]       = useState<Member[]>(seedMembers);
-  const [projects,     setProjects]      = useState<Project[]>(seedProjects);
-  const [tasks,        setTasks]         = useState<Task[]>(seedTasks);
+  const [members,      setMembers]       = useState<Member[]>([]);
+  const [projects,     setProjects]      = useState<Project[]>([]);
+  const [tasks,        setTasks]         = useState<Task[]>([]);
+  
+  // Teams State & Actions
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamLeader, setNewTeamLeader] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<Member[]>([]);
+  const [addMemberToTeamId, setAddMemberToTeamId] = useState('');
 
   const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectLead, setNewProjectLead] = useState(seedMembers[0].name);
+  const [newProjectLead, setNewProjectLead] = useState('');
   const [broadcastMsg,   setBroadcastMsg]   = useState('');
-  const [broadcastLogs,  setBroadcastLogs]  = useState<string[]>([
-    '[10:24] Admin: All production instances scaling correctly.',
-    '[09:15] System: DB backup synchronization completed successfully.',
-  ]);
+  const [broadcastLogs,  setBroadcastLogs]  = useState<string[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -128,29 +170,194 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     xp: 0
   });
 
-  const handleAddMemberSubmit = (e: React.FormEvent) => {
+  const fetchTeamMembers = async (teamId: string) => {
+    try {
+      const res = await api.get(`/teams/${teamId}/members`);
+      const mapped = res.data.map(mapUserToMember);
+      setSelectedTeamMembers(mapped);
+    } catch (err) {
+      console.error("Failed to load team members:", err);
+    }
+  };
+
+  const handleCreateTeamSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTeamName.trim() || !newTeamLeader) return;
+    try { playClick(); } catch (_) {}
+    
+    const teamId = `TEAM-${newTeamName.toUpperCase().replace(/\s+/g, '-')}`;
+    try {
+      await api.post('/admin/teams', {
+        id: teamId,
+        name: newTeamName,
+        leaderId: newTeamLeader
+      });
+      setNewTeamName('');
+      setNewTeamLeader('');
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to create team:", err);
+      alert("Error creating team on backend.");
+    }
+  };
+
+  const handleDisbandTeam = async (teamId: string) => {
+    try { playClick(); } catch (_) {}
+    if (!confirm("Are you sure you want to disband this squad?")) return;
+    try {
+      await api.delete(`/admin/teams/${teamId}`);
+      if (selectedTeamId === teamId) {
+        setSelectedTeamId(null);
+        setSelectedTeamMembers([]);
+      }
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to disband team:", err);
+    }
+  };
+
+  const handleAddMemberToTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTeamId || !addMemberToTeamId) return;
+    try { playClick(); } catch (_) {}
+    try {
+      await api.post(`/admin/teams/${selectedTeamId}/members`, {
+        userId: addMemberToTeamId
+      });
+      setAddMemberToTeamId('');
+      await fetchTeamMembers(selectedTeamId);
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to add member to team:", err);
+      alert("Error adding member to team.");
+    }
+  };
+
+  const handleRemoveMemberFromTeam = async (userId: string) => {
+    try { playClick(); } catch (_) {}
+    if (!selectedTeamId) return;
+    try {
+      await api.delete(`/admin/teams/${selectedTeamId}/members/${userId}`);
+      await fetchTeamMembers(selectedTeamId);
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to remove member from team:", err);
+    }
+  };
+
+  const fetchAllData = async () => {
+    try {
+      const [usersRes, projectsRes, tasksRes, appsRes, noticesRes, teamsRes] = await Promise.all([
+        api.get('/admin/users'),
+        api.get('/projects'),
+        api.get('/tasks'),
+        api.get('/applications'),
+        api.get('/announcements'),
+        api.get('/teams')
+      ]);
+
+      const devUsers = usersRes.data.filter((u: any) => u.role === 'developer');
+      const mappedMembers = devUsers.map(mapUserToMember);
+      setMembers(mappedMembers);
+      
+      const mappedProjects = projectsRes.data.map(mapProject);
+      setProjects(mappedProjects);
+      
+      if (mappedMembers.length > 0 && !newProjectLead) {
+        setNewProjectLead(mappedMembers[0].name || '');
+      }
+
+      setTasks(tasksRes.data.map(mapTask));
+
+      const mappedApps = appsRes.data.map((app: any) => {
+        let semester = 4;
+        if (app.admission_year) {
+          semester = Math.max(1, (2026 - app.admission_year) * 2);
+        }
+        let status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING';
+        if (app.status === 'ACCEPTED' || app.status === 'APPROVED' || app.status === 'RECRUIT_ENLISTED') status = 'APPROVED';
+        else if (app.status === 'REJECTED') status = 'REJECTED';
+
+        return {
+          id: app.id,
+          name: app.name,
+          email: app.email,
+          branch: app.branch || 'CSE',
+          semester: semester,
+          role: 'WEB DEVELOPER',
+          message: app.linkedin_url ? `LinkedIn Profile: ${app.linkedin_url}` : 'Wants to join SDC to build awesome projects.',
+          status: status
+        };
+      });
+      setApplications(mappedApps);
+
+      const mappedLogs = noticesRes.data.map((ann: any) => {
+        const dateObj = ann.timestamp ? new Date(ann.timestamp) : new Date();
+        const timeStr = dateObj.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        return `[${timeStr}] ${ann.title}: ${ann.body}`;
+      });
+      setBroadcastLogs(mappedLogs);
+
+      const mappedTeams = await Promise.all(teamsRes.data.map(async (team: any) => {
+        const leader = devUsers.find((u: any) => u.id === team.leaderId) || usersRes.data.find((u: any) => u.id === team.leaderId);
+        let memberCount = 0;
+        try {
+          const membersRes = await api.get(`/teams/${team.id}/members`);
+          memberCount = membersRes.data.length;
+        } catch (_) {}
+        return {
+          id: team.id,
+          name: team.name,
+          leaderId: team.leaderId,
+          leaderName: leader ? leader.name : 'Unknown Leader',
+          memberCount
+        };
+      }));
+      setTeams(mappedTeams);
+
+    } catch (err) {
+      console.error("Error loading dashboard metrics:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const handleAddMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMember.name.trim() || !newMember.focus.trim()) return;
     try { playClick(); } catch (_) {}
-    const idNum = members.length + 1;
-    const newId = `MBR-${String(idNum).padStart(3, '0')}`;
-    const memberToAdd: Member = {
-      id: newId,
-      name: newMember.name,
-      role: newMember.role,
-      focus: newMember.focus,
-      status: newMember.status,
-      xp: newMember.xp
-    };
-    setMembers(prev => [...prev, memberToAdd]);
-    setNewMember({
-      name: '',
-      role: 'MEMBER',
-      focus: '',
-      status: 'ACTIVE',
-      xp: 0
-    });
-    setIsAddModalOpen(false);
+
+    const randomIdNum = Math.floor(1000 + Math.random() * 9000);
+    const newId = `MEM-${randomIdNum}`;
+    const emailName = newMember.name.toLowerCase().replace(/\s+/g, '');
+    const email = `${emailName}${randomIdNum}@sdc.com`;
+
+    try {
+      await api.post('/admin/users/developers', {
+        id: newId,
+        name: newMember.name,
+        email: email,
+        spec: newMember.focus,
+        joinDate: new Date().toISOString().split('T')[0],
+        password: "SDC@2026"
+      });
+      
+      setNewMember({
+        name: '',
+        role: 'MEMBER',
+        focus: '',
+        status: 'ACTIVE',
+        xp: 0
+      });
+      setIsAddModalOpen(false);
+      await fetchAllData();
+    } catch (err: any) {
+      console.error("Failed to add developer:", err);
+      const errorMsg = err.response?.data?.detail || "Error adding operative to database.";
+      alert(errorMsg);
+    }
   };
 
   const filteredMembers = members.filter(m => 
@@ -160,22 +367,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
     m.focus.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const approveApp  = (id: string) => {
+  const approveApp = async (id: string) => {
     try { playClick(); } catch (_) {}
-    setApplications(p => p.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
-    setSelectedIds(prev => prev.filter(x => x !== id));
+    try {
+      await api.post(`/applications/${id}/approve`);
+      setSelectedIds(prev => prev.filter(x => x !== id));
+      await fetchAllData();
+    } catch (err) {
+      console.error("Error enlisting recruit:", err);
+    }
   };
-  const rejectApp   = (id: string) => {
+
+  const rejectApp = async (id: string) => {
     try { playClick(); } catch (_) {}
-    setApplications(p => p.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
-    setSelectedIds(prev => prev.filter(x => x !== id));
+    try {
+      await api.delete(`/applications/${id}`);
+      setSelectedIds(prev => prev.filter(x => x !== id));
+      await fetchAllData();
+    } catch (err) {
+      console.error("Error discarding recruit:", err);
+    }
   };
+
   const toggleSelectApp = (id: string) => {
     try { playClick(); } catch (_) {}
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
+
   const toggleSelectAllApps = () => {
     try { playClick(); } catch (_) {}
     const pendingApps = applications.filter(a => a.status === 'PENDING');
@@ -194,21 +414,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
       });
     }
   };
-  const bulkApproveApps = () => {
+
+  const bulkApproveApps = async () => {
     try { playClick(); } catch (_) {}
-    setApplications(prev =>
-      prev.map(a => selectedIds.includes(a.id) && a.status === 'PENDING' ? { ...a, status: 'APPROVED' } : a)
-    );
-    setSelectedIds([]);
+    if (selectedIds.length === 0) return;
+    try {
+      await api.post(`/applications/bulk-approve?ids=${selectedIds.join('&ids=')}`);
+      setSelectedIds([]);
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed bulk approval:", err);
+    }
   };
-  const bulkRejectApps = () => {
+
+  const bulkRejectApps = async () => {
     try { playClick(); } catch (_) {}
-    setApplications(prev =>
-      prev.map(a => selectedIds.includes(a.id) && a.status === 'PENDING' ? { ...a, status: 'REJECTED' } : a)
-    );
-    setSelectedIds([]);
+    if (selectedIds.length === 0) return;
+    try {
+      await api.post(`/applications/bulk-reject?ids=${selectedIds.join('&ids=')}`);
+      setSelectedIds([]);
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed bulk rejection:", err);
+    }
   };
-  const cycleNode   = (id: string) => {
+
+  const cycleNode = (id: string) => {
     try { playClick(); } catch (_) {}
     setNodes(p => p.map(n => {
       if (n.id !== id) return n;
@@ -216,48 +447,131 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
       return { ...n, status: next, load: next === 'ONLINE' ? 95 : next === 'STANDBY' ? 40 : 0 };
     }));
   };
-  const promoteMember = (id: string) => {
+
+  const promoteMember = async (id: string) => {
     try { playClick(); } catch (_) {}
-    setMembers(p => p.map(m => {
-      if (m.id !== id) return m;
-      const roles: Member['role'][] = ['JUNIOR', 'MEMBER', 'SENIOR', 'LEAD'];
-      return { ...m, role: Reflect.get(roles, Math.min(roles.indexOf(m.role) + 1, roles.length - 1)) };
-    }));
+    const member = members.find(m => m.id === id);
+    if (!member) return;
+
+    const roles: Member['role'][] = ['JUNIOR', 'MEMBER', 'SENIOR', 'LEAD'];
+    const currentIdx = roles.indexOf(member.role);
+    const nextRole = roles[Math.min(currentIdx + 1, roles.length - 1)];
+
+    let newFocus = member.focus;
+    if (nextRole === 'LEAD') {
+      newFocus = member.focus.replace(/ (Lead|Senior|Junior)/g, '') + ' Lead';
+    } else if (nextRole === 'SENIOR') {
+      newFocus = member.focus.replace(/ (Lead|Senior|Junior)/g, '') + ' Senior';
+    } else if (nextRole === 'MEMBER') {
+      newFocus = member.focus.replace(/ (Lead|Senior|Junior)/g, '');
+    } else if (nextRole === 'JUNIOR') {
+      newFocus = member.focus.replace(/ (Lead|Senior|Junior)/g, '') + ' Junior';
+    }
+
+    try {
+      await api.patch(`/admin/users/${id}`, {
+        branch: newFocus
+      });
+      await fetchAllData();
+    } catch (err) {
+      console.error("Error promoting member:", err);
+    }
   };
-  const cycleMemberStatus = (id: string) => {
+
+  const cycleMemberStatus = async (id: string) => {
     try { playClick(); } catch (_) {}
-    setMembers(p => p.map(m => {
-      if (m.id !== id) return m;
-      const s: Member['status'][] = ['ACTIVE', 'IDLE', 'OFFLINE'];
-      return { ...m, status: Reflect.get(s, (s.indexOf(m.status) + 1) % s.length) };
-    }));
+    const member = members.find(m => m.id === id);
+    if (!member) return;
+
+    const isDisabled = member.status !== 'OFFLINE';
+    try {
+      await api.patch(`/admin/users/${id}`, {
+        disabled: isDisabled
+      });
+      await fetchAllData();
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
   };
-  const createProject = (e: React.FormEvent) => {
+
+  const createProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
     try { playClick(); } catch (_) {}
-    setProjects(p => [...p, { id: `PRJ-0${p.length + 1}`, name: newProjectName, lead: newProjectLead, progress: 0, priority: 'MEDIUM' }]);
-    setNewProjectName('');
+
+    const randomId = `PROJ-${Math.floor(1000 + Math.random() * 9000)}`;
+    try {
+      await api.post('/admin/projects', {
+        id: randomId,
+        name: newProjectName,
+        type: 'Web_App',
+        deadline: '2026-12-31',
+        academicYear: '2025-26'
+      });
+
+      let teamId = '';
+      if (newProjectLead === 'Abhishek') teamId = 'TEAM-ALPHA';
+      else if (newProjectLead === 'Vayu') teamId = 'TEAM-EPSILON';
+      else if (newProjectLead === 'Nivedita') teamId = 'TEAM-GAMMA';
+
+      if (teamId) {
+        await api.post(`/admin/projects/${randomId}/teams`, {
+          teamId: teamId
+        });
+      }
+
+      setNewProjectName('');
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to create project:", err);
+    }
   };
-  const cycleTask = (id: string) => {
+
+  const cycleTask = async (id: string) => {
     try { playClick(); } catch (_) {}
-    setTasks(p => p.map(t => {
-      if (t.id !== id) return t;
-      const s: Task['status'][] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
-      return { ...t, status: Reflect.get(s, (s.indexOf(t.status) + 1) % s.length) };
-    }));
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const nextStatusMap: Record<Task['status'], string> = {
+      'TODO': 'IN_PROGRESS',
+      'IN_PROGRESS': 'AWAITING_SEAL',
+      'REVIEW': 'DONE',
+      'DONE': 'TODO'
+    };
+    const nextStatus = nextStatusMap[task.status];
+
+    try {
+      await api.patch(`/tasks/${id}/status`, {
+        status: nextStatus
+      });
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to update task status:", err);
+    }
   };
-  const sendBroadcast = (e: React.FormEvent) => {
+
+  const sendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastMsg.trim()) return;
-    const t = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-    setBroadcastLogs(p => [`[${t}] Admin: ${broadcastMsg}`, ...p]);
-    setBroadcastMsg('');
+    try { playClick(); } catch (_) {}
+
+    try {
+      await api.post('/announcements', {
+        title: 'Global Broadcast',
+        body: broadcastMsg,
+        priority: 'Normal',
+        is_global: true
+      });
+      setBroadcastMsg('');
+      await fetchAllData();
+    } catch (err) {
+      console.error("Failed to send broadcast:", err);
+    }
   };
 
   /* KPI data */
   const kpis = [
-    { icon: Users,        label: 'Operative Registry', value: `${members.length}`,                                                  trend: '+4.2%',  trendUp: true,  accent: 'indigo'  },
+    { icon: Users,        label: 'Operative Registry', value: `${members.length}`,                                                  trend: 'ACTIVE', trendUp: true,  accent: 'indigo'  },
     { icon: Shield,       label: 'Pending Directives',  value: String(tasks.filter(t => t.status !== 'DONE').length),               trend: 'ACTIVE', trendUp: true,  accent: 'violet'  },
     { icon: Radio,        label: 'Active Missions',     value: String(projects.length),                                              trend: '+2',     trendUp: true,  accent: 'cyan'    },
     { icon: Activity,     label: 'Core Integrity',      value: `${nodes.filter(n => n.status === 'ONLINE').length}/${nodes.length}`, trend: 'SECURE', trendUp: true,  accent: 'emerald' },
@@ -414,15 +728,140 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ view }) => {
 
       /* ── Teams ── */
       case 'teams': return (
-        <SectionCard>
-          <SectionHead>
-            <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">{t('Team Registry')}</span></div>
-            <span className="subtitle">{t('Active Squads and Teams')}</span>
-          </SectionHead>
-          <div style={{ color: 'rgba(255,255,255,0.4)', padding: '20px 0' }}>
-            <p>{t('Teams view is currently under construction.')}</p>
-          </div>
-        </SectionCard>
+        <ContentRow>
+          <SectionCard>
+            <SectionHead>
+              <div className="title-row"><Users size={16} className="icon indigo" /><span className="title">{t('Team Registry')}</span></div>
+              <span className="subtitle">{t('Active Squads and Teams')}</span>
+            </SectionHead>
+            <TableWrap>
+              <DataTable>
+                <thead>
+                  <tr>
+                    <th>{t('ID')}</th>
+                    <th>{t('Squad Name')}</th>
+                    <th>{t('Leader')}</th>
+                    <th>{t('Members')}</th>
+                    <th>{t('Actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teams.length > 0 ? (
+                    teams.map(team => (
+                      <tr key={team.id} style={{ background: selectedTeamId === team.id ? 'rgba(99, 102, 241, 0.08)' : 'transparent' }}>
+                        <td className="mono dim">{team.id}</td>
+                        <td className="bold white">{team.name}</td>
+                        <td className="bold indigo">{team.leaderName}</td>
+                        <td className="mono white">{team.memberCount} {t('members')}</td>
+                        <td>
+                          <ActionRow>
+                            <Button variant="cyan" glow={false} onClick={() => { setSelectedTeamId(team.id); fetchTeamMembers(team.id); }}>
+                              {t('Manage')}
+                            </Button>
+                            <Button variant="red" glow={false} onClick={() => handleDisbandTeam(team.id)}>
+                              {t('Disband')}
+                            </Button>
+                          </ActionRow>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: '24px 0' }}>
+                        {t('No squads active. Use the generator on the right to initialize.')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </DataTable>
+            </TableWrap>
+          </SectionCard>
+
+          <SectionCard style={{ maxWidth: 360 }}>
+            {selectedTeamId ? (
+              <>
+                <SectionHead>
+                  <div className="title-row"><Users size={16} className="icon cyan" /><span className="title">{t('Manage Squad')}</span></div>
+                  <span className="subtitle">{t('Configure Members for ')}{teams.find(t => t.id === selectedTeamId)?.name}</span>
+                </SectionHead>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div>
+                    <h4 style={{ color: '#fff', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', marginBottom: '8px' }}>{t('Squad Roster')}</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                      {selectedTeamMembers.length > 0 ? (
+                        selectedTeamMembers.map(m => (
+                          <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '4px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 'bold' }}>{m.name}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem' }}>{m.focus}</span>
+                            </div>
+                            <button 
+                              onClick={() => handleRemoveMemberFromTeam(m.id)} 
+                              style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.7rem' }}
+                            >
+                              {t('Remove')}
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>{t('No members in this squad.')}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <StyledForm onSubmit={handleAddMemberToTeam}>
+                    <div className="field-group">
+                      <label>{t('Draft Operative')}</label>
+                      <select value={addMemberToTeamId} onChange={e => { setAddMemberToTeamId(e.target.value); try { playClick(); } catch (_) {} }}>
+                        <option value="">{t('-- Select Operative --')}</option>
+                        {members
+                          .filter(m => !selectedTeamMembers.some(tm => tm.id === m.id))
+                          .map(m => <option key={m.id} value={m.id}>{m.name} ({m.focus})</option>)
+                        }
+                      </select>
+                    </div>
+                    <Button variant="cyan" type="submit" glow={true} className="submit-btn" disabled={!addMemberToTeamId}>
+                      <Plus size={14} style={{ marginRight: 8 }} /> {t('Draft Operative')}
+                    </Button>
+                  </StyledForm>
+
+                  <Button variant="red" glow={false} onClick={() => { setSelectedTeamId(null); setSelectedTeamMembers([]); }}>
+                    {t('Back to Create Squad')}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <SectionHead>
+                  <div className="title-row"><Plus size={16} className="icon emerald" /><span className="title">{t('Create Squad')}</span></div>
+                  <span className="subtitle">{t('Initialize a New Working Unit')}</span>
+                </SectionHead>
+                <StyledForm onSubmit={handleCreateTeamSubmit}>
+                  <div className="field-group">
+                    <label>{t('Squad Name')}</label>
+                    <input 
+                      type="text" 
+                      placeholder={t("e.g. Portal Architects")} 
+                      value={newTeamName}
+                      onChange={e => { setNewTeamName(e.target.value); try { playTypeClick(); } catch (_) {} }} 
+                      required
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label>{t('Squad Leader')}</label>
+                    <select value={newTeamLeader} onChange={e => { setNewTeamLeader(e.target.value); try { playClick(); } catch (_) {} }} required>
+                      <option value="">{t('-- Select Leader --')}</option>
+                      {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  </div>
+                  <Button variant="cyan" type="submit" glow={true} className="submit-btn" disabled={!newTeamName.trim() || !newTeamLeader}>
+                    <Plus size={14} style={{ marginRight: 8 }} /> {t('Initialize Squad')}
+                  </Button>
+                </StyledForm>
+              </>
+            )}
+          </SectionCard>
+        </ContentRow>
       );
 
       /* ── Projects ── */

@@ -1,7 +1,7 @@
 import requests
 import sys
 
-BASE_URL = "http://127.0.0.1:8001/api/v1"
+BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 def verify_all():
     print("--- STARTING API VERIFICATION ---")
@@ -42,10 +42,12 @@ def verify_all():
         
     # 3. Create Developer
     print("[*] Creating a developer member via /admin/users/developers...")
+    import random
+    rand_id = random.randint(1000, 9999)
     dev_payload = {
-        "id": "DEV-999",
+        "id": f"DEV-{rand_id}",
         "name": "Verify Developer",
-        "email": "verify_dev@sdc.portal",
+        "email": f"verify_dev_{rand_id}@sdc.portal",
         "spec": "Frontend Engineer",
         "joinDate": "2026-06-01",
         "password": "VerifyPassword123"

@@ -235,7 +235,7 @@ def export_aspirants_excel(
 def discard_aspirant(
     *,
     db: Session = Depends(deps.get_db),
-    application_id: int,
+    application_id: str,
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     """
@@ -252,7 +252,7 @@ def discard_aspirant(
 def enlist_aspirant(
     *,
     db: Session = Depends(deps.get_db),
-    application_id: int,
+    application_id: str,
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     """
@@ -289,7 +289,7 @@ def enlist_aspirant(
 def bulk_enlist_aspirants(
     *,
     db: Session = Depends(deps.get_db),
-    ids: List[int],
+    ids: List[str],
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     """
@@ -330,7 +330,7 @@ def bulk_enlist_aspirants(
 def bulk_discard_aspirants(
     *,
     db: Session = Depends(deps.get_db),
-    ids: List[int],
+    ids: List[str],
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     """

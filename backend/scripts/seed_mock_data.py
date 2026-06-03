@@ -37,6 +37,46 @@ def seed_data():
         session.add(admin_user)
         session.commit()
 
+        print("--- SEEDING_RECRUITMENT_DRIVE_AND_APPLICATIONS ---")
+        from app.models.models import RecruitmentDrive, Application
+        drive = RecruitmentDrive(
+            id="DRIVE-2026",
+            title="SDC Annual Recruitment 2026",
+            start_date=datetime.now().date(),
+            end_date=(datetime.now() + timedelta(days=30)).date(),
+            status="ACTIVE"
+        )
+        session.add(drive)
+        session.commit()
+
+        app1 = Application(
+            id="APP-882",
+            drive_id="DRIVE-2026",
+            name="Alex Karr",
+            email="alex.karr@college.edu",
+            branch="CSE",
+            admission_year=2024,
+            passout_year=2028,
+            linkedin_url="https://linkedin.com/in/alexkarr",
+            github_url="https://github.com/alexkarr",
+            status="PENDING"
+        )
+        app2 = Application(
+            id="APP-883",
+            drive_id="DRIVE-2026",
+            name="Valerie Vane",
+            email="valerie.vane@college.edu",
+            branch="IT",
+            admission_year=2023,
+            passout_year=2027,
+            linkedin_url="https://linkedin.com/in/valerie",
+            github_url="https://github.com/valerie",
+            status="PENDING"
+        )
+        session.add(app1)
+        session.add(app2)
+        session.commit()
+
         print("--- CREATING_MOCK_OPERATIVES ---")
         operatives = [
             Member(
