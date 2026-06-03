@@ -18,7 +18,7 @@ class ApplicationUpdate(BaseModel):
     status: str
 
 class ApplicationOut(ApplicationBase):
-    id: int
+    id: str
     status: str
     timestamp: datetime
     

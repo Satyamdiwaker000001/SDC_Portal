@@ -45,7 +45,8 @@ def create_team(
     db.add(team)
     
     # Auto link leader as member of team
-    link = TeamMemberLink(team_id=team.id, member_id=team.leaderId)
+    import uuid
+    link = TeamMemberLink(id=str(uuid.uuid4()), team_id=team.id, user_id=team.leaderId)
     db.add(link)
     
     db.commit()
@@ -117,12 +118,8 @@ def add_member(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
         
-    # Check if link exists
-    existing_link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.member_id == request.userId)).first()
-    if existing_link:
-        return {"status": "SUCCESS", "message": "Member already in team"}
-        
-    link = TeamMemberLink(team_id=teamId, member_id=request.userId)
+    import uuid
+    link = TeamMemberLink(id=str(uuid.uuid4()), team_id=teamId, user_id=request.userId)
     db.add(link)
     db.commit()
     return {"status": "SUCCESS", "message": "Member added to team"}
@@ -141,7 +138,7 @@ def remove_member(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
         
-    link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.member_id == userId)).first()
+    link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.user_id == userId)).first()
     if not link:
         raise HTTPException(status_code=404, detail="Membership mapping not found")
         
@@ -171,9 +168,10 @@ def promote_team_leader(
     db.add(team)
     
     # Ensure leader is also a member of the team
-    link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.member_id == update.leaderId)).first()
+    link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.user_id == update.leaderId)).first()
     if not link:
-        new_link = TeamMemberLink(team_id=teamId, member_id=update.leaderId)
+        import uuid
+        new_link = TeamMemberLink(id=str(uuid.uuid4()), team_id=teamId, user_id=update.leaderId)
         db.add(new_link)
         
     db.commit()

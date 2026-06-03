@@ -106,6 +106,18 @@ def assign_task(
     db.refresh(task)
     return {"status": "SUCCESS", "task": task}
 
+@router.get("/tasks")
+def get_all_tasks(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    List all tasks (Admin only)
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admins can view all tasks")
+    return db.exec(select(Task)).all()
+
 @router.get("/developer/tasks")
 def get_my_tasks(
     db: Session = Depends(deps.get_db),
