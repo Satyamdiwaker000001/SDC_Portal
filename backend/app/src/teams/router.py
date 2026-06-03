@@ -190,4 +190,11 @@ def get_team_members(
     team = db.get(Team, teamId)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-    return team.members
+    
+    links = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId)).all()
+    user_ids = [link.user_id for link in links]
+    if not user_ids:
+        return []
+    
+    users = db.exec(select(User).where(User.id.in_(user_ids))).all()
+    return users
