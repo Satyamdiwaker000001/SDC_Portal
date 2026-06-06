@@ -112,10 +112,10 @@ def get_all_tasks(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    List all tasks (Admin only)
+    List all tasks (Admin or Mentor only)
     """
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admins can view all tasks")
+    if current_user.role != "admin" and current_user.role != "mentor":
+        raise HTTPException(status_code=403, detail="Only Admins and Mentors can view all tasks")
     return db.exec(select(Task)).all()
 
 @router.get("/developer/tasks")
