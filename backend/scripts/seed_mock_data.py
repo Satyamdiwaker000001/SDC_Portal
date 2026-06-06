@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from sqlmodel import Session, create_engine, select
 from sqlalchemy import text
-from app.models.models import Member, Team, Project, Task, TeamMemberLink, User, Module
+from app.models.models import Member, Team, Project, Task, TeamMemberLink, User, Module, File, TeamMentor, ProjectSRS
 from app.core.config import settings
 from app.core.security import get_password_hash
 
@@ -35,6 +35,21 @@ def seed_data():
             disabled=False,
         )
         session.add(admin_user)
+
+        # Create SDC Mentor User
+        mentor_user = User(
+            id="MENTOR-001",
+            email="mentor@sdc.com",
+            name="SDC Mentor",
+            role="mentor",
+            branch="CSE",
+            admission_year=0,
+            passout_year=0,
+            password_hash=get_password_hash("password123"),
+            is_active=True,
+            disabled=False,
+        )
+        session.add(mentor_user)
         session.commit()
 
         print("--- SEEDING_RECRUITMENT_DRIVE_AND_APPLICATIONS ---")
@@ -166,6 +181,16 @@ def seed_data():
             session.add(link)
         session.commit()
 
+        # Link Mentor to Teams (Alpha, Epsilon, and Gamma)
+        mentor_links = [
+            TeamMentor(id="TML-MENTOR-1", team_id="TEAM-ALPHA", mentor_id="MENTOR-001"),
+            TeamMentor(id="TML-MENTOR-2", team_id="TEAM-EPSILON", mentor_id="MENTOR-001"),
+            TeamMentor(id="TML-MENTOR-3", team_id="TEAM-GAMMA", mentor_id="MENTOR-001"),
+        ]
+        for m_link in mentor_links:
+            session.add(m_link)
+        session.commit()
+
         print("--- DEPLOYING_MISSIONS ---")
         projects = [
             Project(
@@ -195,6 +220,30 @@ def seed_data():
         ]
         for proj in projects:
             session.add(proj)
+        session.commit()
+
+        # Seed mock File and ProjectSRS for Koha Library Management
+        mock_file = File(
+            id="FILE-MOCK-SRS",
+            original_name="srs_draft.pdf",
+            stored_name="srs_draft.pdf",
+            mime_type="application/pdf",
+            size=1024
+        )
+        session.add(mock_file)
+        session.commit()
+
+        mock_srs = ProjectSRS(
+            id="SRS-MOCK-1",
+            project_id="PROJ-003",
+            version=1,
+            file_id="FILE-MOCK-SRS",
+            status="PENDING",
+            submitted_by="MEM-008",
+            content="Draft SRS documentation for Koha library catalog search UI and checkout flow.",
+            remarks=None
+        )
+        session.add(mock_srs)
         session.commit()
 
         print("--- CREATING_PROJECT_MODULES ---")
