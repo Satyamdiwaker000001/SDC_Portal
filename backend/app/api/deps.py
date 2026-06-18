@@ -9,7 +9,7 @@ from ..core.config import settings
 from ..db.session import engine
 from ..models.models import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/swagger-login")
 
 def get_db() -> Generator[Session, None, None]:
     with Session(engine) as session:
