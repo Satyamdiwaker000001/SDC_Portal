@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="3D Landing Page Prototype - Three.js + GSAP" />
+    <title>3D Landing Page Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <canvas id="hero-canvas"></canvas>
+    
+    <div id="overlay" class="overlay">
+      <header class="nav">
+        <div class="nav-brand">SDC<span>.</span></div>
+        <nav class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <button class="cta-nav">Get Started</button>
+      </header>
+
+      <main class="hero-content">
+        <section class="hero-section" id="hero">
+          <div class="hero-text">
+            <p class="hero-label">Next Generation Platform</p>
+            <h1 class="hero-title">
+              Build <span class="highlight">Immersive</span> 
+              <br>Digital Experiences
+            </h1>
+            <p class="hero-subtitle">
+              A cutting-edge platform for creating stunning 3D web experiences 
+              with real-time rendering and smooth animations.
+            </p>
+            <div class="hero-actions">
+              <button class="btn btn-primary">Launch Demo</button>
+              <button class="btn btn-secondary">View Code">View Source</button>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-value" data-target="10000">0</span>
+              <span class="stat-label">Projects</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" data-target="500">0</span>
+              <span class="stat-label">Clients</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" data-target="99">0</span>
+              <span class="stat-label">Uptime %</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="features-section" id="features">
+          <h2 class="section-title">Core <span class="highlight">Capabilities</span></h2>
+          <div class="features-grid">
+            <article class="feature-card">
+              <div class="feature-icon">⚡</div>
+              <h3>Real-time 3D</h3>
+              <p>WebGL-powered rendering with Three.js for buttery-smooth 60fps experiences</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">🎬</div>
+              <h3>GSAP Animations</h3>
+              <p>Professional-grade animation timeline with ScrollTrigger integration</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">🎨</div>
+              <h3>Custom Shaders</h3>
+              <p>GLSL shaders for unique visual effects and material appearances</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">⚙️</div>
+              <h3>Performance First</h3>
+              <p>Optimized render loops, frustum culling, and adaptive quality settings</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="about-section" id="about">
+          <div class="about-content">
+            <h2 class="section-title">Why <span class="highlight">Choose Us</span></h2>
+            <p class="about-text">
+              We push the boundaries of what's possible on the web. Our platform combines 
+              the power of Three.js for 3D rendering with GSAP's industry-standard animation 
+              engine to create experiences that captivate and convert.
+            </p>
+            <div class="about-highlights">
+              <div class="highlight-item">
+                <span class="highlight-number">01</span>
+                <p>Pixel-perfect 3D rendering with physically-based materials</p>
+              </div>
+              <div class="highlight-item">
+                <span class="highlight-number">02</span>
+                <p>Scroll-triggered animations that feel native and responsive</p>
+              </div>
+              <div class="highlight-item">
+                <span class="highlight-number">03</span>
+                <p>Cross-browser compatible with graceful degradation</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer" id="contact">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <div class="nav-brand">SDC<span>.</span></div>
+            <p>Building the future of 3D web experiences</p>
+          </div>
+          <div class="footer-links">
+            <a href="#">GitHub</a>
+            <a href="#">Twitter</a>
+            <a href="#">Discord</a>
+            <a href="#">Docs</a>
+          </div>
+        </div>
+        <p class="footer-copy">© 2024 SDC. Built with Three.js & GSAP</p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
