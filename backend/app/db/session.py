@@ -13,15 +13,9 @@ engine = create_engine(
 )
 
 def init_db():
-    # Import all 31 models to register them on SQLModel metadata
     from ..models.models import (
-        File, User, Team, TeamMember, TeamMentor, Project, ProjectTeam,
-        ProjectSRS, SRSReview, Module, Task, TaskComment, Submission,
-        ProjectReview, ProgressReport, Notice, NoticeTarget, NoticeReply,
-        NoticeReaction, RecruitmentDrive, Application, ApplicationNote,
-        Interview, InterviewFeedback, ProjectShowcase, Notification,
-        Activity, AuditLog, SubmissionReview, ProgressFeedback, NoticeAcknowledgement,
-        Setting, HallOfEchoes
+        File, User, Team, TeamMember, Project, Task, Interaction, Notice, 
+        Notification, ActivityLog, Application, Interview
     )
     SQLModel.metadata.create_all(engine)
     
