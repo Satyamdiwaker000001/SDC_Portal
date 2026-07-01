@@ -1,449 +1,89 @@
-import csv
-import io
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session, select
-from sqlalchemy.orm import selectinload
-
+import uuid
 from ....api import deps
-from ....models.models import Project, Task, Team, User, Member
-from ....schemas.project import (
-    ProjectCreate, ProjectUpdate, ProjectOut, TaskCreate, TaskOut, 
-    ProjectBulkCreate, ProjectActivation, TaskReview, ProjectAdminPatch,
-    TaskPulse
-)
-from ....core.utils import generate_scifi_id
+from ....models.models import Project, User
 
 router = APIRouter()
 
-@router.get("/public/showcase")
-def public_project_reveal(
+class ProjectCreate(BaseModel):
+    name: str
+    short_description: Optional[str] = None
+    full_description: Optional[str] = None
+    type: Optional[str] = "Web_App"
+    deadline: Optional[str] = "2026-12-31"
+    academic_year: Optional[str] = "2025-26"
+    team_id: Optional[str] = None
+    github_repo: Optional[str] = None
+    live_url: Optional[str] = None
+
+class ProjectOut(BaseModel):
+    id: str
+    name: str
+    short_description: Optional[str]
+    status: str
+    type: str
+    deadline: str
+    academic_year: str
+    team_id: Optional[str]
+    github_repo: Optional[str]
+    live_url: Optional[str]
+    is_featured: bool
+    progress: int
+
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=ProjectOut)
+def create_project(
+    project_in: ProjectCreate,
     db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    """
-    Public registry of LIVE projects for landing page visitors.
-    No authentication required.
-    """
-    # Fetch LIVE projects with their teams and members
-    statement = select(Project).where(Project.status == "LIVE")
-    projects = db.exec(statement).all()
-    
-    result = []
-    for p in projects:
-        # Resolve team operatives
-        team_name = "UNASSIGNED"
-        operatives = []
-        if p.team:
-            team_name = p.team.name
-            operatives = [{"name": m.name, "role": m.spec} for m in p.team.members]
-            
-        result.append({
-            "id": p.id,
-            "name": p.name,
-            "description": p.description,
-            "type": p.type,
-            "team": team_name,
-            "operatives": operatives
-        })
-        
-    return result
+    project = Project(
+        id=str(uuid.uuid4()),
+        name=project_in.name,
+        short_description=project_in.short_description,
+        full_description=project_in.full_description,
+        type=project_in.type,
+        deadline=project_in.deadline,
+        academic_year=project_in.academic_year,
+        team_id=project_in.team_id,
+        github_repo=project_in.github_repo,
+        live_url=project_in.live_url,
+        created_by=current_admin.id
+    )
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project
 
 @router.get("/", response_model=List[ProjectOut])
-def read_projects(
+def list_projects(
     db: Session = Depends(deps.get_db),
-    status: Optional[str] = Query(None),
-    academic_year: Optional[str] = Query(None),
-    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Retrieve project matrix.
-    """
-    statement = select(Project)
-    if status:
-        statement = statement.where(Project.status == status)
-    if academic_year:
-        statement = statement.where(Project.academicYear == academic_year)
-    return db.exec(statement).all()
-
-@router.post("/", response_model=ProjectOut)
-def create_project(
-    *,
-    db: Session = Depends(deps.get_db),
-    project_in: ProjectCreate,
-    current_admin: User = Depends(deps.get_current_active_admin),
-) -> Any:
-    """
-    Create new forge (Admin only).
-    """
-    project_id = project_in.id or generate_scifi_id(project_in.name)
-    
-    project = Project(
-        id=project_id,
-        name=project_in.name,
-        description=project_in.description,
-        type=project_in.type,
-        status="DRAFT", # Starts as DRAFT
-        deadline=project_in.deadline,
-        srsLink=project_in.srsLink,
-        teamId=project_in.teamId,
-        academicYear=project_in.academicYear,
-        gitHubRepo=project_in.gitHubRepo
-    )
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    return project
+    return db.exec(select(Project)).all()
 
 @router.get("/{id}", response_model=ProjectOut)
-def read_project_by_id(
+def get_project(
     id: str,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Get project detail by ID.
-    """
     project = db.get(Project, id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
 
-@router.patch("/{id}/progress", response_model=ProjectOut)
-def update_project_progress(
+@router.patch("/{id}/status", response_model=ProjectOut)
+def update_project_status(
     id: str,
+    status: str,
     db: Session = Depends(deps.get_db),
-) -> None:
-    """
-    Internal helper to synchronize project progress based on DONE tasks.
-    """
-    project = db.get(Project, id)
-    if not project:
-        return
-    
-    total_tasks = len(project.tasks)
-    if total_tasks == 0:
-        project.progress = 0
-    else:
-        # Formula: (Verified_Modules / Total_Modules) * 100
-        # Only status 'DONE' counts as verified (Sealed)
-        done_tasks = len([t for t in project.tasks if t.status == "DONE"])
-        project.progress = int((done_tasks / total_tasks) * 100)
-    
-    db.add(project)
-    db.commit()
-
-@router.patch("/{id}/deadline", response_model=ProjectOut)
-def extend_project_deadline(
-    id: str,
-    new_deadline: str,
-    db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Temporal override: Adjust project deadline (Admin only).
-    """
     project = db.get(Project, id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    project.deadline = new_deadline
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    return project
-
-@router.get("/{id}/tasks", response_model=List[TaskOut])
-def read_project_tasks(
-    id: str,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Retrieve project matrix tasks.
-    """
-    tasks = db.exec(select(Task).where(Task.project_id == id)).all()
-    return tasks
-
-@router.post("/{id}/tasks", response_model=TaskOut)
-def create_project_task(
-    id: str,
-    task_in: TaskCreate,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Add task to project matrix (Leader only).
-    """
-    project = db.get(Project, id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    
-    # Check if current_user is Leader
-    if not project.team or project.team.leaderId != current_user.id:
-        if current_user.role != "admin": # Admin can always add
-            raise HTTPException(status_code=403, detail="Operational denial: Only team leaders can forge tasks")
-
-    task = Task(
-        id=task_in.id,
-        moduleName=task_in.moduleName,
-        title=task_in.title,
-        assignedTo=task_in.assignedTo,
-        whatsDone=task_in.whatsDone,
-        whatsGoingOn=task_in.whatsGoingOn,
-        remarks=task_in.remarks,
-        status="TODO",
-        project_id=id
-    )
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-    
-    # Sync progress
-    update_project_progress(id, db)
-    return task
-
-@router.patch("/tasks/{task_id}/status", response_model=TaskOut)
-def update_task_status_protocol(
-    task_id: str,
-    pulse: TaskPulse,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Update task status with hierarchical review logic (AWAITING_SEAL).
-    """
-    task = db.get(Task, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not detected")
-    
-    # Logic: Leader vs Member
-    project = task.project
-    is_leader = project.team and project.team.leaderId == current_user.id
-    
-    status = pulse.status
-    if status == "DONE":
-        if is_leader and task.assignedTo == current_user.id:
-            # Leader completing their own task -> Instant DONE
-            task.status = "DONE"
-            task.reviewFeedback = None
-        else:
-            # Member or Leader completing others -> AWAITING_SEAL
-            task.status = "AWAITING_SEAL"
-    else:
-        # Other status updates (TODO -> IN_PROGRESS etc)
-        task.status = status
-
-    # Pure Functional Data: Work Log and Progress
-    task.progress = pulse.progress or task.progress
-    task.whatsDone = pulse.whatsDone if pulse.whatsDone is not None else task.whatsDone
-    task.whatsGoingOn = pulse.whatsGoingOn if pulse.whatsGoingOn is not None else task.whatsGoingOn
-    task.remarks = pulse.remarks if pulse.remarks is not None else task.remarks
-    task.workLog = pulse.workLog or task.workLog
-
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-    
-    # Sync project progress
-    update_project_progress(task.project_id, db)
-    return task
-
-@router.patch("/tasks/{task_id}/review", response_model=TaskOut)
-def task_review_protocol(
-    task_id: str,
-    review: TaskReview,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Hierarchical quality gate (Leader only).
-    """
-    task = db.get(Task, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not detected")
-    
-    project = task.project
-    if not project.team or project.team.leaderId != current_user.id:
-        raise HTTPException(status_code=403, detail="Authority denied: Only leaders can review tasks")
-
-    if review.action == "APPROVE":
-        task.status = "DONE"
-        task.reviewFeedback = None
-    elif review.action == "REJECT":
-        task.status = "TODO" # Reactive status
-        predefined = "You assigned work not completed yet, check again and then mark done for review your work."
-        task.reviewFeedback = review.feedback or predefined
-    
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-    
-    # Sync progress
-    update_project_progress(task.project_id, db)
-    return task
-
-@router.post("/bulk")
-def bulk_forge_projects(
-    *,
-    db: Session = Depends(deps.get_db),
-    bulk_in: ProjectBulkCreate,
-    current_admin: User = Depends(deps.get_current_active_admin),
-) -> Any:
-    """
-    Mass project registry (Admin only).
-    """
-    added_ids = []
-    for p_in in bulk_in.projects:
-        p_id = p_in.id or generate_scifi_id(p_in.name)
-        project = Project(
-            id=p_id,
-            name=p_in.name,
-            description=p_in.description,
-            type=p_in.type,
-            status="PENDING",
-            deadline=p_in.deadline
-        )
-        db.add(project)
-        added_ids.append(p_id)
-    db.commit()
-    return {"status": "SUCCESS", "ids": added_ids}
-
-@router.post("/bulk/csv")
-async def bulk_inject_projects(
-    file: UploadFile = File(...),
-    db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin),
-) -> Any:
-    """
-    Bulk operate: Inject projects via CSV.
-    Headers: name, type, deadline, description, srsLink
-    """
-    content = await file.read()
-    decoded = content.decode('utf-8')
-    reader = csv.DictReader(io.StringIO(decoded))
-    
-    results = {"success": 0, "errors": []}
-    for i, row in enumerate(reader):
-        try:
-            if not row.get('name') or not row.get('deadline'):
-                raise ValueError("Missing name or deadline")
-            
-            p_id = generate_scifi_id(row['name'])
-            project = Project(
-                id=p_id,
-                name=row['name'],
-                description=row.get('description'),
-                type=row.get('type', 'Web_App'),
-                status="DRAFT",
-                deadline=row['deadline'],
-                srsLink=row.get('srsLink')
-            )
-            db.add(project)
-            results["success"] += 1
-        except Exception as e:
-            results["errors"].append({"row": i + 1, "error": str(e), "data": row})
-        
-    db.commit()
-    return results
-
-@router.patch("/{id}/activate", response_model=ProjectOut)
-def activate_project_protocol(
-    id: str,
-    db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin),
-) -> Any:
-    """
-    Go LIVE: Activates project and sync-forges a Team.
-    """
-    project = db.get(Project, id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    
-    project.status = "LIVE"
-    db.add(project)
-
-    # Auto-provision Team with matching Identity
-    existing_team = db.get(Team, id)
-    if not existing_team:
-        # Default leader as the current admin for now, or leave empty if schema allows
-        # Based on Team model, leaderId is foreign_key="member.id"
-        # We might need to ask for leaderId or use a placeholder
-        # For now, we search for a member with same id if it exists or leave it
-        new_team = Team(
-            id=id,
-            name=project.name,
-            leaderId=current_admin.id # Defaulting to admin's member ID if they are a member
-        )
-        db.add(new_team)
-        project.teamId = new_team.id
-    
-    db.commit()
-    db.refresh(project)
-    return project
-
-@router.post("/bulk-activate")
-def bulk_activate_protocol(
-    *,
-    db: Session = Depends(deps.get_db),
-    activation_in: ProjectActivation,
-    current_admin: User = Depends(deps.get_current_active_admin),
-) -> Any:
-    """
-    Mass activation of projects.
-    """
-    for p_id in activation_in.project_ids:
-        project = db.get(Project, p_id)
-        if project and project.status != "LIVE":
-            project.status = "LIVE"
-            db.add(project)
-            
-            if not db.get(Team, p_id):
-                new_team = Team(id=p_id, name=project.name, leaderId=current_admin.id)
-                db.add(new_team)
-                project.teamId = new_team.id
-    db.commit()
-    return {"status": "SUCCESS", "activated_count": len(activation_in.project_ids)}
-
-@router.patch("/{id}/submit-final", response_model=ProjectOut)
-def submit_project_for_final_audit(
-    id: str,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Matrix Finalization: Submit project for Admin review (Leader only).
-    """
-    project = db.get(Project, id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not detected")
-    
-    if not project.team or project.team.leaderId != current_user.id:
-        raise HTTPException(status_code=403, detail="Operational denial: Only team leaders can submit for final audit")
-
-    # Verify all tasks are DONE
-    undone = [t for t in project.tasks if t.status != "DONE"]
-    if undone:
-        raise HTTPException(status_code=400, detail=f"Matrix incomplete: {len(undone)} tasks still pending")
-
-    project.status = "PENDING_ADMIN"
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-    return project
-
-@router.patch("/{id}/finalize", response_model=ProjectOut)
-def admin_finalize_project(
-    id: str,
-    db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin),
-) -> Any:
-    """
-    Project Genesis: Mark project as COMPLETED (Admin only).
-    """
-    project = db.get(Project, id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not detected")
-    
-    project.status = "COMPLETED"
+    project.status = status.upper()
     db.add(project)
     db.commit()
     db.refresh(project)
@@ -455,12 +95,9 @@ def delete_project(
     db: Session = Depends(deps.get_db),
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    """
-    Terminate project data (Admin only).
-    """
     project = db.get(Project, id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     db.delete(project)
     db.commit()
-    return {"status": "FORGE_TERMINATED"}
+    return {"status": "SUCCESS", "message": "Project deleted"}
