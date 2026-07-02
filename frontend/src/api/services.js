@@ -2,7 +2,6 @@ import client from './client';
 
 export const authAPI = {
   login: async (username, password) => {
-    // OAuth2PasswordBearer expects form data
     const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
@@ -28,6 +27,10 @@ export const usersAPI = {
   },
   create: async (userData) => {
     const { data } = await client.post('/users/', userData);
+    return data;
+  },
+  bulkUpload: async (formData) => {
+    const { data } = await client.post('/users/bulk-upload', formData);
     return data;
   }
 };
@@ -104,8 +107,14 @@ export const announcementsAPI = {
 };
 
 export const interactionsAPI = {
-  getAll: async (entityType, entityId) => {
-    const { data } = await client.get(`/interactions/?entity_type=${entityType}&entity_id=${entityId}`);
+  getAll: async (entityType = null, entityId = null) => {
+    let url = '/interactions/';
+    if (entityType && entityId) {
+      url += `?entity_type=${entityType}&entity_id=${entityId}`;
+    } else if (entityType) {
+      url += `?entity_type=${entityType}`;
+    }
+    const { data } = await client.get(url);
     return data;
   },
   create: async (interactionData) => {
