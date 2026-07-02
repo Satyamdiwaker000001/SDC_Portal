@@ -1,0 +1,39 @@
+# SDC Portal Admin Engine Features (Based on Backend Services Analysis)
+
+## 1. User & Identity Management
+- **View Users**: View all developers, mentors, and admins.
+- **Create Users**: Directly create or seed new user accounts.
+- **Update Profiles**: Modify roles, branch, academic year, and status.
+- **Account Actions**: Mark users as active, passout, or deactivate/ban them.
+
+## 2. Team Management
+- **Create Teams**: Form new project teams.
+- **Assign Members**: Add developers to specific teams.
+- **Assign Mentors**: Link mentors to oversee specific teams.
+- **Manage Teams**: Edit team details, change leaders, or disband teams.
+
+## 3. Project Management
+- **Create Projects**: Initialize new projects with descriptions and deadlines.
+- **Assign Projects**: Allocate projects to specific teams.
+- **Status Tracking**: Change project statuses (e.g., DRAFT, LIVE, PENDING, COMPLETED).
+- **SRS & Reviews**: Approve or review Software Requirements Specifications before execution.
+- **Submissions**: Review final project code/demo submissions.
+
+## 4. Task & Module Management
+- **View Tasks & Progress**: Monitor the overall task progress and modules of different teams.
+- **Note**: Actual task creation and assignment to team members is handled by the Team Leader. Admin only oversees the execution.
+
+## 5. Announcements & Notices
+- **Broadcast Notices**: Send global announcements to all SDC members.
+- **Targeted Notices**: Send notices to specific roles or teams.
+- **Manage Notices**: Edit or delete announcements.
+
+## 6. Recruitment Pipeline
+- **View Applications**: Review incoming candidate applications and resumes.
+- **Shortlist Candidates**: Update application statuses.
+- **Interviews**: Schedule interviews and record feedback/decisions.
+
+## 7. System & Telemetry (Background)
+- **Audit Logs**: Oversee critical entity modifications.
+- **Settings**: Manage system-level configurations.
+- **File Management**: Manage uploaded resumes, avatars, and project files.

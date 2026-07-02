@@ -17,7 +17,7 @@ export default function LoginView() {
   const navigate = useNavigate();
 
   // Terminal typing effect
-  const fullText = "initiating secure handshake...\nauthenticating credentials...\naccess granted.";
+  const fullText = "initiating secure handshake...\nauthenticating cblueentials...\naccess granted.";
   useEffect(() => {
     let i = 0;
     const interval = setInterval(() => {
@@ -37,14 +37,14 @@ export default function LoginView() {
     
     try {
       await login(email, password);
-      // Valid credentials! Flip the card.
+      // Valid cblueentials! Flip the card.
       setIsFlipped(true);
       // Wait for 3 seconds before navigating to dashboard
       setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
     } catch (err) {
-      setError('Invalid credentials or server error.');
+      setError('Invalid cblueentials or server error.');
       setIsLoading(false); // Only stop loading if error so flip stays smooth
     }
   };
@@ -206,10 +206,10 @@ export default function LoginView() {
                 {error && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0, mb: 0 }} animate={{ opacity: 1, height: 'auto', mb: 20 }} exit={{ opacity: 0, height: 0, mb: 0 }}
-                    className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 overflow-hidden"
+                    className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 overflow-hidden"
                   >
-                    <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-red-400 shrink-0 shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
-                    <p className="text-red-400 text-xs font-medium">{error}</p>
+                    <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-blue-400 shrink-0 shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
+                    <p className="text-blue-400 text-xs font-medium">{error}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -296,17 +296,19 @@ export default function LoginView() {
                  {/* Profile Photo */}
                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#0a101f] p-1 mb-8 shadow-[0_15px_25px_rgba(0,0,0,0.6)] bg-gradient-to-br from-[#00e5ff] to-[#0066ff]">
                    <div className="w-full h-full rounded-full overflow-hidden bg-[#020617] relative flex items-center justify-center">
-                     {user?.profile_image_url ? (
+                     {user?.role === 'admin' ? (
+                       <span className="text-4xl font-black text-white/80">AD</span>
+                     ) : user?.profile_image_url ? (
                         <img src={user.profile_image_url} alt="Profile" className="w-full h-full object-cover grayscale contrast-125" />
                      ) : (
-                        <User className="w-12 h-12 text-white/50" />
+                        <span className="text-4xl font-black text-white/80">{user?.full_name ? user.full_name.substring(0, 2).toUpperCase() : <User className="w-12 h-12 text-white/50" />}</span>
                      )}
                    </div>
                  </div>
 
                  {/* Name & Role */}
                  <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80 uppercase tracking-widest mb-1 drop-shadow-md text-center px-4 leading-tight">
-                   {user?.full_name || user?.email?.split('@')[0] || 'Authorized'}
+                   {user?.role === 'admin' ? 'Admin' : (user?.full_name || user?.email?.split('@')[0] || 'Authorized')}
                  </h3>
                  <p className="text-[#00e5ff] text-[11px] font-bold uppercase tracking-[0.25em] drop-shadow-[0_0_8px_rgba(0,229,255,0.4)]">
                    {user?.role || 'Developer'}

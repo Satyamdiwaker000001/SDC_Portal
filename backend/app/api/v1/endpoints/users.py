@@ -167,3 +167,102 @@ def lookup_users(
     statement = select(User).where(or_(User.name.contains(query), User.email.contains(query))).limit(5)
     users = db.exec(statement).all()
     return [{"id": u.id, "name": u.name, "email": u.email, "role": u.role} for u in users]
+
+@router.post("/bulk-upload")
+async def bulk_upload_users(
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """
+    Bulk upload users from a CSV file.
+    Required columns: Name, Email, Password, Role, Branch, Admission Year
+    Optional: Passout Year
+    """
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
+    
+    content = await file.read()
+    try:
+        csv_text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid file encoding. Please use UTF-8.")
+    
+    csv_reader = csv.DictReader(io.StringIO(csv_text))
+    
+    # Check headers
+    headers = [h.strip().lower() for h in (csv_reader.fieldnames or [])]
+    required_headers = ["name", "email", "password", "role", "branch", "admission year"]
+    missing_headers = [req for req in required_headers if req not in headers]
+    if missing_headers:
+        raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(missing_headers)}")
+    
+    users_to_add = []
+    skipped_count = 0
+    added_count = 0
+    max_limit = 500
+    row_count = 0
+    
+    # Retrieve existing emails to avoid dupes in bulk
+    existing_emails_set = {u.email for u in db.exec(select(User)).all()}
+    
+    import uuid
+    for row in csv_reader:
+        row_count += 1
+        if row_count > max_limit:
+            break
+            
+        # Clean row keys based on stripped lowercase headers
+        cleaned_row = {k.strip().lower(): v.strip() if v else "" for k, v in row.items() if k}
+        
+        name = cleaned_row.get("name", "")
+        email = cleaned_row.get("email", "").lower()
+        password = cleaned_row.get("password", "")
+        role = cleaned_row.get("role", "developer").lower()
+        branch = cleaned_row.get("branch", "N/A")
+        admission_year = cleaned_row.get("admission year", "0")
+        passout_year = cleaned_row.get("passout year", "0")
+        
+        if not email or not name or not password:
+            skipped_count += 1
+            continue
+            
+        if email in existing_emails_set:
+            skipped_count += 1
+            continue
+            
+        try:
+            adm_yr = int(admission_year)
+        except ValueError:
+            adm_yr = 0
+            
+        try:
+            pass_yr = int(passout_year)
+        except ValueError:
+            pass_yr = 0
+            
+        new_user = User(
+            id=f"USR-{uuid.uuid4().hex[:8].upper()}",
+            name=name,
+            email=email,
+            password_hash=security.get_password_hash(password),
+            role=role if role in ["admin", "developer", "mentor"] else "developer",
+            branch=branch,
+            admission_year=adm_yr,
+            passout_year=pass_yr
+        )
+        users_to_add.append(new_user)
+        existing_emails_set.add(email) # To prevent dupes within the same CSV
+        added_count += 1
+
+    if users_to_add:
+        db.add_all(users_to_add)
+        db.commit()
+        
+    return {
+        "status": "success",
+        "message": f"Successfully added {added_count} members. Skipped {skipped_count} invalid or duplicate entries.",
+        "added": added_count,
+        "skipped": skipped_count,
+        "limit_reached": row_count > max_limit
+    }

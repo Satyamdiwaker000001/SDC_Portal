@@ -643,15 +643,15 @@ export default function LandingPage() {
 
               <form className="space-y-6">
                 <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Full Legal Name</label>
-                  <input type="text" placeholder="John Doe" className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                  <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Full Legal Name</label>
+                  <input type="text" placeholder="John Doe" className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
                 </div>
                 <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">University Email</label>
-                  <input type="email" placeholder="john.doe@university.edu" className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                  <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">University Email</label>
+                  <input type="email" placeholder="john.doe@university.edu" className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
                 </div>
                 <div>
-                  <label className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Primary Division</label>
+                  <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Primary Division</label>
                   <select className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors appearance-none rounded-none cursor-pointer">
                     <option value="" disabled selected>Select Assignment...</option>
                     <option value="web">Web Development</option>

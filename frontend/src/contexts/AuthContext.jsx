@@ -36,23 +36,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    // MOCK LOGIN FOR UI TESTING
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: 'SDC-777',
-          full_name: 'Satyam Diwaker',
-          email: username,
-          role: 'Web Developer',
-          department: 'Engineering',
-          profile_image_url: 'https://i.pravatar.cc/150?u=sdc_core' // Mock profile photo
-        };
-        setUser(mockUser);
-        setRole(mockUser.role);
-        localStorage.setItem('sdc_token', 'mock_token_123');
-        resolve(mockUser);
-      }, 1500); // 1.5s artificial network delay
-    });
+    const data = await authAPI.login(username, password);
+    if (data && data.access_token) {
+      localStorage.setItem('sdc_token', data.access_token);
+      await fetchMe();
+    } else {
+      throw new Error("Invalid authentication response");
+    }
   };
 
   const logout = async () => {
