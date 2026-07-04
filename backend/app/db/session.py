@@ -15,7 +15,7 @@ engine = create_engine(
 def init_db():
     from ..models.models import (
         File, User, Team, TeamMember, Project, Task, Interaction, Notice, 
-        Notification, ActivityLog, Application, Interview
+        Notification, ActivityLog, Application, Interview, SystemSetting
     )
     SQLModel.metadata.create_all(engine)
     
@@ -33,7 +33,12 @@ def init_db():
                 password_hash=get_password_hash("admin123"),
             )
             session.add(admin_user)
-            session.commit()
+        
+        setting = session.exec(select(SystemSetting).where(SystemSetting.key == "is_recruitment_live")).first()
+        if not setting:
+            session.add(SystemSetting(key="is_recruitment_live", value="false"))
+            
+        session.commit()
 
 def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:

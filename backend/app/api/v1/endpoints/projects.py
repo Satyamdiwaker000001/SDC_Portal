@@ -18,6 +18,7 @@ class ProjectCreate(BaseModel):
     team_id: Optional[str] = None
     github_repo: Optional[str] = None
     live_url: Optional[str] = None
+    image_url: Optional[str] = None
 
 class ProjectOut(BaseModel):
     id: str
@@ -30,6 +31,7 @@ class ProjectOut(BaseModel):
     team_id: Optional[str]
     github_repo: Optional[str]
     live_url: Optional[str]
+    image_url: Optional[str]
     is_featured: bool
     progress: int
 
@@ -50,6 +52,7 @@ def create_project(
         team_id=project_in.team_id,
         github_repo=project_in.github_repo,
         live_url=project_in.live_url,
+        image_url=project_in.image_url,
         created_by=current_admin.id
     )
     db.add(project)
@@ -89,6 +92,43 @@ def update_project_status(
     db.refresh(project)
     return project
 
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    short_description: Optional[str] = None
+    full_description: Optional[str] = None
+    type: Optional[str] = None
+    deadline: Optional[str] = None
+    academic_year: Optional[str] = None
+    team_id: Optional[str] = None
+    github_repo: Optional[str] = None
+    live_url: Optional[str] = None
+    image_url: Optional[str] = None
+    status: Optional[str] = None
+    progress: Optional[int] = None
+
+@router.patch("/{id}", response_model=ProjectOut)
+def update_project(
+    id: str,
+    project_in: ProjectUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    project = db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    update_data = project_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        if key == "status" and value:
+            setattr(project, key, value.upper())
+        else:
+            setattr(project, key, value)
+            
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project
+
 @router.delete("/{id}")
 def delete_project(
     id: str,
@@ -98,6 +138,13 @@ def delete_project(
     project = db.get(Project, id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+        
+    # Delete associated tasks to prevent foreign key errors
+    from ....models.models import Task
+    tasks = db.exec(select(Task).where(Task.project_id == id)).all()
+    for task in tasks:
+        db.delete(task)
+        
     db.delete(project)
     db.commit()
-    return {"status": "SUCCESS", "message": "Project deleted"}
+    return {"status": "SUCCESS", "message": "Project and its tasks deleted"}

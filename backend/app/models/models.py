@@ -3,7 +3,14 @@ from typing import List, Optional
 from datetime import datetime
 from sqlmodel import Field, SQLModel, Column, JSON, String
 
-# --- 1. Files Table ---
+# --- 1. System Settings ---
+class SystemSetting(SQLModel, table=True):
+    __tablename__ = "system_settings"
+    key: str = Field(primary_key=True)
+    value: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# --- 2. Files Table ---
 class File(SQLModel, table=True):
     __tablename__ = "files"
     id: str = Field(primary_key=True)
@@ -69,6 +76,7 @@ class Project(SQLModel, table=True):
     # Consolidates Showcase and SRS
     github_repo: Optional[str] = None
     live_url: Optional[str] = None
+    image_url: Optional[str] = None
     banner_file_id: Optional[str] = Field(default=None, foreign_key="files.id")
     srs_file_id: Optional[str] = Field(default=None, foreign_key="files.id")
     is_featured: bool = Field(default=False)

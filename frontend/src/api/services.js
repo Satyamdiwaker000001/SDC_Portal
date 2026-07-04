@@ -32,6 +32,10 @@ export const usersAPI = {
   bulkUpload: async (formData) => {
     const { data } = await client.post('/users/bulk-upload', formData);
     return data;
+  },
+  update: async (id, userData) => {
+    const { data } = await client.patch(`/users/${id}`, userData);
+    return data;
   }
 };
 
@@ -46,6 +50,22 @@ export const teamsAPI = {
   },
   getMembers: async (teamId) => {
     const { data } = await client.get(`/teams/${teamId}/members`);
+    return data;
+  },
+  addMember: async (teamId, memberData) => {
+    const { data } = await client.post(`/teams/${teamId}/members`, memberData);
+    return data;
+  },
+  update: async (id, teamData) => {
+    const { data } = await client.patch(`/teams/${id}`, teamData);
+    return data;
+  },
+  delete: async (id) => {
+    const { data } = await client.delete(`/teams/${id}`);
+    return data;
+  },
+  removeMember: async (teamId, userId) => {
+    const { data } = await client.delete(`/teams/${teamId}/members/${userId}`);
     return data;
   }
 };
@@ -62,12 +82,22 @@ export const projectsAPI = {
   updateStatus: async (id, status) => {
     const { data } = await client.patch(`/projects/${id}/status?status=${status}`);
     return data;
+  },
+  update: async (id, projectData) => {
+    const { data } = await client.patch(`/projects/${id}`, projectData);
+    return data;
+  },
+  delete: async (id) => {
+    const { data } = await client.delete(`/projects/${id}`);
+    return data;
   }
 };
 
 export const tasksAPI = {
-  getAll: async () => {
-    const { data } = await client.get('/tasks/');
+  getAll: async (projectId = null) => {
+    let url = '/tasks/';
+    if (projectId) url += `?project_id=${projectId}`;
+    const { data } = await client.get(url);
     return data;
   },
   create: async (taskData) => {
@@ -119,6 +149,17 @@ export const interactionsAPI = {
   },
   create: async (interactionData) => {
     const { data } = await client.post('/interactions/', interactionData);
+    return data;
+  }
+};
+
+export const settingsAPI = {
+  get: async (key) => {
+    const { data } = await client.get(`/settings/${key}`);
+    return data;
+  },
+  update: async (key, value) => {
+    const { data } = await client.patch(`/settings/${key}?value=${value}`);
     return data;
   }
 };

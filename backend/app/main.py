@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
-from .api.v1.endpoints import auth, users, teams, projects, applications, announcements, interactions
+from .api.v1.endpoints import auth, users, teams, projects, applications, announcements, interactions, settings as settings_endpoint
 from .db.session import init_db
 from .core.config import settings
 from fastapi.staticfiles import StaticFiles
@@ -65,3 +65,4 @@ app.include_router(projects.router, prefix=f"{settings.API_V1_STR}/projects", ta
 app.include_router(applications.router, prefix=f"{settings.API_V1_STR}/applications", tags=["applications"])
 app.include_router(announcements.router, prefix=f"{settings.API_V1_STR}/announcements", tags=["announcements"])
 app.include_router(interactions.router, prefix=f"{settings.API_V1_STR}/interactions", tags=["interactions"])
+app.include_router(settings_endpoint.router, prefix=f"{settings.API_V1_STR}/settings", tags=["settings"])

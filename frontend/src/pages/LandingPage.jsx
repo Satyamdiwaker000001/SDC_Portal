@@ -6,6 +6,7 @@ import head1 from '../assets/heads/Dr. Rahul Rastogi.jpg';
 import head2 from '../assets/heads/Mr. Prateek Agrawal.jpeg';
 import founderAyush from '../assets/founders/Ayush.jpg';
 import founderTushar from '../assets/founders/Tushar.jpg';
+import { projectsAPI, applicationsAPI, settingsAPI } from '../api/services';
 
 
 // Reusable animation variants
@@ -209,6 +210,47 @@ export default function LandingPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [completedProjects, setCompletedProjects] = useState([]);
+  
+  // Recruitment Form State
+  const [isLive, setIsLive] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '', email: '', branch: '', admission_year: new Date().getFullYear(), passout_year: new Date().getFullYear() + 3, batch_year: '2025-26'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchInitData = async () => {
+      try {
+        const [projData, settingsData] = await Promise.all([
+          projectsAPI.getAll(),
+          settingsAPI.get('is_recruitment_live')
+        ]);
+        setCompletedProjects(projData.filter(p => p.status === 'COMPLETED'));
+        setIsLive(settingsData?.value === 'true');
+      } catch (err) {
+        console.error("Failed to fetch initial data", err);
+      }
+    };
+    fetchInitData();
+  }, []);
+
+  const handleApply = async (e) => {
+    e.preventDefault();
+    if (!isLive) return;
+    setIsSubmitting(true);
+    try {
+      await applicationsAPI.create(formData);
+      setSubmitSuccess(true);
+      setTimeout(() => setIsFormOpen(false), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to submit application.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -557,24 +599,39 @@ export default function LandingPage() {
           </div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-            <ProjectCard
-              title="SDC Internal Portal"
-              desc="A comprehensive internal management system streamlining cell operations, attendance, and recruitment tracking."
-              image="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80"
-              tags={["React", "FastAPI", "PostgreSQL"]} link="#"
-            />
-            <ProjectCard
-              title="Project Beta Open Source"
-              desc="An open-source initiative driving collaborative engineering. Members contribute to real-world libraries."
-              image="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80"
-              tags={["Python", "Machine Learning", "Docker"]} link="#"
-            />
-            <ProjectCard
-              title="Hackathon Nexus"
-              desc="A unified platform for hosting and managing national-level competitive coding events and symposiums."
-              image="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&q=80"
-              tags={["Next.js", "Node.js", "MongoDB"]} link="#"
-            />
+            {completedProjects.length > 0 ? (
+              completedProjects.map(p => (
+                <ProjectCard
+                  key={p.id}
+                  title={p.name}
+                  desc={p.short_description || p.description || "Official completed flagship project developed by Software Development Cell members."}
+                  image={p.image_url || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80"}
+                  tags={[p.type ? p.type.replace('_', ' ') : "Web App"]}
+                  link={p.live_url || "#"}
+                />
+              ))
+            ) : (
+              <>
+                <ProjectCard
+                  title="SDC Internal Portal"
+                  desc="A comprehensive internal management system streamlining cell operations, attendance, and recruitment tracking."
+                  image="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80"
+                  tags={["React", "FastAPI", "PostgreSQL"]} link="#"
+                />
+                <ProjectCard
+                  title="Project Beta Open Source"
+                  desc="An open-source initiative driving collaborative engineering. Members contribute to real-world libraries."
+                  image="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80"
+                  tags={["Python", "Machine Learning", "Docker"]} link="#"
+                />
+                <ProjectCard
+                  title="Hackathon Nexus"
+                  desc="A unified platform for hosting and managing national-level competitive coding events and symposiums."
+                  image="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&q=80"
+                  tags={["Next.js", "Node.js", "MongoDB"]} link="#"
+                />
+              </>
+            )}
           </motion.div>
         </div>
       </section>
@@ -607,13 +664,16 @@ export default function LandingPage() {
                 </p>
 
                 <button
-                  onClick={() => setIsFormOpen(!isFormOpen)}
-                  className="group flex items-center gap-4 bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] px-8 py-5 rounded-full font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] transition-all hover:scale-105"
+                  onClick={() => { if(isLive) setIsFormOpen(!isFormOpen); }}
+                  disabled={!isLive}
+                  className={`group flex items-center gap-4 px-8 py-5 rounded-full font-bold text-sm tracking-widest uppercase transition-all ${isLive ? 'bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] hover:scale-105 cursor-pointer' : 'bg-gray-600/50 cursor-not-allowed opacity-50'}`}
                 >
-                  {isFormOpen ? 'Close Envelope' : 'Extract Form'}
-                  <span className={`transition-transform duration-500 ${isFormOpen ? '-rotate-180' : 'group-hover:translate-x-2'}`}>
-                    &rarr;
-                  </span>
+                  {!isLive ? 'Recruitment Closed' : (isFormOpen ? 'Close Envelope' : 'Extract Form')}
+                  {isLive && (
+                    <span className={`transition-transform duration-500 ${isFormOpen ? '-rotate-180' : 'group-hover:translate-x-2'}`}>
+                      &rarr;
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -639,33 +699,52 @@ export default function LandingPage() {
                 Strictly<br />Confidential
               </div>
 
-              <h3 className="text-2xl font-extrabold text-gray-900 mb-8 border-b-2 border-black/10 pb-4 inline-block">Official Application</h3>
-
-              <form className="space-y-6">
-                <div>
-                  <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Full Legal Name</label>
-                  <input type="text" placeholder="John Doe" className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+              {submitSuccess ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20">
+                   <div className="w-16 h-16 bg-emerald-500/20 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-4">✓</div>
+                   <h3 className="text-2xl font-black text-slate-800">Application Received</h3>
+                   <p className="text-sm text-slate-500 font-medium">Your application has been securely routed to the Operations Center.</p>
                 </div>
-                <div>
-                  <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">University Email</label>
-                  <input type="email" placeholder="john.doe@university.edu" className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
-                </div>
-                <div>
-                  <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Primary Division</label>
-                  <select className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors appearance-none rounded-none cursor-pointer">
-                    <option value="" disabled selected>Select Assignment...</option>
-                    <option value="web">Web Development</option>
-                    <option value="app">Mobile App Development</option>
-                    <option value="ai">Artificial Intelligence</option>
-                  </select>
-                </div>
-
-                <div className="pt-6">
-                  <button type="button" className="w-full bg-[#1c222b] text-white font-bold tracking-widest uppercase text-xs py-4 rounded-full hover:bg-black transition-colors hover:shadow-xl">
-                    Submit to Records
-                  </button>
-                </div>
-              </form>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-extrabold text-gray-900 mb-8 border-b-2 border-black/10 pb-4 inline-block">Official Application</h3>
+                  <form onSubmit={handleApply} className="space-y-4">
+                    <div>
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Full Legal Name</label>
+                      <input required type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">University Email</label>
+                      <input required type="email" placeholder="john.doe@university.edu" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Primary Division</label>
+                      <select required value={formData.branch} onChange={e => setFormData({...formData, branch: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none cursor-pointer">
+                        <option value="" disabled>Select Assignment...</option>
+                        <option value="Web Development">Web Development</option>
+                        <option value="Mobile App Development">Mobile App Development</option>
+                        <option value="Artificial Intelligence">Artificial Intelligence</option>
+                        <option value="Cybersecurity">Cybersecurity</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                         <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Admission Yr</label>
+                         <input required type="number" value={formData.admission_year} onChange={e => setFormData({...formData, admission_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                       </div>
+                       <div>
+                         <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Passout Yr</label>
+                         <input required type="number" value={formData.passout_year} onChange={e => setFormData({...formData, passout_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                       </div>
+                    </div>
+                    <div className="pt-6">
+                      <button type="submit" disabled={isSubmitting} className="w-full bg-[#1c222b] text-white font-bold tracking-widest uppercase text-xs py-4 rounded-full hover:bg-black transition-colors hover:shadow-xl disabled:opacity-50">
+                        {isSubmitting ? 'Transmitting...' : 'Submit to Records'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
 
               {/* Paper texture lines */}
               <div className="absolute bottom-6 left-12 w-[80%] h-[1px] bg-black/5"></div>

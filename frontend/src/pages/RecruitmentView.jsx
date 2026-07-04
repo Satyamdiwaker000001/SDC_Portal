@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { applicationsAPI } from '../api/services';
-import { Check, X, Briefcase, Server, ShieldAlert, Phone, Mail, FileText, Search } from 'lucide-react';
+import { applicationsAPI, settingsAPI } from '../api/services';
+import { Check, X, Briefcase, Server, ShieldAlert, Phone, Mail, FileText, Search, Power } from 'lucide-react';
 
 const MOCK_APPLICATIONS = [
   { id: 'mock-a1', name: 'Aarav Kumar', email: 'aarav.k@bca.edu', contact: '9876543210', class_name: 'BCA 1st Year', interested: 'Web Development', status: 'PENDING', timestamp: new Date(Date.now() - 1 * 24 * 3600000).toISOString(), resume_url: '' },
@@ -14,11 +14,11 @@ const MOCK_APPLICATIONS = [
 ];
 
 const STATUS_COLORS = {
-  'PENDING': 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
-  'SHORTLISTED': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  'SCHEDULED': 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  'APPROVED': 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  'REJECTED': 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+  'PENDING':    'bg-amber-500/10 text-amber-400 border-amber-500/25',
+  'SHORTLISTED':'bg-[#00b4d8]/10 text-[#00b4d8] border-[#00b4d8]/25',
+  'SCHEDULED':  'bg-blue-400/10 text-blue-400 border-blue-400/25',
+  'APPROVED':   'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
+  'REJECTED':   'bg-red-500/10 text-red-400 border-red-500/25'
 };
 
 const formatDate = (dateString) => {
@@ -32,10 +32,35 @@ export default function RecruitmentView() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [isLive, setIsLive] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     fetchApps();
+    fetchLiveStatus();
   }, []);
+
+  const fetchLiveStatus = async () => {
+    try {
+      const data = await settingsAPI.get('is_recruitment_live');
+      setIsLive(data.value === 'true');
+    } catch (e) {
+      console.error("Failed to fetch live status", e);
+    }
+  };
+
+  const toggleLiveStatus = async () => {
+    setIsToggling(true);
+    try {
+      const newVal = !isLive ? 'true' : 'false';
+      await settingsAPI.update('is_recruitment_live', newVal);
+      setIsLive(!isLive);
+    } catch (e) {
+      console.error("Failed to toggle status", e);
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   const fetchApps = async () => {
     try {
@@ -77,24 +102,32 @@ export default function RecruitmentView() {
     <div className="h-full flex flex-col font-sans text-white pb-6 relative z-10 overflow-hidden">
       
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 shrink-0">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-             <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-               <Briefcase className="w-4 h-4 text-blue-400" />
+          <div className="flex items-center gap-2 mb-1">
+             <div className="w-6 h-6 rounded-md bg-[#00b4d8]/10 flex items-center justify-center border border-[#00b4d8]/30">
+               <Briefcase className="w-3 h-3 text-[#00b4d8]" />
              </div>
-             <span className="text-blue-400 text-sm font-bold tracking-[0.2em] uppercase">Operations Center</span>
+             <span className="text-[#00b4d8] text-xs font-bold tracking-widest uppercase">Operations Center</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight uppercase drop-shadow-md">
+          <h1 className="text-2xl font-black text-white tracking-tight uppercase drop-shadow-md">
             Recruitment Pipeline
           </h1>
-          <p className="text-white/40 mt-1 text-sm font-medium">
+          <p className="text-white/40 mt-0.5 text-xs font-medium">
             Review incoming applications, manage interview statuses, and onboard new talent.
           </p>
         </div>
         
-        {/* Search & Filter */}
-        <div className="flex items-center gap-4 w-full md:w-auto">
+        {/* Search & Filter & Toggle */}
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <button 
+            onClick={toggleLiveStatus}
+            disabled={isToggling}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-all border ${isLive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20'} disabled:opacity-50 shrink-0`}
+          >
+            <Power className="w-4 h-4" /> {isLive ? 'Form is Live' : 'Form is Offline'}
+          </button>
+          
           <div className="relative w-full md:w-64 shrink-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input 
@@ -128,10 +161,10 @@ export default function RecruitmentView() {
              <p className="text-2xl font-black text-white mt-1">{stats.total}</p>
            </div>
         </div>
-        <div className="bg-[#1c222b] border border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_15px_rgba(234,179,8,0.05)]">
+        <div className="bg-[#1c222b] border border-[#00b4d8]/20 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_15px_rgba(0,180,216,0.05)]">
            <div>
-             <p className="text-[10px] font-bold text-indigo-500/60 uppercase tracking-widest">Pending Review</p>
-             <p className="text-2xl font-black text-indigo-500 mt-1">{stats.pending}</p>
+             <p className="text-[10px] font-bold text-[#00b4d8]/60 uppercase tracking-widest">Pending Review</p>
+             <p className="text-2xl font-black text-[#00b4d8] mt-1">{stats.pending}</p>
            </div>
         </div>
         <div className="bg-[#1c222b] border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_15px_rgba(59,130,246,0.05)]">
@@ -226,35 +259,19 @@ export default function RecruitmentView() {
                   
                   {/* Status / Action */}
                   <div className="col-span-3 flex items-center justify-end gap-3">
-                    
-                    {/* Status Badge */}
-                    <div className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border flex items-center justify-center shrink-0 w-28 ${STATUS_COLORS[app.status || 'PENDING']}`}>
-                      {app.status || 'PENDING'}
-                    </div>
-
-                    {/* Action Dropdown */}
+                    {/* Visible Status Dropdown — replaces the old hidden select trick */}
                     <select
                       value={app.status || 'PENDING'}
                       onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
-                      className="w-8 h-8 opacity-0 absolute cursor-pointer"
-                      title="Update Status"
+                      className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#00b4d8]/40 transition-all ${STATUS_COLORS[app.status || 'PENDING']} bg-transparent`}
+                      style={{ minWidth: '130px' }}
                     >
-                      <option value="PENDING">Pending</option>
-                      <option value="SHORTLISTED">Shortlist</option>
-                      <option value="SCHEDULED">Schedule Interview</option>
-                      <option value="APPROVED">Approve (Hire)</option>
-                      <option value="REJECTED">Reject</option>
+                      <option value="PENDING"    className="bg-[#1c222b] text-white normal-case">⏳ Pending</option>
+                      <option value="SHORTLISTED" className="bg-[#1c222b] text-white normal-case">⭐ Shortlist</option>
+                      <option value="SCHEDULED"  className="bg-[#1c222b] text-white normal-case">📅 Schedule</option>
+                      <option value="APPROVED"   className="bg-[#1c222b] text-white normal-case">✅ Approve</option>
+                      <option value="REJECTED"   className="bg-[#1c222b] text-white normal-case">❌ Reject</option>
                     </select>
-                    
-                    {/* Visible Action Button Trigger (Acts as proxy for the invisible select above) */}
-                    <div className="relative group cursor-pointer">
-                      <button className="p-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-blue-500/20 hover:border-blue-500/30 hover:text-blue-400 transition-all pointer-events-none">
-                        <Briefcase className="w-4 h-4" />
-                      </button>
-                      
-                      {/* Note: The invisible select overlays this button, so clicking the button opens the select dropdown natively */}
-                    </div>
-
                   </div>
                 </motion.div>
               ))}
