@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User } from 'lucide-react';
+import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3 } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -47,7 +47,7 @@ const calculateAcademicYear = (user) => {
   return "Passout (Alumni)";
 };
 
-const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, currentUserRole }) => {
+const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole }) => {
   const getRoleStyling = (userRole) => {
     switch (userRole?.toLowerCase()) {
       case 'admin': return { text: 'Admin', icon: Shield };
@@ -60,8 +60,8 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, current
   const RoleIcon = style.icon;
   
   // Unified color scheme for all cards
-  const THEME_BG = 'bg-violet-700'; // Deep violet for banner
-  const THEME_HEX = '#a855f7'; // Bright violet for text accents
+  const THEME_BG = 'bg-[#00879e]'; // Global cyan dark banner
+  const THEME_HEX = '#00b4d8'; // Global primary cyan accent
   const CARD_BG = 'bg-[#1c222b]'; // Dark dashboard card bg
   const CARD_BG_HEX = '#1c222b'; // For SVG cutout
   const TEXT_PRIMARY = 'text-white';
@@ -133,7 +133,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, current
 
           {/* Footer */}
           <div className={`mt-auto h-9 ${THEME_BG} flex items-center justify-center relative z-20`}>
-            <span className="text-white/80 text-[9px] font-bold tracking-[0.2em] uppercase">softwablueevelopmentcell.com</span>
+            <span className="text-white/80 text-[9px] font-bold tracking-[0.2em] uppercase">softwaredevelopmentcell.com</span>
           </div>
         </div>
 
@@ -191,21 +191,27 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, current
             </div>
 
             {currentUserRole === 'admin' ? (
-              <div className="mt-auto flex items-center justify-between gap-3 pt-3 border-t border-white/10 shrink-0">
+              <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10 shrink-0">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEdit(user); }}
+                  className="flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10"
+                >
+                  <Edit3 className="w-3 h-3" /> Edit
+                </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDelete(user.id); }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-[11px] font-bold transition-all border border-blue-500/20"
+                  className="flex items-center justify-center gap-1 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-[10px] font-bold transition-all border border-blue-500/20"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                  <Trash2 className="w-3 h-3" /> Remove
                 </button>
                 {user.role?.toLowerCase() !== 'mentor' && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onMarkPassout(user.id); }}
                     disabled={user.isPassout}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold transition-all border ${user.isPassout ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed' : 'bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border-violet-500/20'}`}
+                    className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${user.isPassout ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed' : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'}`}
                   >
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    {user.isPassout ? 'Alumni' : 'Passout'}
+                    <GraduationCap className="w-3 h-3" />
+                    {user.isPassout ? 'Alumni' : 'Mark as Passout'}
                   </button>
                 )}
               </div>
@@ -218,7 +224,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, current
           
           {/* Footer */}
           <div className={`mt-auto h-9 ${THEME_BG} flex items-center justify-center relative z-20 shrink-0`}>
-            <span className="text-white/80 text-[9px] font-bold tracking-[0.2em] uppercase">softwablueevelopmentcell.com</span>
+            <span className="text-white/80 text-[9px] font-bold tracking-[0.2em] uppercase">softwaredevelopmentcell.com</span>
           </div>
         </div>
 
@@ -240,6 +246,11 @@ export default function TeamView() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkFile, setBulkFile] = useState(null);
   const [bulkStatus, setBulkStatus] = useState(null); // { type: 'success'|'error', msg: '' }
+
+  // Edit User State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editUserData, setEditUserData] = useState(null);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -284,6 +295,26 @@ export default function TeamView() {
       setUsers(users.map(u => u.id === id ? { ...u, isPassout: true } : u));
     } catch(e) {
       console.error(e);
+    }
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    if (!editUserData) return;
+    setIsSubmittingEdit(true);
+    try {
+      const updatedUser = await usersAPI.update(editUserData.id, {
+        name: editUserData.name,
+        role: editUserData.role,
+        image: editUserData.profile_image_url
+      });
+      setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+      setEditModalOpen(false);
+      setEditUserData(null);
+    } catch(e) {
+      alert(e.response?.data?.detail || "Failed to update user");
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -337,8 +368,8 @@ export default function TeamView() {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-              <Users className="w-4 h-4 text-blue-400" />
+            <div className="w-8 h-8 rounded-lg bg-[#00b4d8]/10 border border-[#00b4d8]/30 flex items-center justify-center">
+              <Users className="w-4 h-4 text-[#00b4d8]" />
             </div>
             {/* Header section (Removed Personnel Registry) */}
           </div>
@@ -359,7 +390,7 @@ export default function TeamView() {
             </button>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] flex items-center gap-2 shrink-0"
+              className="bg-[#00b4d8] hover:bg-[#00c8f0] text-[#020617] px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] flex items-center gap-2 shrink-0"
             >
               <Plus className="w-4 h-4" />
               Add Member
@@ -380,7 +411,7 @@ export default function TeamView() {
           <div className="space-y-3">
             {teams.map(team => (
               <div key={team.id} className="p-5 bg-white/[0.02] border border-white/5 hover:border-white/15 rounded-2xl cursor-pointer hover:bg-white/[0.04] transition-all group relative overflow-hidden">
-                <h4 className="text-white text-base font-bold tracking-tight group-hover:text-blue-400 transition-colors mb-1">{team.name}</h4>
+                <h4 className="text-white text-base font-bold tracking-tight group-hover:text-[#00b4d8] transition-colors mb-1">{team.name}</h4>
                 <p className="text-xs text-white/40 leading-relaxed font-medium">{team.description}</p>
               </div>
             ))}
@@ -433,6 +464,10 @@ export default function TeamView() {
                   onFlip={() => setFlippedCardId(flippedCardId === user.id ? null : user.id)}
                   onDelete={handleDeleteUser}
                   onMarkPassout={handleMarkPassout}
+                  onEdit={(u) => {
+                     setEditUserData(u);
+                     setEditModalOpen(true);
+                  }}
                   currentUserRole={role}
                 />
               ))}
@@ -459,21 +494,21 @@ export default function TeamView() {
               className="relative w-full max-w-2xl bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
             >
               {/* Decorative Background Elements */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2"></div>
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-sky-500/10 rounded-full blur-[80px] -z-10 -translate-x-1/2 translate-y-1/2"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#00b4d8]/8 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#00b4d8]/5 rounded-full blur-[80px] -z-10 -translate-x-1/2 translate-y-1/2"></div>
 
               <button 
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/20 transition-colors border border-white/5 cursor-pointer"
+                className="absolute top-6 right-6 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-[#00b4d8] hover:bg-[#00b4d8]/10 hover:border-[#00b4d8]/20 transition-colors border border-white/5 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
               
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30">
-                    <UserPlus className="w-6 h-6 text-blue-400" />
+                  <div className="p-2.5 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30">
+                    <UserPlus className="w-6 h-6 text-[#00b4d8]" />
                   </div>
                   <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">Add New Member</h2>
                 </div>
@@ -483,24 +518,24 @@ export default function TeamView() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Full Name</label>
-                      <input required type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all outline-none" placeholder="e.g. John Doe" />
+                      <input required type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. John Doe" />
                     </div>
                     
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Email Address</label>
-                      <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all outline-none" placeholder="john@sdc.com" />
+                      <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="john@sdc.com" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Temporary Password</label>
-                      <input required type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all outline-none" placeholder="Enter temporary password" />
+                      <input required type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="Enter temporary password" />
                     </div>
                     
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Joining Year</label>
-                      <input required type="number" min="1990" max="2100" value={newUser.joiningYear} onChange={e => setNewUser({...newUser, joiningYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all outline-none" placeholder="e.g. 2024" />
+                      <input required type="number" min="1990" max="2100" value={newUser.joiningYear} onChange={e => setNewUser({...newUser, joiningYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2024" />
                     </div>
                   </div>
                   
@@ -508,7 +543,7 @@ export default function TeamView() {
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Joined As (Class)</label>
                       <div className="relative">
-                        <select required value={newUser.joiningClass} onChange={e => setNewUser({...newUser, joiningClass: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all appearance-none cursor-pointer outline-none">
+                        <select required value={newUser.joiningClass} onChange={e => setNewUser({...newUser, joiningClass: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                           <option value="1st Year" className="bg-[#0a0a0a]">1st Year</option>
                           <option value="2nd Year" className="bg-[#0a0a0a]">2nd Year</option>
                           <option value="3rd Year" className="bg-[#0a0a0a]">3rd Year</option>
@@ -523,7 +558,7 @@ export default function TeamView() {
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
                       <div className="relative">
-                        <select required value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all appearance-none cursor-pointer outline-none">
+                        <select required value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                           <option value="developer" className="bg-[#0a0a0a]">Developer</option>
                           <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
                         </select>
@@ -535,12 +570,12 @@ export default function TeamView() {
                   </div>
                   
                   {modalStatus && (
-                    <div className="text-xs text-blue-400 font-medium text-center bg-blue-500/10 py-2 rounded-lg border border-blue-500/20">
+                    <div className="text-xs text-[#00b4d8] font-medium text-center bg-[#00b4d8]/10 py-2 rounded-lg border border-[#00b4d8]/20">
                       {modalStatus}
                     </div>
                   )}
                   
-                  <button type="submit" className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 py-3.5 mt-2 text-sm font-bold text-white transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)]">
+                  <button type="submit" className="w-full rounded-xl bg-[#00b4d8] hover:bg-[#00c8f0] py-3.5 mt-2 text-sm font-black text-[#020617] transition-all shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] uppercase tracking-wider">
                     Create Member Profile
                   </button>
                 </form>
@@ -629,6 +664,100 @@ export default function TeamView() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Edit User Modal */}
+      <AnimatePresence>
+        {editModalOpen && editUserData && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setEditModalOpen(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent relative overflow-hidden shrink-0">
+                 <div className="flex items-center justify-between relative z-10">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/20 flex items-center justify-center border border-[#00b4d8]/30">
+                       <Edit3 className="w-5 h-5 text-[#00b4d8]" />
+                     </div>
+                     <h2 className="text-lg font-black text-white tracking-widest uppercase">Edit Dossier</h2>
+                   </div>
+                   <button 
+                     onClick={() => setEditModalOpen(false)}
+                     className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                   >
+                     <X className="w-4 h-4" />
+                   </button>
+                 </div>
+              </div>
+
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-4">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Full Name</label>
+                     <input 
+                       type="text" required
+                       value={editUserData.name}
+                       onChange={e => setEditUserData({...editUserData, name: e.target.value})}
+                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                     />
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assigned Role</label>
+                     <select
+                       required
+                       value={editUserData.role}
+                       onChange={e => setEditUserData({...editUserData, role: e.target.value})}
+                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                     >
+                       <option value="developer" className="bg-[#0f172a]">Developer</option>
+                       <option value="mentor" className="bg-[#0f172a]">Mentor</option>
+                       <option value="admin" className="bg-[#0f172a]">Admin</option>
+                     </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Avatar Image URL (Optional)</label>
+                     <input 
+                       type="url"
+                       placeholder="https://example.com/image.jpg"
+                       value={editUserData.profile_image_url || ''}
+                       onChange={e => setEditUserData({...editUserData, profile_image_url: e.target.value})}
+                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                     />
+                     {editUserData.profile_image_url && (
+                       <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border border-white/20 mx-auto">
+                         <img src={editUserData.profile_image_url} alt="Preview" className="w-full h-full object-cover" />
+                       </div>
+                     )}
+                  </div>
+                </form>
+              </div>
+
+              <div className="p-5 border-t border-white/10 bg-black/20 flex justify-end gap-3 shrink-0">
+                <button 
+                  type="button" onClick={() => setEditModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-wider"
+                >Cancel</button>
+                <button 
+                  form="edit-user-form" type="submit" disabled={isSubmittingEdit}
+                  className="px-5 py-2.5 rounded-xl bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                >{isSubmittingEdit ? 'Saving...' : 'Save Updates'}</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 }

@@ -93,3 +93,69 @@ def list_team_members(
     db: Session = Depends(deps.get_db),
 ) -> Any:
     return db.exec(select(TeamMember).where(TeamMember.team_id == id)).all()
+
+class TeamUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+@router.patch("/{id}", response_model=TeamOut)
+def update_team(
+    id: str,
+    team_in: TeamUpdate,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    team = db.get(Team, id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    update_data = team_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(team, key, value)
+        
+    db.add(team)
+    db.commit()
+    db.refresh(team)
+    return team
+
+@router.delete("/{id}")
+def delete_team(
+    id: str,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    team = db.get(Team, id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    # 1. Delete associated team members
+    members = db.exec(select(TeamMember).where(TeamMember.team_id == id)).all()
+    for member in members:
+        db.delete(member)
+        
+    # 2. Nullify team_id in associated projects
+    from ....models.models import Project
+    projects = db.exec(select(Project).where(Project.team_id == id)).all()
+    for project in projects:
+        project.team_id = None
+        db.add(project)
+        
+    # 3. Delete the team
+    db.delete(team)
+    db.commit()
+    return {"status": "SUCCESS", "message": "Team deleted"}
+
+@router.delete("/{id}/members/{user_id}")
+def remove_team_member(
+    id: str,
+    user_id: str,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    member = db.exec(select(TeamMember).where(TeamMember.team_id == id).where(TeamMember.user_id == user_id)).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found in this team")
+    
+    db.delete(member)
+    db.commit()
+    return {"status": "SUCCESS", "message": "Team member removed"}
