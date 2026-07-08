@@ -48,6 +48,11 @@ const calculateAcademicYear = (user) => {
 };
 
 const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId, onResetPassword }) => {
+  const [passoutConfirmStep, setPassoutConfirmStep] = React.useState(0);
+  const [deleteConfirmStep, setDeleteConfirmStep] = React.useState(0);
+  const isAdmin = (currentUserRole || '').toLowerCase() === 'admin';
+  const isTargetAdmin = (user.role || '').toLowerCase() === 'admin';
+
   const getRoleStyling = (userRole) => {
     switch (userRole?.toLowerCase()) {
       case 'admin': return { text: 'Admin', icon: Shield };
@@ -194,9 +199,9 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
               </div>
             </div>
 
-            {(currentUserRole === 'admin' && user.role !== 'admin') || (currentUserId === user.id && currentUserRole !== 'admin') ? (
+            {(isAdmin && !isTargetAdmin) || (currentUserId === user.id && !isAdmin) ? (
               <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10 shrink-0">
-                {(currentUserId === user.id || currentUserRole === 'admin') && (
+                {(currentUserId === user.id || isAdmin) && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onEdit(user); }}
                     className="col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10"
@@ -204,7 +209,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
                     <Edit3 className="w-3 h-3" /> Edit Profile
                   </button>
                 )}
-                {currentUserRole === 'admin' && user.role !== 'admin' && (
+                {isAdmin && !isTargetAdmin && (
                   <>
                     <button 
                       onClick={(e) => { e.stopPropagation(); onResetPassword(user); }}
@@ -213,18 +218,64 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
                       <Key className="w-3 h-3" /> Reset Pass
                     </button>
                     <button 
-                      onClick={(e) => { e.stopPropagation(); onDelete(user.id); }}
-                      className="flex items-center justify-center gap-1 py-2 rounded-lg bg-blue-500/10 text-[#00b4d8] hover:bg-blue-500/20 text-[10px] font-bold transition-all border border-blue-500/20"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (deleteConfirmStep === 0) {
+                          setDeleteConfirmStep(1);
+                          setTimeout(() => setDeleteConfirmStep(0), 3000);
+                        } else {
+                          onDelete(user.id);
+                          setDeleteConfirmStep(0);
+                        }
+                      }}
+                      className={`flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${
+                        deleteConfirmStep === 1 
+                          ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/50 animate-pulse'
+                          : 'bg-blue-500/10 text-[#00b4d8] hover:bg-blue-500/20 border-blue-500/20'
+                      }`}
                     >
-                      <Trash2 className="w-3 h-3" /> Remove
+                      <Trash2 className="w-3 h-3" /> 
+                      {deleteConfirmStep === 1 ? 'Are you sure?' : 'Remove'}
                     </button>
                     {user.role?.toLowerCase() !== 'mentor' && (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); onMarkPassout(user.id, user.isPassout); }}
-                        className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${user.isPassout ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20' : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'}`}
+                        onClick={(e) => { 
+                          e.stopPropagation();
+                          if (user.isPassout) {
+                            onMarkPassout(user.id, true);
+                          } else {
+                            if (passoutConfirmStep === 0) {
+                              setPassoutConfirmStep(1);
+                              setTimeout(() => setPassoutConfirmStep(0), 3000);
+                            }
+                            else if (passoutConfirmStep === 1) {
+                              setPassoutConfirmStep(2);
+                              setTimeout(() => setPassoutConfirmStep(0), 3000);
+                            }
+                            else {
+                              onMarkPassout(user.id, false);
+                              setPassoutConfirmStep(0);
+                            }
+                          }
+                        }}
+                        className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${
+                          user.isPassout 
+                            ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20' 
+                            : passoutConfirmStep === 2
+                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/50 animate-pulse'
+                            : passoutConfirmStep === 1
+                            ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-orange-500/50'
+                            : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'
+                        }`}
                       >
-                        <GraduationCap className="w-3 h-3" />
-                        {user.isPassout ? 'Revert to Active' : 'Mark as Passout'}
+                        <GraduationCap className={`w-3 h-3 ${passoutConfirmStep > 0 && !user.isPassout ? 'animate-bounce' : ''}`} />
+                        {user.isPassout 
+                          ? 'Revert to Active' 
+                          : passoutConfirmStep === 2 
+                          ? 'Final Confirm (Remove from Teams)' 
+                          : passoutConfirmStep === 1 
+                          ? 'Are you sure?' 
+                          : 'Mark as Passout'}
                       </button>
                     )}
                   </>
@@ -322,18 +373,11 @@ export default function TeamView() {
       setFlippedCardId(null);
     } catch(e) {
       console.error(e);
-      alert("Failed to delete user from database.");
+      alert(e.response?.data?.detail || "Failed to delete user from database.");
     }
   };
 
   const handleMarkPassout = async (id, revert = false) => {
-    if (!revert) {
-      if (!window.confirm("Are you sure you want to mark this user as Alumni? This will remove them from active teams.")) return;
-      if (!window.confirm("Second Confirmation: Please confirm you want to proceed.")) return;
-    } else {
-      if (!window.confirm("Are you sure you want to revert this user back to Active status?")) return;
-    }
-
     try {
       await usersAPI.toggleMembership(id, !revert);
       setUsers(users.map(u => u.id === id ? { ...u, isPassout: !revert, membership_status: !revert ? 'alumni' : 'active' } : u));
@@ -529,13 +573,13 @@ export default function TeamView() {
             <div className="grid grid-cols-2 gap-4">
               {/* Mentor Stat */}
               <div className="bg-[#1c222b] p-4 rounded-2xl border border-sky-500/20 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                <span className="text-3xl font-black text-sky-400 mb-1">{users.filter(u => u.role === 'mentor').length}</span>
+                <span className="text-3xl font-black text-sky-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'mentor').length}</span>
                 <span className="text-[10px] font-bold text-sky-400/60 uppercase tracking-widest">Mentors</span>
               </div>
 
               {/* Developer Stat */}
               <div className="bg-[#1c222b] p-4 rounded-2xl border border-blue-500/20 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                <span className="text-3xl font-black text-blue-400 mb-1">{users.filter(u => u.role === 'developer').length}</span>
+                <span className="text-3xl font-black text-blue-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'developer').length}</span>
                 <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Developers</span>
               </div>
             </div>
@@ -550,7 +594,7 @@ export default function TeamView() {
 
         {/* Members Grid */}
         <div className="xl:col-span-3">
-          {users.filter(u => u.role !== 'admin').length === 0 ? (
+          {users.filter(u => (u.role || '').toLowerCase() !== 'admin').length === 0 ? (
             <div className="h-full min-h-[380px] border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-white/40">
               <Users className="w-12 h-12 mb-4 opacity-20" />
               <p className="text-sm font-bold tracking-widest uppercase">No Members Found</p>
@@ -558,7 +602,7 @@ export default function TeamView() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {users.filter(u => u.role !== 'admin').map((user) => (
+              {users.filter(u => (u.role || '').toLowerCase() !== 'admin').map((user) => (
                 <ProfileCard 
                   key={user.id} 
                   user={user} 
@@ -569,6 +613,7 @@ export default function TeamView() {
                   onEdit={(u) => {
                      setEditUserData({
                        ...u,
+                       role: (u.role || 'developer').toLowerCase(),
                        tech_stack: Array.isArray(u.tech_stack) ? u.tech_stack.join(', ') : (u.tech_stack || '')
                      });
                      setAvatarPreview(u.profile_image || null);
