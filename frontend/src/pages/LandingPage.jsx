@@ -547,7 +547,7 @@ export default function LandingPage() {
               <span className="relative z-10 drop-shadow-md">Initialize Access</span>
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
             </button>
-            <button className="bg-white/5 border border-white/20 text-white font-semibold text-[13px] uppercase tracking-widest px-8 py-4 rounded-full transition-all duration-300 hover:bg-white/10 hover:border-[#00b4d8]/50 hover:text-[#00b4d8] backdrop-blur-md w-full sm:w-auto">
+            <button onClick={() => handleNavClick('Projects')} className="bg-white/5 border border-white/20 text-white font-semibold text-[13px] uppercase tracking-widest px-8 py-4 rounded-full transition-all duration-300 hover:bg-white/10 hover:border-[#00b4d8]/50 hover:text-[#00b4d8] backdrop-blur-md w-full sm:w-auto">
               Explore Projects
             </button>
           </motion.div>
