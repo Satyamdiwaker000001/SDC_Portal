@@ -75,9 +75,9 @@ export default function TeamsView() {
     });
   }, [teams]);
 
-  // Unassigned projects: no teamId set (backend uses camelCase teamId)
+  // Unassigned projects: no team_id set
   const unassignedProjects = useMemo(() => {
-    return projects.filter(p => !p.teamId);
+    return projects.filter(p => !p.team_id);
   }, [projects]);
 
   const handleOpenModal = () => {
@@ -106,8 +106,8 @@ export default function TeamsView() {
       const created = await teamsAPI.create(payload);
       // If a project was selected, assign the team to it
       if (newTeam.projectId) {
-        await projectsAPI.update(newTeam.projectId, { teamId: created.id }).catch(() => {});
-        setProjects(prev => prev.map(p => p.id === newTeam.projectId ? { ...p, teamId: created.id } : p));
+        await projectsAPI.update(newTeam.projectId, { team_id: created.id }).catch(() => {});
+        setProjects(prev => prev.map(p => p.id === newTeam.projectId ? { ...p, team_id: created.id } : p));
       }
       setTeams(prev => [...prev, created]);
       setIsModalOpen(false);
@@ -301,8 +301,8 @@ export default function TeamsView() {
                   <div className="flex items-start justify-between relative z-10">
                     <div>
                       <h3 className="text-lg font-black text-white tracking-tight uppercase mb-0.5">{team.name}</h3>
-                      {team.project && (
-                        <span className="text-[10px] font-bold text-[#00b4d8]/70 uppercase tracking-widest">⬡ {team.project}</span>
+                      {projects.find(p => p.team_id === team.id) && (
+                        <span className="text-[10px] font-bold text-[#00b4d8]/70 uppercase tracking-widest">⬡ {projects.find(p => p.team_id === team.id).name}</span>
                       )}
                     </div>
                     {role === 'admin' && (

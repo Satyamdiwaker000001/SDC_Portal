@@ -259,14 +259,14 @@ export default function LandingPage() {
         }
         setRecruitmentTarget(targetValue);
         
-        const allDevs = usersData.filter(u => u.role === 'developer' && u.is_active);
-        const activeMembers = usersData.filter(u => u.membership_status === 'active' && u.is_active && u.role !== 'admin');
+        const allDevs = usersData.filter(u => (u.role || '').toLowerCase() === 'developer' && u.is_active);
+        const activeMembers = usersData.filter(u => (u.membership_status || '').toLowerCase() === 'active' && u.is_active && (u.role || '').toLowerCase() !== 'admin');
         setTotalMembers(activeMembers.length);
         
-        setDbMentors(activeMembers.filter(u => u.role === 'mentor'));
+        setDbMentors(activeMembers.filter(u => (u.role || '').toLowerCase() === 'mentor'));
         setDbDevelopers(allDevs); // all devs (for backward compat)
-        setActiveDevelopers(allDevs.filter(d => d.membership_status === 'active'));
-        setAlumniDevelopers(allDevs.filter(d => d.membership_status === 'alumni'));
+        setActiveDevelopers(allDevs.filter(d => (d.membership_status || '').toLowerCase() === 'active'));
+        setAlumniDevelopers(allDevs.filter(d => (d.membership_status || '').toLowerCase() === 'alumni'));
       } catch (err) {
         console.error("Failed to fetch initial data", err);
       }

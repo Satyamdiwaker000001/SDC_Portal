@@ -261,6 +261,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
       setShowAddTaskModal(false);
       fetchTasks();
       fetchPhases(); // refresh progresses
+      fetchGlobalData(); // refresh project overall progress
     } catch (err) {
       alert("Failed to create task inside phase");
     } finally {

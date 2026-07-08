@@ -196,7 +196,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
             {(currentUserRole === 'admin' && user.role !== 'admin') || (currentUserId === user.id && currentUserRole !== 'admin') ? (
               <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10 shrink-0">
-                {currentUserId === user.id && currentUserRole !== 'admin' && (
+                {(currentUserId === user.id || currentUserRole === 'admin') && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onEdit(user); }}
                     className="col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10"
