@@ -220,12 +220,11 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
                     </button>
                     {user.role?.toLowerCase() !== 'mentor' && (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); onMarkPassout(user.id); }}
-                        disabled={user.isPassout}
-                        className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${user.isPassout ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed' : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'}`}
+                        onClick={(e) => { e.stopPropagation(); onMarkPassout(user.id, user.isPassout); }}
+                        className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${user.isPassout ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20' : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'}`}
                       >
                         <GraduationCap className="w-3 h-3" />
-                        {user.isPassout ? 'Alumni' : 'Mark as Passout'}
+                        {user.isPassout ? 'Revert to Active' : 'Mark as Passout'}
                       </button>
                     )}
                   </>
@@ -324,13 +323,20 @@ export default function TeamView() {
     }
   };
 
-  const handleMarkPassout = async (id) => {
+  const handleMarkPassout = async (id, revert = false) => {
+    if (!revert) {
+      if (!window.confirm("Are you sure you want to mark this user as Alumni? This will remove them from active teams.")) return;
+      if (!window.confirm("Second Confirmation: Please confirm you want to proceed.")) return;
+    } else {
+      if (!window.confirm("Are you sure you want to revert this user back to Active status?")) return;
+    }
+
     try {
-      await usersAPI.toggleMembership(id, true);
-      setUsers(users.map(u => u.id === id ? { ...u, isPassout: true, membership_status: 'alumni' } : u));
+      await usersAPI.toggleMembership(id, !revert);
+      setUsers(users.map(u => u.id === id ? { ...u, isPassout: !revert, membership_status: !revert ? 'alumni' : 'active' } : u));
     } catch(e) {
       console.error(e);
-      alert("Failed to mark user as passout/alumni");
+      alert(`Failed to mark user as ${!revert ? 'passout/alumni' : 'active'}`);
     }
   };
 
