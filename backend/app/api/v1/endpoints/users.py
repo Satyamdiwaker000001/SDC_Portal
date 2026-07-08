@@ -213,12 +213,21 @@ def delete_user(
     id: str,
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
+    from sqlalchemy.exc import IntegrityError
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return {"message": "User deleted successfully"}
+    
+    try:
+        db.delete(user)
+        db.commit()
+        return {"message": "User deleted successfully"}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete user: They are linked to existing projects, tasks, or teams. Please deactivate or mark them as Alumni instead."
+        )
 
 
 @router.get("/lookup/{query}")

@@ -263,6 +263,7 @@ def create_task(
 
     db.commit()
     db.refresh(task)
+    recalculate_metrics(task.project_id, db)
     return task
 
 

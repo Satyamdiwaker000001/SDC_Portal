@@ -110,6 +110,7 @@ export default function TeamsView() {
         setProjects(prev => prev.map(p => p.id === newTeam.projectId ? { ...p, team_id: created.id } : p));
       }
       setTeams(prev => [...prev, created]);
+      await fetchTeamMembers(created.id); // Fetch members immediately so the UI is in sync
       setIsModalOpen(false);
       setShowConfirm(false);
     } catch (err) {
