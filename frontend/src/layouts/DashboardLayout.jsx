@@ -65,10 +65,9 @@ export default function DashboardLayout() {
 
   const filteblueNav = navItems.filter(item => item.roles.includes(role));
 
-  const currentApp = navItems.find(item =>
-    item.path === location.pathname ||
-    (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
-  )?.label || 'Dashboard';
+  const currentApp = navItems.find(item => item.path === location.pathname)?.label ||
+                     navItems.find(item => item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))?.label ||
+                     'Dashboard';
 
   // Global Search logic
   useEffect(() => {

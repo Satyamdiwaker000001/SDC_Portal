@@ -433,11 +433,9 @@ export default function TelemetryView() {
                   className="w-full bg-black/20 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-xs text-white outline-none focus:border-[#00b4d8]/50 transition-colors placeholder:text-white/30"
                 />
               </div>
-            </div>
-
-            {/* Modules Table */}
+            </div>            {/* Modules Table */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
-              <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[9px] font-black text-white/30 uppercase tracking-widest">
+              <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-[9px] font-black text-white/30 uppercase tracking-widest">
                 <div className="col-span-5">Module Name & Member</div>
                 <div className="col-span-2 text-center">Progress</div>
                 <div className="col-span-2 text-center">Status</div>
@@ -461,8 +459,8 @@ export default function TelemetryView() {
 
                   return (
                     <div key={t.id} className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-                      <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-white/[0.02] transition-colors">
-                        <div className="col-span-5 flex items-center gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-4 py-4 items-start md:items-center hover:bg-white/[0.02] transition-colors">
+                        <div className="col-span-1 md:col-span-5 flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
                             <User className="w-4 h-4 text-white/60" />
                           </div>
@@ -472,27 +470,30 @@ export default function TelemetryView() {
                           </div>
                         </div>
                         
-                        <div className="col-span-2 flex items-center justify-center">
+                        <div className="col-span-1 md:col-span-2 flex items-center md:justify-center">
+                          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mr-2 md:hidden">Progress:</span>
                           <div className="w-full max-w-[80px] h-1.5 bg-black/40 rounded-full overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${progressValue}%`, backgroundColor: getProgressColor(progressValue) }}></div>
                           </div>
                         </div>
 
-                        <div className="col-span-2 flex items-center justify-center">
+                        <div className="col-span-1 md:col-span-2 flex items-center md:justify-center">
+                          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mr-2 md:hidden">Status:</span>
                           <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-widest border flex items-center gap-1
                             ${isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
                               isActive ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                              'bg-white/5 text-white/40 border-white/10'}`}
+                                'bg-white/5 text-white/40 border-white/10'}`}
                           >
                             {isDone ? 'Completed' : isActive ? 'In Progress' : 'Pending'}
                           </span>
                         </div>
 
-                        <div className="col-span-2 flex justify-end">
+                        <div className="col-span-1 md:col-span-2 flex items-center md:justify-end">
+                          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mr-2 md:hidden">Deadline:</span>
                           <span className="text-[10px] font-bold text-white/50 font-mono">2026-06-15</span>
                         </div>
 
-                        <div className="col-span-1 flex justify-center">
+                        <div className="col-span-1 md:col-span-1 flex items-center justify-end md:justify-center">
                           <button 
                             onClick={() => setExpandedModule(isExpanded ? null : t.id)}
                             className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors text-white/50 hover:text-white"
@@ -500,7 +501,7 @@ export default function TelemetryView() {
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
                         </div>
-                      </div>
+                    </div>
 
                       <AnimatePresence>
                         {isExpanded && (

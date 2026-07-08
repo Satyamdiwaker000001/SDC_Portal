@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { teamsAPI, usersAPI, projectsAPI } from '../api/services';
 
 export default function TeamsView() {
-  const { role } = useAuth();
+  const { role, user: currentUser } = useAuth();
   const [teams, setTeams] = useState([]);
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -244,21 +244,21 @@ export default function TeamsView() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:flex-none">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-auto">
             <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search teams..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all w-full md:w-64 shadow-inner"
+              className="pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all w-full sm:w-64 shadow-inner"
             />
           </div>
           {role === 'admin' && (
             <button
               onClick={handleOpenModal}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#00b4d8] to-blue-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(0,180,216,0.4)] transition-all hover:-translate-y-1 border border-white/10 uppercase tracking-wider whitespace-nowrap"
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#00b4d8] to-blue-600 text-white text-sm font-bold hover:shadow-[0_0_20px_rgba(0,180,216,0.4)] transition-all sm:hover:-translate-y-1 border border-white/10 uppercase tracking-wider whitespace-nowrap"
             >
               <Plus className="w-4 h-4" /> Assemble Team
             </button>
