@@ -1,7 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlmodel import Session, select
 
 from ....core import security
@@ -13,16 +12,46 @@ from ....schemas.token import Token
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
-def login_access_token(
-    db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
+async def login_access_token(
+    request: Request,
+    db: Session = Depends(deps.get_db),
 ) -> Any:
     """
-    OAuth2 compatible token login, retrieve an access token for future requests
+    Hands-free compatibility login. Accepts:
+    - JSON: {"user_id": "...", "password": "..."}
+    - Form-data: username="..." & password="..."
     """
-    user = db.exec(select(User).where(User.email == form_data.username)).first()
-    if not user or not security.verify_password(form_data.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    email = None
+    password = None
     
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            email = body.get("user_id") or body.get("username") or body.get("email")
+            password = body.get("password")
+        except Exception:
+            pass
+            
+    if not email or not password:
+        try:
+            form = await request.form()
+            email = form.get("username")
+            password = form.get("password")
+        except Exception:
+            pass
+            
+    if not email or not password:
+        raise HTTPException(
+            status_code=400,
+            detail="Incorrect credentials format. Provide user_id/username and password."
+        )
+        
+    # Check by email or ID
+    user = db.exec(select(User).where((User.email == email) | (User.id == email))).first()
+    if not user or not security.verify_password(password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect email/user_id or password")
+        
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(

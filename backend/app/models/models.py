@@ -19,7 +19,7 @@ class File(SQLModel, table=True):
     mime_type: str
     size: int
 
-# --- 2. Users & Core Identity ---
+# --- 3. Users & Core Identity ---
 class User(SQLModel, table=True):
     __tablename__ = "users"
     id: str = Field(primary_key=True)
@@ -34,18 +34,20 @@ class User(SQLModel, table=True):
     github_url: Optional[str] = None
     profile_image: Optional[str] = None
     is_active: bool = Field(default=True)
-    is_retired: bool = Field(default=False) # Replaces HallOfEchoes
+    is_retired: bool = Field(default=False) # Replaces HallOfEchoes (alumni state)
     tech_stack: List[str] = Field(default=[], sa_column=Column(JSON))
+    performance_score: float = Field(default=0.0) # Added: Developer/Mentor performance tracking
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 Member = User
 
-# --- 3. Teams ---
+# --- 4. Teams ---
 class Team(SQLModel, table=True):
     __tablename__ = "teams"
     id: str = Field(primary_key=True)
     name: str
     description: Optional[str] = None
+    performance_score: float = Field(default=0.0) # Added: Team performance tracking
     created_by: str = Field(foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -59,7 +61,7 @@ class TeamMember(SQLModel, table=True):
 
 TeamMemberLink = TeamMember
 
-# --- 4. Work & Execution (Projects & Tasks) ---
+# --- 5. Work & Execution (Projects & Tasks) ---
 class Project(SQLModel, table=True):
     __tablename__ = "projects"
     id: str = Field(primary_key=True)
@@ -84,29 +86,58 @@ class Project(SQLModel, table=True):
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+# --- Predefined SDLC Phases Table ---
+class ProjectPhase(SQLModel, table=True):
+    __tablename__ = "project_phases"
+    id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="projects.id")
+    name: str # Planning, Analysis, Design, Development, Testing, Deployment, Maintenance
+    sequence: int # 1 to 7
+    is_unlocked: bool = Field(default=False)
+    is_completed: bool = Field(default=False)
+    progress: int = Field(default=0)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# --- Mandatory SE Documentation Repository Table ---
+class ProjectDocument(SQLModel, table=True):
+    __tablename__ = "project_documents"
+    id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="projects.id")
+    document_type: str # PRD, BRD, SRS, Use Case Document, etc.
+    file_id: Optional[str] = Field(default=None, foreign_key="files.id")
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 class Task(SQLModel, table=True):
     __tablename__ = "tasks"
     id: str = Field(primary_key=True)
     project_id: str = Field(foreign_key="projects.id")
-    parent_task_id: Optional[str] = Field(default=None, foreign_key="tasks.id") # Eliminates Modules table
+    parent_task_id: Optional[str] = Field(default=None, foreign_key="tasks.id")
     assigned_to: Optional[str] = Field(default=None, foreign_key="users.id")
     created_by: str = Field(foreign_key="users.id")
     title: str
     description: Optional[str] = None
-    status: str = Field(default="TODO") # 'TODO', 'IN_PROGRESS', 'DONE', 'SUBMITTED'
+    status: str = Field(default="PENDING") # 'PENDING', 'IN_PROGRESS', 'PENDING_VERIFICATION', 'COMPLETED'
+    
+    # Task phase context
+    phase_id: Optional[str] = Field(default=None, foreign_key="project_phases.id")
+    phase_name: Optional[str] = None # Planning, Analysis, etc.
     
     # Consolidates Submissions
     submission_url: Optional[str] = None
     submission_demo_url: Optional[str] = None
     
+    # Dates and verification details
+    due_date: Optional[str] = None
+    submitted_at: Optional[datetime] = None
+    verified_at: Optional[datetime] = None
+    verified_by: Optional[str] = Field(default=None, foreign_key="users.id")
+    rejection_remarks: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-# --- 5. Polymorphic Feedback & Interactions ---
+# --- 6. Polymorphic Feedback & Interactions ---
 class Interaction(SQLModel, table=True):
-    """
-    Generic table replacing: task_comments, srs_reviews, project_reviews, 
-    progress_feedback, submission_reviews, notice_replies, notice_reactions, application_notes
-    """
     __tablename__ = "interactions"
     id: str = Field(primary_key=True)
     user_id: str = Field(foreign_key="users.id")
@@ -118,14 +149,14 @@ class Interaction(SQLModel, table=True):
     decision: Optional[str] = None # 'APPROVED', 'REJECTED' for reviews
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-# --- 6. Communication & Tracking ---
+# --- 7. Communication & Tracking ---
 class Notice(SQLModel, table=True):
     __tablename__ = "notices"
     id: str = Field(primary_key=True)
     title: str
     content: str
     audience_type: str = Field(default="GLOBAL") # 'GLOBAL', 'TEAM', 'MENTOR'
-    target_team_ids: List[str] = Field(default=[], sa_column=Column(JSON)) # Eliminates NoticeTargets
+    target_team_ids: List[str] = Field(default=[], sa_column=Column(JSON))
     created_by: str = Field(foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -141,7 +172,7 @@ class Notification(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ActivityLog(SQLModel, table=True):
-    __tablename__ = "activity_logs" # Consolidates Activities & AuditLogs
+    __tablename__ = "activity_logs"
     id: str = Field(primary_key=True)
     user_id: str = Field(foreign_key="users.id")
     entity_type: str
@@ -150,11 +181,11 @@ class ActivityLog(SQLModel, table=True):
     is_audit: bool = Field(default=False) # True if admin action
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-# --- 7. Recruitment ---
+# --- 8. Recruitment ---
 class Application(SQLModel, table=True):
     __tablename__ = "applications"
     id: str = Field(primary_key=True)
-    batch_year: str # Replaces recruitment_drives
+    batch_year: str
     name: str
     email: str
     branch: str
@@ -164,6 +195,8 @@ class Application(SQLModel, table=True):
     github_url: Optional[str] = None
     resume_file_id: Optional[str] = Field(default=None, foreign_key="files.id")
     status: str = Field(default="PENDING") # 'PENDING', 'ACCEPTED', 'REJECTED'
+    generated_user_id: Optional[str] = None
+    generated_password: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class Interview(SQLModel, table=True):
@@ -172,4 +205,3 @@ class Interview(SQLModel, table=True):
     application_id: str = Field(foreign_key="applications.id")
     interviewer_id: str = Field(foreign_key="users.id")
     scheduled_at: datetime
-    # Interview feedback is handled by the Interaction table (entity_type='interview')

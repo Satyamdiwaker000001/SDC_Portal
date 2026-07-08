@@ -1,10 +1,14 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 import uuid
+import os
+import shutil
+from datetime import datetime
+
 from ....api import deps
-from ....models.models import Project, User
+from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, ActivityLog
 
 router = APIRouter()
 
@@ -24,6 +28,7 @@ class ProjectOut(BaseModel):
     id: str
     name: str
     short_description: Optional[str]
+    full_description: Optional[str]
     status: str
     type: str
     deadline: str
@@ -34,6 +39,27 @@ class ProjectOut(BaseModel):
     image_url: Optional[str]
     is_featured: bool
     progress: int
+    created_at: datetime
+
+class PhaseOut(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    sequence: int
+    is_unlocked: bool
+    is_completed: bool
+    progress: int
+    updated_at: datetime
+
+class DocumentOut(BaseModel):
+    id: str
+    project_id: str
+    document_type: str
+    file_id: Optional[str]
+    uploaded_at: datetime
+    updated_at: datetime
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ProjectOut)
 def create_project(
@@ -56,6 +82,58 @@ def create_project(
         created_by=current_admin.id
     )
     db.add(project)
+    db.commit()
+    db.refresh(project)
+    
+    # Predefine the 7 SDLC Phases automatically
+    phases = ["Planning", "Analysis", "Design", "Development", "Testing", "Deployment", "Maintenance"]
+    for idx, phase_name in enumerate(phases):
+        p_phase = ProjectPhase(
+            id=str(uuid.uuid4()),
+            project_id=project.id,
+            name=phase_name,
+            sequence=idx + 1,
+            is_unlocked=(idx == 0), # Planning phase is unlocked by default
+            is_completed=False,
+            progress=0,
+            updated_at=datetime.utcnow()
+        )
+        db.add(p_phase)
+        
+    # Predefine the 16 SE Documents in documentation repository
+    documents = [
+        "Product Requirements Document (PRD)", "Business Requirements Document (BRD)",
+        "Software Requirements Specification (SRS)", "Use Case Document",
+        "Use Case Diagrams", "Workflow Document",
+        "Data Flow Diagram (DFD)", "Entity Relationship Diagram (ERD)",
+        "Database Design", "API Documentation",
+        "Frontend Documentation", "Backend Documentation",
+        "Deployment Guide", "Testing Documentation",
+        "User Manual", "Developer Guide"
+    ]
+    for doc_type in documents:
+        p_doc = ProjectDocument(
+            id=str(uuid.uuid4()),
+            project_id=project.id,
+            document_type=doc_type,
+            file_id=None,
+            uploaded_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        db.add(p_doc)
+        
+    # Log the creation in Audit Logs
+    audit = ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_admin.id,
+        entity_type="project",
+        entity_id=project.id,
+        action="PROJECT_CREATE",
+        is_audit=True,
+        created_at=datetime.utcnow()
+    )
+    db.add(audit)
+    
     db.commit()
     db.refresh(project)
     return project
@@ -86,8 +164,23 @@ def update_project_status(
     project = db.get(Project, id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    
+    old_status = project.status
     project.status = status.upper()
     db.add(project)
+    
+    # Audit log
+    audit = ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        entity_type="project",
+        entity_id=project.id,
+        action=f"PROJECT_STATUS_UPDATE: {old_status} -> {project.status}",
+        is_audit=(current_user.role == "admin"),
+        created_at=datetime.utcnow()
+    )
+    db.add(audit)
+    
     db.commit()
     db.refresh(project)
     return project
@@ -117,6 +210,20 @@ def update_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
+    # Authorization checks
+    is_tl = False
+    if project.team_id:
+        tl_member = db.exec(
+            select(TeamMember)
+            .where(TeamMember.team_id == project.team_id)
+            .where(TeamMember.user_id == current_user.id)
+            .where(TeamMember.designation == "lead")
+        ).first()
+        is_tl = tl_member is not None
+        
+    if current_user.role != "admin" and not is_tl:
+        raise HTTPException(status_code=403, detail="Only Administrator or Team Leader of the project's team can update project details")
+
     update_data = project_in.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         if key == "status" and value:
@@ -125,6 +232,19 @@ def update_project(
             setattr(project, key, value)
             
     db.add(project)
+    
+    # Audit log
+    audit = ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        entity_type="project",
+        entity_id=project.id,
+        action="PROJECT_UPDATE",
+        is_audit=(current_user.role == "admin"),
+        created_at=datetime.utcnow()
+    )
+    db.add(audit)
+    
     db.commit()
     db.refresh(project)
     return project
@@ -139,12 +259,211 @@ def delete_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
         
-    # Delete associated tasks to prevent foreign key errors
+    # Delete associated phases, documents, and tasks to prevent foreign key errors
     from ....models.models import Task
     tasks = db.exec(select(Task).where(Task.project_id == id)).all()
     for task in tasks:
         db.delete(task)
         
+    phases = db.exec(select(ProjectPhase).where(ProjectPhase.project_id == id)).all()
+    for phase in phases:
+        db.delete(phase)
+        
+    docs = db.exec(select(ProjectDocument).where(ProjectDocument.project_id == id)).all()
+    for doc in docs:
+        db.delete(doc)
+        
     db.delete(project)
+    
+    # Audit log
+    audit = ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_admin.id,
+        entity_type="project",
+        entity_id=id,
+        action="PROJECT_DELETE",
+        is_audit=True,
+        created_at=datetime.utcnow()
+    )
+    db.add(audit)
+    
     db.commit()
-    return {"status": "SUCCESS", "message": "Project and its tasks deleted"}
+    return {"status": "SUCCESS", "message": "Project and its components deleted successfully"}
+
+# --- SDLC PHASES ENDPOINTS ---
+
+@router.get("/{id}/phases", response_model=List[PhaseOut])
+def get_project_phases(
+    id: str,
+    db: Session = Depends(deps.get_db)
+) -> Any:
+    """
+    Get all SDLC phases of a project, ordered by sequence.
+    """
+    project = db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return db.exec(select(ProjectPhase).where(ProjectPhase.project_id == id).order_by(ProjectPhase.sequence)).all()
+
+@router.patch("/{id}/phases/{phase_id}/unlock", response_model=PhaseOut)
+def manual_unlock_phase(
+    id: str,
+    phase_id: str,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    """
+    Manually unlock a project phase (Admin only override - FR-058 / BR-007).
+    """
+    phase = db.get(ProjectPhase, phase_id)
+    if not phase or phase.project_id != id:
+        raise HTTPException(status_code=404, detail="Phase not found for this project")
+    
+    phase.is_unlocked = True
+    phase.updated_at = datetime.utcnow()
+    db.add(phase)
+    
+    # Audit log
+    audit = ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_admin.id,
+        entity_type="phase",
+        entity_id=phase_id,
+        action=f"PHASE_MANUAL_UNLOCK: {phase.name}",
+        is_audit=True,
+        created_at=datetime.utcnow()
+    )
+    db.add(audit)
+    
+    db.commit()
+    db.refresh(phase)
+    return phase
+
+# --- DOCUMENT REPOSITORY ENDPOINTS ---
+
+@router.get("/{id}/documents", response_model=List[DocumentOut])
+def get_project_documents(
+    id: str,
+    request: Request,
+    db: Session = Depends(deps.get_db)
+) -> Any:
+    """
+    Get all 16 predefined software engineering documents for the project.
+    """
+    project = db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    docs = db.exec(select(ProjectDocument).where(ProjectDocument.project_id == id)).all()
+    
+    # Enrich with file urls and names
+    base_url = str(request.base_url).rstrip("/")
+    enriched_docs = []
+    for d in docs:
+        d_out = DocumentOut(
+            id=d.id,
+            project_id=d.project_id,
+            document_type=d.document_type,
+            file_id=d.file_id,
+            uploaded_at=d.uploaded_at,
+            updated_at=d.updated_at
+        )
+        if d.file_id:
+            db_file = db.get(DBFile, d.file_id)
+            if db_file:
+                d_out.file_url = f"{base_url}/static/uploads/{db_file.stored_name}"
+                d_out.file_name = db_file.original_name
+        enriched_docs.append(d_out)
+        
+    return enriched_docs
+
+@router.post("/{id}/documents/{doc_id}/upload", response_model=DocumentOut)
+async def upload_project_document(
+    id: str,
+    doc_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Upload or replace a project document (Team Leader only - FR-114 / BR-008).
+    """
+    project = db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    # Check if current_user is the Team Leader of the project's assigned team
+    if not project.team_id:
+        raise HTTPException(status_code=400, detail="No team assigned to this project yet")
+        
+    tl_member = db.exec(
+        select(TeamMember)
+        .where(TeamMember.team_id == project.team_id)
+        .where(TeamMember.user_id == current_user.id)
+        .where(TeamMember.designation == "lead")
+    ).first()
+    
+    if not tl_member and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only the Team Leader of this project can upload documents")
+
+    doc = db.get(ProjectDocument, doc_id)
+    if not doc or doc.project_id != id:
+        raise HTTPException(status_code=404, detail="Document slot not found")
+
+    # Save physical file
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+    upload_dir = os.path.join(base_dir, "static", "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_uuid = str(uuid.uuid4())
+    extension = file.filename.split(".")[-1]
+    stored_name = f"doc_{file_uuid}.{extension}"
+    file_path = os.path.join(upload_dir, stored_name)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Save File record in DB
+    db_file = DBFile(
+        id=file_uuid,
+        original_name=file.filename,
+        stored_name=stored_name,
+        mime_type=file.content_type or "application/octet-stream",
+        size=os.path.getsize(file_path)
+    )
+    db.add(db_file)
+    db.commit()
+    
+    # Update Document Slot record
+    doc.file_id = db_file.id
+    doc.updated_at = datetime.utcnow()
+    db.add(doc)
+    
+    # Log in Audit
+    audit = ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        entity_type="document",
+        entity_id=doc.id,
+        action=f"DOC_UPLOAD: {doc.document_type} -> {file.filename}",
+        is_audit=False,
+        created_at=datetime.utcnow()
+    )
+    db.add(audit)
+    
+    db.commit()
+    db.refresh(doc)
+    
+    base_url = str(request.base_url).rstrip("/")
+    d_out = DocumentOut(
+        id=doc.id,
+        project_id=doc.project_id,
+        document_type=doc.document_type,
+        file_id=doc.file_id,
+        uploaded_at=doc.uploaded_at,
+        updated_at=doc.updated_at,
+        file_url=f"{base_url}/static/uploads/{stored_name}",
+        file_name=file.filename
+    )
+    return d_out

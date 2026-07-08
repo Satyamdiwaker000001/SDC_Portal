@@ -1,0 +1,1182 @@
+SOFTWARE REQUIREMENTS SPECIFICATION
+for
+SDC Portal
+Prepared in conformance with the IEEE Recommended Practice for
+Software Requirements Specifications (IEEE Std 830 / ISO-IEC-IEEE 29148)
+Document Version
+1.0 (Draft)
+Document Status
+Under Development
+Prepared For
+Software Development Cell (SDC)
+Prepared By
+Software Development Cell Development Team
+Document Type
+Software Requirements Specification (SRS)
+Format Standard
+IEEE 830 / ISO-IEC-IEEE 29148 (Requirements Engineering)
+Confidentiality
+Internal Use Only
+Date
+July 2026
+Revision History
+Version
+Date
+Author
+Description
+0.1
+July 2026
+SDC Development Team
+Initial Draft
+0.2
+TBD
+SDC Development Team
+Requirements Review
+0.3
+TBD
+SDC Development Team
+Functional Requirements Added
+1.0
+TBD
+SDC Development Team
+Restructured to IEEE 830 SRS format; First Stable Release
+Table of Contents
+(Right-click and select "Update Field" in Microsoft Word to populate this table of contents.)
+1. Introduction
+1.1 Purpose
+The Software Development Cell (SDC) Portal is a centralized web-based platform designed to streamline the management of student software development activities within the Software Development Cell of the institution.
+The portal provides an integrated environment for managing users, recruitment, teams, projects, software development lifecycle (SDLC) activities, task assignment, project documentation, communication, progress tracking, and performance evaluation.
+The primary objective of the system is to replace manual project management processes with a structured, transparent, and real-time collaborative platform that supports the complete software development workflow from recruitment to project completion.
+The portal also serves as a centralized repository for software engineering documentation and enables standardized project execution by following predefined Software Development Life Cycle (SDLC) phases.
+This Software Requirements Specification (SRS) document has been restructured to conform to the IEEE 830 recommended practice for SRS documents (aligned with ISO/IEC/IEEE 29148), so that requirements are unambiguous, verifiable, traceable, and directly usable by designers, developers, and testers.
+1.2 Document Conventions
+The following terminology is used consistently throughout this document to express the strength of a requirement, following RFC 2119-style conventions adapted for IEEE 830:
+Shall — indicates a mandatory (binding) system requirement.
+Should — indicates a strongly recommended implementation choice.
+May — indicates an optional capability.
+Can — indicates an available system capability or a statement of fact.
+Requirement identifiers follow a fixed, traceable numbering scheme:
+FR-xxx — Functional Requirement
+NFR-xxx — Non-Functional Requirement
+BR-xxx — Business Rule
+SR-xxx — Security Requirement
+AC-xxx — Acceptance Criterion
+Headings are numbered hierarchically (Section.Subsection.Sub-subsection). All requirement tables list the unique ID in the left column and the requirement statement in the right column so that each requirement can be traced independently in a requirements-traceability matrix (RTM).
+1.3 Intended Audience and Reading Suggestions
+This SRS is intended for the following stakeholders. Each audience is expected to focus on the sections most relevant to its role, though the complete document should be reviewed at least once by every stakeholder before sign-off.
+Audience
+Recommended Focus Areas
+Software Development Team (Backend/Frontend)
+Sections 3 (System Features), 4 (External Interface Requirements), 5 (Non-Functional Requirements)
+UI/UX Designers
+Sections 2.3 (User Classes), 3 (System Features), 4.1 (User Interfaces)
+Database Engineers
+Sections 3 (data items per feature), 5.8 (Database Requirements)
+Mentors
+Sections 3.9 (Task Verification), 3.13 (Communication), 6 (Business Rules)
+Administrators
+Sections 2 (Overall Description), 3 (all modules), 6 (Business Rules)
+SDC Members (Developers / Team Leaders)
+Sections 2.3 (User Classes), 3.6–3.9 (Project/Task modules)
+Project Review Committee / Approvers
+Sections 1 (Introduction), 2 (Overall Description), 8 (Acceptance Criteria), Appendix D (Approval)
+1.4 Product Scope
+The SDC Portal provides a centralized management system for all operational activities of the Software Development Cell. The system supports three authenticated user roles: Administrator, Mentor, and Developer. A Developer may additionally be designated as a Team Leader with extended permissions; Team Leader is a designation, not an independent account role.
+The portal delivers the following in scope capabilities: User Authentication, Recruitment Management, User Management, Team Management, Project Management, SDLC-based Task Management, Task Assignment, Mentor Verification, Project Documentation Management, Progress Tracking, Performance Evaluation, Real-Time Notifications, Leaderboards, Announcements and Notices, Alumni Management, and Audit Logging.
+The portal also includes a publicly accessible landing page containing organizational information, member profiles, completed projects, recruitment details, and general information about the Software Development Cell.
+The objectives that this product is intended to achieve are:
+Establish a standardized project management process for all SDC projects.
+Improve collaboration among Administrators, Mentors, Team Leaders, and Developers.
+Track project progress in real time.
+Maintain software engineering documentation in a centralized repository.
+Encourage accountability through transparent task assignments and performance tracking.
+Improve project quality through Mentor verification before task completion.
+Maintain complete historical records of projects and developer contributions.
+Automate repetitive administrative activities such as recruitment approval, user account generation, alumni conversion, and progress reporting.
+Provide an industry-oriented software development workflow based on predefined SDLC phases.
+Promote professional software engineering practices within the Software Development Cell.
+1.5 Definitions, Acronyms, and Abbreviations
+1.5.1 Definitions
+Term
+Definition
+Software Development Cell (SDC)
+A technical organization within the institution responsible for developing software solutions, conducting technical activities, and managing student development projects.
+Portal
+The centralized web-based application developed for managing all activities of the Software Development Cell.
+User
+Any authenticated individual who can access the portal based on assigned permissions.
+Administrator (Admin)
+The highest-privileged user, responsible for managing users, recruitment, teams, projects, and overall portal administration.
+Mentor
+A faculty member or senior individual responsible for monitoring assigned teams, verifying completed tasks, and providing guidance.
+Developer
+A registered Software Development Cell member responsible for completing assigned project tasks.
+Team Leader
+A Developer designated to manage project tasks, assign work, monitor team progress, and coordinate with the assigned Mentor. Team Leader is not a separate user role.
+Applicant
+A student who has submitted a recruitment application for joining the Software Development Cell.
+Alumni
+A former Software Development Cell member whose membership has been converted from Active to Alumni after graduation or through administrative action.
+Team
+A group of Developers working together under one Team Leader and one assigned Mentor.
+Project
+A software product assigned to a specific team for development and maintenance.
+SDLC
+Software Development Life Cycle, consisting of predefined development phases followed throughout the project lifecycle.
+Task
+A work item created by the Team Leader within an SDLC phase and assigned to a Developer.
+Task Verification
+The process through which the assigned Mentor verifies or rejects a completed task before it is considered officially completed.
+Progress Tracking
+Continuous monitoring of project, team, phase, and individual developer progress.
+Documentation Repository
+Centralized storage of all mandatory software engineering documents related to a project.
+Leaderboard
+Ranking system that evaluates Developers and Teams based on predefined performance metrics.
+1.5.2 Acronyms and Abbreviations
+Acronym
+Full Form
+SDC
+Software Development Cell
+SRS
+Software Requirements Specification
+PRD
+Product Requirements Document
+BRD
+Business Requirements Document
+DFD
+Data Flow Diagram
+ERD
+Entity Relationship Diagram
+API
+Application Programming Interface
+UI
+User Interface
+UX
+User Experience
+RBAC
+Role-Based Access Control
+JWT
+JSON Web Token
+CRUD
+Create, Read, Update and Delete
+REST
+Representational State Transfer
+HTTP
+Hypertext Transfer Protocol
+HTTPS
+Hypertext Transfer Protocol Secure
+CSV
+Comma-Separated Values
+DBMS
+Database Management System
+RDBMS
+Relational Database Management System
+SDLC
+Software Development Life Cycle
+RTM
+Requirements Traceability Matrix
+TBD
+To Be Determined
+1.6 References
+The development of the SDC Portal follows the standards, guidelines, and technology references listed below.
+Reference
+Description
+IEEE Std 830-1998
+IEEE Recommended Practice for Software Requirements Specifications
+ISO/IEC/IEEE 29148:2018
+Systems and Software Engineering — Life Cycle Processes — Requirements Engineering
+MySQL Reference Manual
+Database design and implementation guidelines
+FastAPI Documentation
+Backend API development framework
+React Documentation
+Frontend application development framework
+NIST/OWASP RBAC Guidelines
+Authorization model for user permission management
+GitHub Documentation
+Source code management and version control
+2. Overall Description
+2.1 Product Perspective
+The SDC Portal is a new, self-contained, centralized web-based application developed to digitize and streamline all operational activities of the Software Development Cell. It is not a component of a larger system and has no dependency on a pre-existing legacy system; it replaces informal, manual coordination (spreadsheets, chat groups, verbal reporting) with a single system of record.
+The portal integrates recruitment management, user management, team formation, project execution, SDLC-based task management, documentation management, communication, progress monitoring, and performance evaluation into a single platform.
+The system follows a structured organizational hierarchy consisting of Administrators, Mentors, Team Leaders, and Developers. Each user interacts with the system according to predefined responsibilities and permissions enforced through Role-Based Access Control (RBAC).
+The portal is designed specifically for the Software Development Cell operating under the academic structure followed by Dr. A.P.J. Abdul Kalam Technical University (AKTU).
+The application consists of two major sections:
+Public Landing Website — unauthenticated, publicly accessible.
+Authenticated Internal Management Portal — secured, role-restricted operational functionality.
+2.2 Product Functions
+The following summary lists the major function groups delivered by the system. Each group is elaborated as an individual system feature in Section 3.
+Function Group
+Summary
+Public Website
+Display SDC information, leadership, members, alumni, and projects; conditionally display the recruitment form; route users to Login.
+Authentication
+User login, credential validation, role identification, secure session management, logout.
+User Management
+Create/update Developer and Mentor accounts, generate credentials, manage profiles, manage active/inactive status.
+Recruitment Management
+Enable/disable recruitment, accept and review applications, approve/reject applicants, auto-provision accounts, export credentials.
+Team Management
+Create/edit teams, assign Developers, Team Leaders, and Mentors.
+Project Management
+Create/edit projects, assign teams, monitor progress, archive completed projects.
+SDLC-Based Task Management
+Auto-create SDLC phases per project; Team Leader creates/assigns/tracks tasks within phases.
+Task Verification
+Mentor verifies or rejects completed tasks before official completion.
+Documentation Management
+Maintain the GitHub repository link and mandatory SE documents in a centralized repository.
+Progress Management
+Real-time progress statistics at Developer, Team, Phase, and Project levels.
+Communication Management
+Notices, announcements, and real-time notifications following the organizational hierarchy.
+Performance Management
+Compute Developer/Team performance and maintain Developer/Team leaderboards.
+Alumni Management
+Automatic and manual conversion of Developers to Alumni with preserved history.
+Audit Management
+Record and expose an immutable log of security- and operations-relevant system events.
+2.3 User Classes and Characteristics
+The SDC Portal provides role-based access to its users. Every authenticated user is assigned exactly one predefined role with specific responsibilities and permissions. Team Leader is a designation layered on top of the Developer role rather than a distinct account type.
+2.3.1 Administrator
+The Administrator is the highest-privileged user and is responsible for the complete operation of the Software Development Cell through the portal.
+Responsibilities: manage user accounts; manage recruitment; create and manage teams and projects; assign Mentors and Team Leaders; monitor project progress and developer performance; publish notices and announcements; review reports and analytics; manage alumni conversion; access project documentation; monitor audit logs.
+Characteristics: full system access and the highest level of authority; does not create or assign project tasks; does not verify completed tasks.
+2.3.2 Mentor
+A Mentor supervises one or more assigned teams and ensures project activities progress according to schedule.
+Responsibilities: monitor assigned teams and project progress; verify or reject completed tasks; publish announcements to assigned teams; forward administrative communication; review project documentation.
+Characteristics: may supervise multiple teams; may verify completed tasks; does not create projects, teams, or tasks.
+2.3.3 Developer
+A Developer implements assigned project tasks and contributes to software development activities.
+Responsibilities: complete assigned tasks; participate in project development; view project documentation; track assigned work; view notices/announcements; maintain personal profile.
+Characteristics: belongs to exactly one active team; may be assigned multiple tasks; does not assign tasks, manage projects, or verify completed tasks.
+2.3.4 Team Leader (Developer designation)
+A Team Leader is a Developer with additional project management responsibilities and is not an independent user role.
+Responsibilities: create project tasks; assign tasks to Developers; manage SDLC tasks; monitor team progress; update task status; upload project documentation; maintain the project GitHub repository link.
+Characteristics: must be a Final Year Developer; belongs to one active team; manages only the assigned team's project; does not verify completed tasks.
+2.3.5 Applicant
+An Applicant is a student who has submitted a recruitment application. Responsibilities: submit the application; await review. Characteristics: has no portal access; becomes a Developer after administrative approval.
+2.3.6 Alumni
+An Alumni is a former SDC member whose membership has been converted from Active to Alumni. Characteristics: appears on the Landing Page under Former Members; historical contributions remain preserved; cannot receive new task assignments, participate in active projects, or access the internal portal.
+2.4 Operating Environment
+Client Environment
+The portal shall be accessible through modern web browsers: Google Chrome, Microsoft Edge, Mozilla Firefox, and Safari (latest stable versions). The user interface shall support desktop, laptop, tablet, and mobile devices through responsive web design.
+Server Environment
+The application shall operate on a Linux-based server environment. Recommended deployment stack: Ubuntu Server, Docker, Nginx, FastAPI, MySQL.
+Database Environment
+The portal shall use MySQL as the primary relational database management system. The database shall be fully normalized to maintain data consistency, integrity, and scalability.
+Development Environment
+Layer
+Technology
+Frontend
+React, Vite, Tailwind CSS
+Backend
+FastAPI, SQLAlchemy, Pydantic
+Database
+MySQL
+Version Control
+Git, GitHub
+2.5 Design and Implementation Constraints
+Academic Constraint
+The portal is specifically designed for the Software Development Cell operating under the academic calendar followed by Dr. A.P.J. Abdul Kalam Technical University (AKTU).
+Alumni Conversion Constraint
+The automatic Alumni conversion process shall execute every year on 31 July at 23:59:59 (server time).
+Team Structure Constraint
+Each active team shall contain exactly one Mentor, exactly one Team Leader, and one or more Developers.
+Project Constraint
+Each project shall be assigned to one team. A project may be created before team assignment, and a team may be created before project assignment; the assignment remains editable by the Administrator until explicitly modified.
+Task Management Constraint
+Only the Team Leader shall create, assign, and manage project tasks. Administrators, Mentors, and standard Developers shall not perform task management activities.
+Documentation Constraint
+Each project shall maintain the following mandatory software engineering documents: Product Requirements Document (PRD), Business Requirements Document (BRD), Software Requirements Specification (SRS), Use Case Document, Use Case Diagrams, Workflow Document, Data Flow Diagram (DFD), Entity Relationship Diagram (ERD), Database Design, API Documentation, Frontend Documentation, Backend Documentation, Deployment Guide, Testing Documentation, User Manual, and Developer Guide.
+Authentication Constraint
+Only authenticated users shall access the internal portal. The Landing Page and Recruitment Form shall remain publicly accessible.
+2.6 User Documentation
+The portal shall provide the following documentation for its different categories of users: Administrator Guide, Mentor Guide, Developer Guide, User Manual, Installation Guide, Deployment Guide, API Documentation, and Project Documentation. All documentation shall be maintained within the Project Documentation Repository and updated whenever significant system modifications are introduced.
+2.7 Assumptions and Dependencies
+Every Developer belongs to only one active team.
+Every Team has exactly one Team Leader.
+A Mentor may supervise multiple teams.
+Every project follows the predefined SDLC phases.
+Project tasks are managed only by the assigned Team Leader.
+Mentor verification is mandatory before a completed task is considered officially completed.
+Performance and leaderboard calculations are based only on Mentor-verified tasks.
+Every project maintains a centralized (public) GitHub repository.
+Reliable internet connectivity is available to all users accessing the portal.
+The institution follows the AKTU academic calendar.
+Automatic Alumni conversion occurs annually according to the defined academic schedule.
+All project documentation is maintained within the portal.
+3. System Features
+This section describes each functional feature of the SDC Portal. Each feature includes a description, an implementation priority, its functional requirements (uniquely identified as FR-xxx), and the business rules that govern its behavior. Functional requirement IDs are sequential across the entire document to support a single, consistent requirements-traceability matrix.
+3.1 Landing Page Module
+Priority: High
+The Landing Page serves as the public-facing website of the Software Development Cell and provides information about the organization, its members, projects, and recruitment activities.
+ID
+Requirement
+FR-001
+The system shall provide a publicly accessible Landing Page.
+FR-002
+The Landing Page shall display the official SDC logo.
+FR-003
+The navigation bar shall contain About, Members, Projects, and Login options.
+FR-004
+The Login button shall redirect users to the authentication page.
+FR-005
+The Landing Page shall display a Hero Section containing an overview of the Software Development Cell.
+FR-006
+The Landing Page shall display the Head of SDC section.
+FR-007
+The Landing Page shall display the Founder section.
+FR-008
+The Landing Page shall display Active Members.
+FR-009
+The Landing Page shall display Former Members (Alumni).
+FR-010
+The Landing Page shall display Active Projects.
+FR-011
+The Landing Page shall display Completed Projects.
+FR-012
+The Landing Page shall display the Recruitment section when recruitment is enabled.
+FR-013
+The Landing Page shall display a Footer section containing organization information and contact details.
+Business Rules
+The Landing Page shall remain publicly accessible; internal dashboard pages shall require authentication.
+Alumni and Active Member information shall be retrieved live from the system database.
+Project information displayed on the Landing Page shall reflect the current project records maintained by the portal.
+3.2 Authentication Module
+Priority: Critical
+The Authentication Module provides secure access to the internal portal by validating user credentials and enforcing Role-Based Access Control (RBAC). Only authenticated users shall access protected system resources.
+ID
+Requirement
+FR-014
+The system shall provide a secure Login page.
+FR-015
+The system shall authenticate users using a User ID and Password.
+FR-016
+The system shall identify the authenticated user's role after successful login.
+FR-017
+The system shall redirect users to their respective dashboards after successful authentication.
+FR-018
+The system shall deny access for invalid credentials.
+FR-019
+The system shall maintain authenticated user sessions securely.
+FR-020
+The system shall restrict access to protected resources based on user roles.
+FR-021
+The system shall terminate the user session after logout.
+Business Rules
+Every authenticated user shall have exactly one assigned role.
+A user shall access only the modules permitted for the assigned role.
+Passwords shall never be stored in plain text.
+Only the Administrator shall reset or regenerate user passwords.
+Every successful and unsuccessful login attempt shall be recorded in the Audit Log.
+3.3 User Management Module
+Priority: High
+The User Management Module enables the Administrator to manage all authenticated users of the SDC Portal, including creation, modification, activation, deactivation, and Alumni management of Developers and Mentors.
+ID
+Requirement
+FR-022
+The Administrator shall create Developer accounts.
+FR-023
+The Administrator shall create Mentor accounts.
+FR-024
+The system shall generate unique User IDs for newly created users.
+FR-025
+The system shall generate initial passwords for newly created users.
+FR-026
+The Administrator shall update user information.
+FR-027
+The Administrator shall activate or deactivate user accounts.
+FR-028
+The Administrator shall reset or regenerate user passwords.
+FR-029
+The Administrator shall convert Developers to Alumni manually.
+FR-030
+The system shall automatically convert eligible Developers to Alumni according to the defined academic schedule.
+FR-031
+The system shall maintain a complete user history.
+3.3.1 User Profile Management
+Every authenticated Developer shall maintain a personal profile.
+Category
+Fields
+Editable by Developer
+Profile Photo, GitHub Profile, LinkedIn Profile
+Restricted (Admin-only)
+User ID, Name, Role, Branch, Academic Year, Team, Assigned Project, Password
+Business Rules
+User IDs shall be unique throughout the portal.
+Password management shall be performed only by the Administrator.
+Profile updates shall be reflected across the portal in real time.
+Alumni shall not participate in active projects.
+3.4 Recruitment Management Module
+Priority: High
+The Recruitment Management Module automates the process of receiving, reviewing, approving, and onboarding new Software Development Cell members.
+ID
+Requirement
+FR-032
+The Administrator shall enable or disable recruitment.
+FR-033
+The system shall display the recruitment form only when recruitment is enabled.
+FR-034
+Applicants shall submit recruitment applications through the public website.
+FR-035
+The Administrator shall review submitted applications.
+FR-036
+The Administrator shall approve or reject applications.
+FR-037
+The system shall automatically create Developer accounts after approval.
+FR-038
+The system shall automatically generate User IDs.
+FR-039
+The system shall automatically generate initial passwords.
+FR-040
+The system shall export generated credentials in CSV format.
+FR-041
+The approved applicant shall automatically become an Active Developer.
+3.4.1 Applicant Information
+The recruitment application shall collect: Full Name, Email Address, Mobile Number, Branch, Academic Year, Semester, Technical Specialization, Resume, and Additional Information (optional).
+Business Rules
+Recruitment shall be controlled only by the Administrator.
+Every applicant may submit only one active application; duplicate applications shall not be accepted.
+Approved applicants shall automatically become Active Developers.
+User credentials shall be generated immediately after approval.
+3.5 Team Management Module
+Priority: High
+The Team Management Module enables the Administrator to organize Developers into project teams and assign Team Leaders and Mentors.
+ID
+Requirement
+FR-042
+The Administrator shall create teams.
+FR-043
+The Administrator shall edit team information.
+FR-044
+The Administrator shall assign Developers to teams.
+FR-045
+The Administrator shall assign one Mentor to each team.
+FR-046
+The Administrator shall assign one Team Leader to each team.
+FR-047
+The Administrator shall update team membership.
+FR-048
+The Administrator shall replace team members when required.
+FR-049
+The Administrator shall rename existing teams.
+FR-050
+The Administrator shall remove Developers from teams.
+3.5.1 Team Structure
+Each active team shall contain one Mentor, one Team Leader, and one or more Developers. The Team Leader is also counted as a Developer of the same team.
+3.5.2 Team Creation Process
+Administrator enters the Team Name.
+Administrator selects Developers from the available Developer list.
+Administrator selects one Team Leader from the selected Developers.
+Administrator selects one Mentor.
+Administrator saves the team.
+Business Rules
+Every Developer shall belong to only one active team.
+A Mentor may supervise multiple teams.
+Every team shall have only one Team Leader, selected only from the Developers belonging to that team, and the Team Leader shall be a Final Year Developer.
+Team information shall remain editable by the Administrator.
+3.6 Project Management Module
+Priority: Critical
+The Project Management Module enables the Administrator to create, assign, monitor, and manage software development projects executed by the Software Development Cell. Each project is managed by one assigned team following the predefined SDLC.
+ID
+Requirement
+FR-051
+The Administrator shall create projects.
+FR-052
+The Administrator shall update project information.
+FR-053
+The Administrator shall assign a team to a project.
+FR-054
+The Administrator shall modify the assigned team whenever required.
+FR-055
+The Administrator shall monitor project progress.
+FR-056
+The Administrator shall archive completed projects.
+FR-057
+The system shall automatically create predefined SDLC phases for every new project.
+3.6.1 Project Information
+Every project shall maintain: Project Name, Project Description, Assigned Team, Project Status, Current SDLC Phase, Overall Progress, GitHub Repository, Created Date/Time, and Last Updated Date/Time.
+3.6.2 Project Assignment
+A project may be created without an assigned team, and a team may exist without an assigned project. The Administrator may assign or modify this relationship at any time.
+Business Rules
+Every active project shall eventually be assigned to one team; every team shall manage only one active project.
+Project assignment shall remain editable by the Administrator.
+Project progress shall be calculated automatically.
+Completed projects shall remain available for historical reference.
+3.7 Software Development Life Cycle (SDLC) Module
+Priority: Critical
+Every project follows a predefined SDLC. The SDLC structure is created automatically by the system and provides a standardized workflow for all SDC projects.
+3.7.1 Predefined SDLC Phases
+Planning
+Analysis
+Design
+Development
+Testing
+Deployment
+Maintenance
+These phases are fixed and shall not be modified by users.
+ID
+Requirement
+FR-058
+The system shall automatically create predefined SDLC phases for every project.
+FR-059
+SDLC phases shall be created in the predefined sequence.
+FR-060
+Users shall not create additional SDLC phases.
+FR-061
+Users shall not rename predefined SDLC phases.
+FR-062
+Users shall not delete predefined SDLC phases.
+FR-063
+Users shall not reorder predefined SDLC phases.
+3.7.2 Phase Workflow
+The default SDLC workflow proceeds sequentially: Planning → Analysis → Design → Development → Testing → Deployment → Maintenance. Initially, only the Planning phase is unlocked; each subsequent phase unlocks after successful completion of the preceding phase. The Administrator may manually unlock any phase when parallel development is required.
+Business Rules
+Every project shall follow the predefined SDLC structure; phases shall be created automatically.
+Only unlocked phases shall accept new tasks.
+Phase completion shall be calculated automatically.
+Administrator overrides (manual phase unlocks) shall be recorded in the Audit Log.
+3.8 Task Management Module
+Priority: Critical
+Tasks represent individual work items created by the Team Leader within predefined SDLC phases. Tasks are the smallest unit of work used for project execution, progress monitoring, and performance evaluation.
+3.8.1 Task Information
+Every task shall maintain: Task Name, Task Description, SDLC Phase, Assigned Developer, Due Date, Status, Created Date/Time, Last Updated Date/Time, and Completion Date/Time.
+3.8.2 Task Status
+Each task shall maintain one of the following statuses: Pending, In Progress, Completed. Status changes shall be performed only by the Team Leader.
+ID
+Requirement
+FR-064
+The Team Leader shall create project tasks.
+FR-065
+The Team Leader shall edit project tasks.
+FR-066
+The Team Leader shall assign tasks to Developers.
+FR-067
+The Team Leader shall update task status.
+FR-068
+The Team Leader shall modify task assignments when required.
+FR-069
+The Team Leader shall set task due dates.
+FR-070
+The system shall automatically record task creation date and time.
+FR-071
+The system shall automatically record task completion date and time.
+Business Rules
+Every task shall belong to exactly one project and exactly one SDLC phase, and shall be assigned to exactly one Developer; a Developer may have multiple assigned tasks.
+Tasks shall be assigned only to Developers belonging to the assigned project team.
+Only the Team Leader shall manage project tasks; Administrators, Mentors, and standard Developers shall not create project tasks.
+Tasks belonging to locked SDLC phases shall not be created until the phase becomes available.
+3.9 Task Verification Module
+Priority: Critical
+The Task Verification Module ensures that completed tasks meet expected quality standards before being considered officially completed. Every completed task is reviewed by the assigned Mentor.
+3.9.1 Verification Workflow
+Pending → In Progress → Completed → Pending Mentor Verification → [Verified → Officially Completed]  |  [Rejected → back to In Progress].
+ID
+Requirement
+FR-072
+The system shall place every completed task into the Pending Mentor Verification state.
+FR-073
+The assigned Mentor shall review every completed task.
+FR-074
+The Mentor shall verify completed tasks.
+FR-075
+The Mentor shall reject incomplete tasks.
+FR-076
+The system shall automatically return rejected tasks to the In Progress status.
+FR-077
+The system shall notify the Team Leader after task verification.
+FR-078
+The system shall notify the assigned Developer after task verification.
+FR-079
+The system shall record the verification date and time.
+FR-080
+The system shall record the verifying Mentor.
+Business Rules
+Only the assigned Mentor shall verify completed tasks; verification is mandatory before completion is officially recognized.
+Rejected tasks shall automatically return to the In Progress status.
+Verified tasks shall become read-only except for administrative actions.
+Verification records shall remain permanently available for auditing.
+3.10 Progress Tracking Module
+Priority: High
+The Progress Tracking Module continuously monitors the execution status of Developers, Teams, Projects, and SDLC phases. Progress information is synchronized throughout the portal in real time.
+Level
+Displayed Metrics
+Developer Dashboard
+Assigned Tasks, Completed Tasks, Pending Tasks, In Progress Tasks, Completion Percentage, Last Updated Date, Current Performance Score
+Team Dashboard
+Total Tasks, Verified Tasks, Pending Tasks, Team Completion Percentage, Current Project Progress, Team Performance Score
+SDLC Phase
+Total Tasks, Verified Tasks, Remaining Tasks, Phase Completion Percentage
+Project Dashboard
+Overall Progress, Current SDLC Phase, Phase-wise Progress, Team Progress, Documentation Status
+ID
+Requirement
+FR-081
+The system shall calculate Developer progress automatically.
+FR-082
+The system shall calculate Team progress automatically.
+FR-083
+The system shall calculate SDLC phase progress automatically.
+FR-084
+The system shall calculate Project progress automatically.
+FR-085
+Progress shall be updated in real time throughout the portal.
+FR-086
+Progress calculations shall be based only on Mentor-verified tasks.
+Business Rules
+Unverified tasks shall not contribute to progress calculations.
+Progress values shall be recalculated immediately after Mentor verification.
+Progress data shall remain consistent across all dashboards.
+Historical progress information shall remain available after project completion.
+3.11 Performance Management Module
+Priority: Medium
+The Performance Management Module evaluates Developers and Teams based on project contributions, verified task completion, and timely delivery, to encourage accountability, consistency, and healthy competition.
+Scope
+Parameters
+Developer Performance
+Number of verified completed tasks, task completion percentage, timely completion before due date, overall project contribution
+Team Performance
+Team completion percentage, average developer performance, timely project execution, verified project progress
+ID
+Requirement
+FR-087
+The system shall calculate Developer performance automatically.
+FR-088
+The system shall calculate Team performance automatically.
+FR-089
+Performance shall be updated immediately after Mentor verification.
+FR-090
+The system shall display performance statistics on dashboards.
+FR-091
+The system shall maintain historical performance records.
+Business Rules
+Performance shall be calculated only from verified tasks; rejected tasks shall not contribute.
+Completing tasks before the due date shall positively influence performance.
+Historical performance records shall remain available even after Alumni conversion.
+3.12 Leaderboard Module
+Priority: Low
+The Leaderboard Module ranks Developers and Teams according to their performance within the Software Development Cell, promoting healthy competition and recognizing consistent contribution.
+Leaderboard
+Displayed Columns
+Developer Leaderboard
+Current Rank, Developer Name, Team Name, Performance Score, Completion Percentage
+Team Leaderboard
+Current Rank, Team Name, Team Leader, Mentor, Project, Overall Team Performance
+ID
+Requirement
+FR-092
+The system shall generate a Developer Leaderboard.
+FR-093
+The system shall generate a Team Leaderboard.
+FR-094
+Leaderboards shall update automatically after performance recalculation.
+FR-095
+Leaderboards shall reflect real-time ranking changes.
+Business Rules
+Rankings shall be generated automatically using verified performance data only.
+Team rankings shall consider the combined performance of all active team members.
+Alumni shall not appear on active leaderboards after Alumni conversion.
+3.13 Communication Module
+Priority: Medium
+The Communication Module provides a centralized platform for publishing notices, announcements, and system notifications, and enforces structured communication between Administrators, Mentors, Team Leaders, and Developers along the defined organizational hierarchy. It consists of three components: Notices, Announcements, and Notifications.
+3.13.1 Notice Management
+A Notice is an official communication published by the Administrator for one or more authorized users, generally used for important administrative information.
+ID
+Requirement
+FR-096
+The Administrator shall publish notices.
+FR-097
+The Administrator shall update published notices.
+FR-098
+The Administrator shall archive notices.
+FR-099
+The system shall display notices to authorized users.
+FR-100
+The system shall maintain notice history.
+Every notice shall contain: Title, Description, Category, Target Audience, Published By, Publish Date/Time, Expiry Date (optional), and Attachment (optional). The Administrator may target notices to: All Users, All Developers, All Mentors, a Specific Team, Multiple Teams, All Teams, or Individual Users.
+Business Rules
+Only the Administrator shall publish notices.
+Users shall view only notices intended for them.
+Expired notices shall automatically move to the archive.
+3.13.2 Announcement Management
+Announcements are operational communications used for project updates, reminders, meetings, and day-to-day activities. Announcements may be published by both Administrators and Mentors.
+ID
+Requirement
+FR-101
+The Administrator shall publish announcements.
+FR-102
+Mentors shall publish announcements to assigned teams.
+FR-103
+The system shall support announcement history.
+FR-104
+The system shall support announcement attachments.
+The Administrator may target announcements to: All Users, All Developers, All Mentors, Individual Developers, Individual Mentors, Specific Teams, Multiple Teams, All Teams, or Project Members. A Mentor who supervises multiple teams may target One Assigned Team, Multiple Assigned Teams, or All Assigned Teams, but shall not publish to teams not assigned to them.
+Business Rules
+Administrators may communicate with all authorized users; Mentors may communicate only with assigned teams.
+Announcement recipients shall be determined by the selected audience.
+Announcement history shall remain available for future reference.
+3.13.3 Notification Management
+The Notification component provides real-time updates regarding important system events, generated automatically whenever predefined events occur: New Task Assigned, Task Status Updated, Task Verified, Task Rejected, Project Assigned, Team Assigned, Mentor Assigned, Team Leader Assigned, Notice Published, Announcement Published, Recruitment Approved, Alumni Conversion, Documentation Updated.
+ID
+Requirement
+FR-105
+The system shall generate notifications automatically.
+FR-106
+Notifications shall be delivered in real time.
+FR-107
+Users shall receive only authorized notifications.
+FR-108
+Notification history shall be maintained.
+Business Rules
+Users shall not receive duplicate notifications.
+Notification history shall remain available until manually cleared by the user.
+3.13.4 Authority Hierarchy and Document Requests
+The portal shall enforce a hierarchical communication structure for official communication and project-related document requests: Administrator → Mentor → Team Leader → Developers.
+ID
+Requirement
+FR-109
+The portal shall enforce the defined communication hierarchy.
+FR-110
+Administrators shall request project information through Mentors.
+FR-111
+Mentors shall communicate project requests to Team Leaders.
+FR-112
+Team Leaders shall coordinate with Developers.
+Document request workflow:
+Administrator submits the request to the Mentor.
+Mentor forwards the request to the Team Leader.
+Team Leader collects the required information.
+Team Leader submits the information to the Mentor.
+Mentor reviews the submission.
+Mentor forwards the information to the Administrator.
+Business Rules
+Official communication shall follow the defined reporting hierarchy.
+Developers shall not submit official project documents directly to the Administrator.
+Team Leaders shall represent their respective teams in official project communications.
+Mentors shall act as the communication bridge between the Administrator and Team Leaders.
+3.14 Project Documentation Repository Module
+Priority: High
+Every project shall maintain a centralized Project Documentation Repository storing all mandatory software engineering documents together with the project's public GitHub repository link.
+Repository contents: Product Requirements Document (PRD), Business Requirements Document (BRD), Software Requirements Specification (SRS), Use Case Document, Use Case Diagrams, Workflow Document, Data Flow Diagram (DFD), Entity Relationship Diagram (ERD), Database Design, API Documentation, Frontend Documentation, Backend Documentation, Deployment Guide, Testing Documentation, User Manual, Developer Guide, and GitHub Public Repository Link.
+ID
+Requirement
+FR-113
+Every project shall maintain a Project Documentation Repository.
+FR-114
+Only the Team Leader shall upload project documents.
+FR-115
+Only the Team Leader shall update project documents.
+FR-116
+The Team Leader shall maintain the project GitHub repository link.
+FR-117
+Team members shall view and download project documents.
+FR-118
+Mentors shall view and download project documents.
+FR-119
+Administrators shall view and download project documents.
+Business Rules
+Every project shall maintain one documentation repository, managed only by the assigned Team Leader.
+Every uploaded document shall record upload date/time and last-updated date/time.
+The GitHub repository shall remain accessible to the assigned team, Mentor, and Administrator.
+All mandatory software engineering documents shall remain available throughout the project lifecycle.
+3.15 Alumni Management Module
+Priority: Medium
+The Alumni Management Module manages the transition of Active Developers to Alumni after completion of their academic program, while preserving their historical contributions within the Software Development Cell.
+Every Developer maintains one membership status: Applicant, Active, or Alumni.
+3.15.1 Automatic Alumni Conversion
+The system shall execute the Alumni conversion process every year on 31 July at 23:59:59 (server time). Only eligible Developers shall be processed.
+Eligibility Criteria
+Value
+Membership Status
+Active
+Academic Year
+Final Year
+During Alumni conversion, the system shall automatically:
+Change Membership Status from Active to Alumni.
+Remove the Developer from the active team and remove the Team Leader designation, if assigned.
+Prevent future task assignments.
+Preserve completed tasks, project history, project documentation history, GitHub Profile, LinkedIn Profile, performance records, leaderboard history, and audit history.
+Display the member in the Former Members (Alumni) section of the Landing Page.
+3.15.2 Manual Alumni Management
+The Administrator may convert an Active Developer to Alumni, or restore an Alumni member to Active status.
+ID
+Requirement
+FR-120
+The system shall automatically convert eligible Developers to Alumni every year on 31 July at 23:59:59.
+FR-121
+The Administrator shall manually convert Active Developers to Alumni.
+FR-122
+The Administrator shall restore Alumni members to Active status when required.
+FR-123
+Alumni members shall appear in the Former Members section on the Landing Page.
+FR-124
+Historical records shall remain preserved after Alumni conversion.
+Business Rules
+Alumni conversion shall occur once every academic year; only eligible Final Year Developers shall be processed automatically.
+Historical project contributions shall never be deleted.
+Alumni members shall not receive new task assignments or participate in active teams.
+3.16 Audit Log Module
+Priority: High
+The Audit Log Module records significant system activities for accountability, monitoring, and administrative review. Audit records are generated automatically by the system.
+Auditable events include: User Login, User Logout, User Creation, User Update, Password Reset, Team Creation, Team Update, Team Assignment, Project Creation, Project Assignment, Task Creation, Task Assignment, Task Status Update, Task Verification, Task Rejection, Documentation Upload, Documentation Update, Notice Publication, Announcement Publication, Recruitment Approval, and Alumni Conversion.
+ID
+Requirement
+FR-125
+The system shall automatically generate audit records.
+FR-126
+Audit records shall include the performing user.
+FR-127
+Audit records shall include date and time.
+FR-128
+Audit records shall remain accessible to the Administrator.
+FR-129
+Audit records shall not be modified by standard users.
+Every audit record shall contain: Event Type, Description, Performed By, User Role, Date, Time, Related Module, and Additional Remarks (optional).
+Business Rules
+Audit records shall be generated automatically and shall remain immutable.
+Only the Administrator shall access the complete audit history.
+4. External Interface Requirements
+This section, added in accordance with IEEE 830 §3.1, describes the interfaces between the SDC Portal and its users, hardware, other software, and communication channels. These interfaces were implicit in the original requirements set and are made explicit here for design and integration purposes.
+4.1 User Interfaces
+The portal shall present a public Landing Page (unauthenticated) and a role-specific dashboard for each authenticated role (Administrator, Mentor, Developer/Team Leader).
+All authenticated screens shall share a consistent navigation shell (sidebar/top bar) showing the current user's role, notifications, and quick links to modules permitted for that role.
+Forms (recruitment application, task creation, document upload, notice/announcement composition) shall provide inline field-level validation messages before submission.
+The UI shall be responsive and shall render correctly on desktop, laptop, tablet, and mobile viewport widths.
+Data tables (task lists, leaderboards, audit logs) shall support sorting and, where the record count is large, pagination or infinite scroll.
+Destructive or state-changing actions (Alumni conversion, task rejection, account deactivation) shall require an explicit confirmation step.
+Wireframes and a detailed visual style guide are outside the scope of this SRS and shall be maintained in the UI/UX design specification referenced from the Documentation Repository.
+4.2 Hardware Interfaces
+The SDC Portal is a purely web-based application and has no direct interface to specialized hardware devices. The following general hardware assumptions apply:
+Client hardware: any desktop, laptop, tablet, or smartphone capable of running a supported modern web browser with a stable internet connection.
+Server hardware: a Linux-capable host (physical or virtual/cloud instance) with sufficient CPU, memory, and disk to run the containerized application stack and the MySQL database.
+No proprietary peripherals, sensors, or embedded devices are required for standard operation.
+4.3 Software Interfaces
+Interface
+Description
+MySQL RDBMS
+Primary system of record for all portal data (users, teams, projects, tasks, documentation metadata, performance, audit records), accessed via SQLAlchemy ORM from the FastAPI backend.
+FastAPI Backend
+Exposes a versioned REST API consumed by the React frontend; enforces authentication, RBAC, and business-rule validation.
+React Frontend
+Single-page application that consumes the REST API and renders the Landing Page and authenticated dashboards.
+GitHub
+External source-control platform where each project's public repository is hosted; the portal stores and displays the repository URL and does not manage repository contents directly.
+Web Browser
+Google Chrome, Microsoft Edge, Mozilla Firefox, and Safari (latest stable versions) render the client application.
+CSV Export Utility
+Server-side component that generates CSV files of newly generated recruitment credentials for administrative distribution.
+4.4 Communications Interfaces
+All client-server communication shall occur over HTTPS (TLS-encrypted HTTP) to protect credentials and data in transit.
+The REST API shall exchange data using JSON payloads.
+Authenticated sessions shall be represented using a secure, signed token (e.g., JWT) transmitted via HTTP headers or secure cookies.
+Real-time notification delivery shall use a persistent or near-real-time channel (e.g., WebSocket or short-interval polling); the specific transport is a design decision to be finalized in the technical design document.
+No email, SMS, or third-party push-notification gateway is required for the initial release; these are listed under Future Scope (Appendix B).
+5. Non-Functional Requirements
+Non-functional requirements define the quality attributes and operational characteristics of the SDC Portal and ensure reliability, security, usability, maintainability, and scalability. Security requirements from the original specification (SR-xxx) have been consolidated here with the related NFR-xxx items to avoid duplication; each item retains its original identifier for traceability.
+5.1 Performance Requirements
+ID
+Requirement
+NFR-001
+The system shall support multiple concurrent authenticated users.
+NFR-002
+Dashboard information shall update in real time.
+NFR-003
+Project progress calculations shall execute automatically after Mentor verification.
+NFR-004
+Leaderboards shall update automatically after performance recalculation.
+NFR-005
+The portal shall minimize response time during normal operation.
+5.2 Availability and Reliability Requirements
+ID
+Requirement
+NFR-006
+The system shall be available to authorized users whenever the server is operational.
+NFR-007
+Planned maintenance shall not compromise stored project data.
+NFR-008
+The system shall preserve data consistency during failures.
+NFR-009
+Transaction failures shall not corrupt stored information.
+NFR-010
+Historical records shall remain permanently available unless removed by authorized administrative action.
+5.3 Security Requirements
+Authentication Security
+ID
+Requirement
+SR-001
+Every internal user shall authenticate using a valid User ID and Password.
+SR-002 / NFR-011
+Passwords shall never be stored in plain text and shall be securely hashed before storage.
+SR-003
+Password verification shall be performed using secure password hashing.
+SR-004
+Invalid authentication attempts shall be rejected.
+SR-005
+Authenticated sessions shall be terminated after user logout.
+Authorization Security
+ID
+Requirement
+SR-006 / NFR-012
+Access shall be controlled through Role-Based Access Control (RBAC).
+SR-007
+Users shall access only authorized modules.
+SR-008 / NFR-015
+Administrative operations shall be accessible only to Administrators.
+SR-009
+Mentor operations shall be restricted to assigned teams.
+SR-010
+Team Leader operations shall be restricted to the assigned project team.
+Data Security
+ID
+Requirement
+SR-011
+Sensitive information shall be protected during storage and transmission.
+SR-012
+User credentials shall not be exposed to unauthorized users.
+SR-013
+Project documentation shall be accessible only to authorized users.
+SR-014
+Recruitment data shall be accessible only to Administrators.
+NFR-013
+Unauthorized users shall not access protected resources.
+NFR-016
+Internal portal access shall require successful authentication.
+Audit and Session Security
+ID
+Requirement
+SR-015
+Security-sensitive activities shall be recorded in the Audit Log.
+SR-016
+Audit records shall remain immutable.
+SR-017
+Only Administrators shall access complete audit records.
+SR-018
+Every authenticated request shall be validated before processing.
+SR-019
+Expired sessions shall not access protected resources.
+SR-020
+Unauthorized requests shall return appropriate access-denial responses.
+NFR-014
+Authentication sessions shall be securely managed.
+5.4 Scalability Requirements
+ID
+Requirement
+NFR-017
+The database shall support future expansion without structural redesign.
+NFR-018
+Additional user roles may be incorporated without major architectural modifications.
+NFR-019
+The portal shall support increasing numbers of projects, teams, and users.
+5.5 Maintainability Requirements
+ID
+Requirement
+NFR-020
+The application shall follow a modular architecture.
+NFR-021
+Source code shall remain maintainable and extensible.
+NFR-022
+Software engineering documents shall remain synchronized with project development.
+NFR-023
+System configuration shall support future enhancements with minimal impact on existing modules.
+5.6 Usability Requirements
+ID
+Requirement
+NFR-024
+The user interface shall be simple and intuitive.
+NFR-025
+Navigation shall remain consistent throughout the portal.
+NFR-026
+The portal shall support responsive web design for desktop, tablet, and mobile devices.
+NFR-027
+Users shall complete common operations with minimal navigation steps.
+NFR-028
+Error messages shall clearly describe the encountered problem and, where appropriate, guide the user toward resolution.
+5.7 Compatibility Requirements
+ID
+Requirement
+NFR-029
+The portal shall support the latest stable versions of Google Chrome, Microsoft Edge, Mozilla Firefox, and Safari.
+NFR-030
+The portal shall operate correctly on desktop, laptop, tablet, and mobile devices.
+NFR-031
+The application shall support modern HTML5-compliant web browsers.
+5.8 Database Requirements
+ID
+Requirement
+NFR-032
+The portal shall use MySQL as the primary relational database management system.
+NFR-033
+The database shall be fully normalized to eliminate redundancy and maintain data integrity.
+NFR-034
+Primary Keys, Foreign Keys, Unique Constraints, and Check Constraints shall be implemented where applicable.
+NFR-035
+Database transactions shall preserve consistency, integrity, isolation, and durability (ACID properties).
+NFR-036
+Referential integrity shall be maintained throughout the database.
+5.9 Backup and Recovery Requirements
+ID
+Requirement
+NFR-037
+The system shall support periodic database backups.
+NFR-038
+Backup procedures shall preserve all project and user information.
+NFR-039
+The system shall support restoration from valid backup files.
+5.10 Logging Requirements
+ID
+Requirement
+NFR-040
+System activities shall be logged automatically.
+NFR-041
+Error events shall be recorded for administrative review.
+NFR-042
+Authentication events shall be logged.
+NFR-043
+Administrative activities shall be logged.
+6. Business Rules
+The following business rules define the operational policies of the SDC Portal. Business rules are domain policies that constrain or trigger functional behavior across multiple features; they are mandatory and shall be enforced throughout the system.
+6.1 Consolidated Business Rules
+ID
+Requirement
+BR-001
+The portal shall support the authenticated user roles Administrator, Mentor, and Developer. Team Leader is not a separate user role and shall be designated from an existing Developer.
+BR-002
+Only authenticated users shall access the internal portal; public users shall only access the Landing Page and Recruitment Form.
+BR-003
+A Developer shall belong to only one active team at any given time and shall not be assigned to multiple active teams simultaneously.
+BR-004
+A Mentor may supervise one or more teams; each team shall have only one assigned Mentor.
+BR-005
+Each team shall have exactly one Team Leader, selected from the Developers belonging to that team, who shall be a Final Year Developer.
+BR-006
+Each project shall be assigned to one team. A project may exist before team assignment and a team may exist before project assignment; the Administrator may update the project-team assignment whenever required.
+BR-007
+Every project shall automatically contain the predefined SDLC phases (Planning, Analysis, Design, Development, Testing, Deployment, Maintenance), which are system-defined and shall not be created, deleted, renamed, or reordered by users.
+BR-008
+Only the Team Leader shall create, edit, assign, and manage project tasks. Administrators, Mentors, and standard Developers shall not manage project tasks.
+BR-009
+Every task shall belong to exactly one SDLC phase and shall be assigned to exactly one Developer; a Developer may be assigned multiple tasks.
+BR-010
+Every task shall maintain one of the statuses Pending, In Progress, or Completed; task status shall be updated only by the Team Leader.
+BR-011
+Every completed task shall require Mentor verification; a completed task shall not be considered officially completed until verified by the assigned Mentor.
+BR-012
+The Mentor may only Verify or Reject a task. If rejected, the task shall automatically return to the In Progress status.
+BR-013
+Developer, Team, Project, and SDLC Phase progress shall be calculated only from Mentor-verified tasks; tasks awaiting verification shall not contribute to progress calculations.
+BR-014
+Developer and Team performance shall consider the number of verified completed tasks, task completion percentage, task completion before due date, and overall project contribution, updated automatically after Mentor verification.
+BR-015
+The portal shall maintain a Developer Leaderboard and a Team Leaderboard, updated automatically based on verified performance data.
+BR-016
+Official communication shall follow the defined authority hierarchy (Administrator → Mentor → Team Leader → Developers) and shall not bypass this hierarchy.
+BR-017
+Project-related document requests shall flow: Administrator requests the Mentor → Mentor forwards to the Team Leader → Team Leader submits to the Mentor → Mentor reviews and forwards to the Administrator.
+BR-018
+Recruitment availability shall be controlled only by the Administrator; when recruitment is disabled, the recruitment form shall not accept new applications.
+BR-019
+After approval of a recruitment application, the system shall automatically create the Developer account, generate the User ID and initial password, and export credentials in CSV format.
+BR-020
+The system shall automatically convert eligible Final Year Developers to Alumni every year on 31 July at 23:59:59; the Administrator may also manually convert Developers to Alumni or restore Alumni to Active status.
+7. Other Requirements
+7.1 Legal, Compliance, and Institutional Requirements
+The portal shall operate in accordance with the academic policies and calendar of Dr. A.P.J. Abdul Kalam Technical University (AKTU), as referenced in Section 2.5.
+Applicant and Developer personal data (name, email, mobile number, resume) shall be treated as institutionally sensitive data and shall be restricted per Section 5.3 (Security Requirements).
+Retention of historical records (Section 2.7, 6.20) shall follow institutional record-keeping policy; no automatic deletion of historical project or performance data is permitted.
+7.2 Reuse and Extensibility Objectives
+The RBAC model shall be designed so that additional roles (e.g., a future "Reviewer" or "Alumni Mentor" role) can be added without redesigning the authorization layer (see NFR-018).
+The SDLC phase model, while fixed for this release, shall be stored as configurable data rather than hard-coded logic, to support a future configurable-phase capability without a schema change.
+API endpoints shall follow REST conventions and versioning so that the future Mobile Application (Appendix B) can reuse the same backend without duplication.
+7.3 Open Items (To Be Determined)
+TBD-1: Exact concurrent-user and response-time targets for NFR-001/NFR-005 are to be finalized after load-testing during the design phase.
+TBD-2: The real-time notification transport (WebSocket vs. polling interval) referenced in Section 4.4 is to be finalized in the technical design document.
+TBD-3: Backup frequency and retention period for NFR-037–039 are to be defined by institutional IT policy.
+Appendix A: Acceptance Criteria
+The SDC Portal shall be considered functionally complete for release when all of the following criteria are satisfied.
+ID
+Criteria
+AC-001 Authentication
+Users can successfully authenticate using valid credentials; unauthorized users cannot access protected modules.
+AC-002 Recruitment
+Applicants can submit recruitment applications; Administrators can approve or reject applications; approved applicants automatically receive Developer accounts.
+AC-003 Team Management
+Teams can be created successfully; Team Leaders and Mentors can be assigned; Developers belong to only one active team.
+AC-004 Project Management
+Projects can be created and assigned to teams; SDLC phases are automatically generated.
+AC-005 Task Management
+Team Leaders can create and assign tasks; Developers receive assigned tasks; task status updates function correctly.
+AC-006 Task Verification
+Mentors can verify or reject completed tasks; rejected tasks automatically return to In Progress; verified tasks contribute to progress calculations.
+AC-007 Progress Tracking
+Developer, Team, SDLC Phase, and Project progress are calculated correctly and reflected throughout the portal.
+AC-008 Documentation Repository
+Team Leaders can upload mandatory project documentation; authorized users can access project documents; GitHub repository links remain available for assigned users.
+AC-009 Communication
+Administrators can publish notices and announcements; Mentors can publish announcements to assigned teams; notifications are generated automatically.
+AC-010 Alumni Management
+Automatic Alumni conversion executes according to the defined academic schedule; Alumni members appear in the Former Members section of the Landing Page; historical records remain preserved.
+Appendix B: Future Scope
+The following enhancements are out of scope for the current release and may be considered for future versions of the SDC Portal:
+Mobile Application
+Email Notifications
+Push Notifications
+Calendar Integration
+Attendance Management
+Leave Management
+AI-assisted Project Monitoring
+AI-generated Progress Reports
+Code Quality Analysis
+GitHub Activity Synchronization
+Analytics Dashboard
+Certificate Generation
+Mentor Feedback Reports
+Project Templates
+Sprint Management
+Agile Board Integration
+Automated Deployment Pipeline
+Cloud Storage Integration
+Appendix C: Analysis Models and Applicable Standards
+C.1 Applicable Standards
+IEEE Std 830-1998 — IEEE Recommended Practice for Software Requirements Specifications (structure of this document).
+ISO/IEC/IEEE 29148:2018 — Systems and Software Engineering — Requirements Engineering.
+HTTP/HTTPS Standards (IETF RFC 7230–7235, RFC 8446).
+REST Architectural Principles (Fielding, 2000).
+Role-Based Access Control (RBAC) — NIST RBAC model.
+C.2 Required Analysis Models
+The following supporting analysis models shall be produced and maintained in the Project Documentation Repository (Section 3.14) as design proceeds; they are referenced here but are not reproduced in this SRS:
+Entity Relationship Diagram (ERD) covering Users, Roles, Teams, Projects, SDLC Phases, Tasks, Documentation, Notices/Announcements, Notifications, Performance, and Audit records.
+Data Flow Diagrams (Level 0/1) for Recruitment, Task Assignment, and Task Verification workflows.
+Use Case Diagrams for each role (Administrator, Mentor, Developer, Team Leader).
+State/workflow diagram for Task Status transitions (Pending → In Progress → Completed → Pending Mentor Verification → Verified/Rejected), as summarized in Section 3.9.1.
+State diagram for SDLC Phase unlocking, as summarized in Section 3.7.2.
+Appendix D: Document Information and Approval
+D.1 Document Information
+Item
+Value
+Document Name
+Software Requirements Specification (SRS)
+Project
+SDC Portal
+Version
+1.0 (Draft)
+Status
+Under Development
+Format Standard
+IEEE Std 830-1998, aligned with ISO/IEC/IEEE 29148:2018
+Prepared For
+Software Development Cell
+Prepared By
+SDC Portal Development Team
+D.2 Approval
+This document requires review and sign-off from the following stakeholders prior to the commencement of the design phase.
+Role
+Name
+Signature
+Date
+Project Guide
+Head, Software Development Cell
+Development Team Lead
+Project Reviewer
+— End of Document —

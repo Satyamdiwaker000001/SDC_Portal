@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, FolderKanban, Users, Briefcase, TrendingUp, CheckSquare, Clock, Zap, FileText, ArrowRight, Terminal } from 'lucide-react';
+import { 
+  Activity, FolderKanban, Users, Briefcase, TrendingUp, CheckSquare, 
+  Clock, Zap, FileText, ArrowRight, Terminal, CheckCircle2, XCircle, 
+  ExternalLink, BarChart3, AlertCircle, ShieldAlert 
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { announcementsAPI, usersAPI, projectsAPI, applicationsAPI } from '../api/services';
+import { announcementsAPI, usersAPI, projectsAPI, applicationsAPI, tasksAPI, teamsAPI } from '../api/services';
 import { Link } from 'react-router-dom';
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15 }
+    transition: { staggerChildren: 0.1 }
   }
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 30, rotateX: 20 },
-  visible: { opacity: 1, y: 0, rotateX: 0, transition: { duration: 0.8, ease: "easeOut" } }
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
 };
 
 // ==========================================
@@ -31,63 +35,31 @@ const AdminDashboard = ({ user }) => {
   });
   const [selectedProject, setSelectedProject] = useState('All');
 
-  // Interactive Mock Timeline Data for the graph (Fallback)
-  const fallbackTimelineData = {
-    weeks: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-    projects: [
-      { name: 'SDC Portal v2', data: [15, 30, 45, 65, 80, 85], color: '#00b4d8', glow: 'rgba(0, 180, 216, 0.4)' },
-      { name: 'Campus Connect', data: [0, 10, 25, 30, 45, 55], color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)' }
-    ]
-  };
-
-  const getRealTimelineData = () => {
-    if (!projects || projects.length === 0) return fallbackTimelineData;
-    const colors = ['#00b4d8', '#f59e0b', '#3b82f6', '#10b981', '#a855f7', '#ec4899'];
-    return {
-      weeks: ['Start', 'Design', 'Dev', 'Testing', 'Review', 'Current'],
-      projects: projects.map((p, i) => ({
-        name: p.name,
-        color: colors[i % colors.length],
-        data: [0, Math.min(20, p.progress), Math.min(40, p.progress), Math.min(60, p.progress), Math.min(80, p.progress), p.progress]
-      }))
-    };
-  };
-
-  const currentTimelineData = getRealTimelineData();
-
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        const [users, pData, apps] = await Promise.all([
+        const [usersList, pData, appsList] = await Promise.all([
           usersAPI.getAll().catch(() => []),
           projectsAPI.getAll().catch(() => []),
           applicationsAPI.getAll().catch(() => [])
         ]);
 
-        const activeProjectsCount = pData && Array.isArray(pData) ? pData.filter(p => p.status === 'LIVE' || p.status === 'PENDING_SRS').length : 0;
-        const membersCount = users && Array.isArray(users) ? users.length : 0;
-        const pendingCount = apps && Array.isArray(apps) ? apps.filter(a => a.status === 'PENDING').length : 0;
+        const activeProjectsCount = pData ? pData.filter(p => p.status === 'LIVE' || p.status === 'PENDING_SRS').length : 0;
+        const membersCount = usersList ? usersList.length : 0;
+        const pendingCount = appsList ? appsList.filter(a => a.status === 'PENDING').length : 0;
         
         setStats({
-          activeProjects: activeProjectsCount || 4,
-          totalMembers: membersCount || 3,
-          pendingApprovals: pendingCount || 2,
-          newApplications: (apps && Array.isArray(apps) ? apps.length : 0) || 7
+          activeProjects: activeProjectsCount,
+          totalMembers: membersCount,
+          pendingApprovals: pendingCount,
+          newApplications: appsList ? appsList.length : 0
         });
 
-        if (pData && Array.isArray(pData)) {
-          // Map status to approximate progress percentage
-          const mapped = pData.map(p => {
-            let progress = 10;
-            if (p.status === 'COMPLETED') progress = 100;
-            else if (p.status === 'LIVE') progress = 75;
-            else if (p.status === 'PENDING_SRS') progress = 35;
-            return { ...p, progress };
-          });
-          setProjects(mapped);
+        if (pData) {
+          setProjects(pData);
         }
       } catch (e) {
-        console.error("Failed to fetch admin data", e);
+        console.error("Failed to fetch admin dashboard data", e);
       }
     };
     fetchAllData();
@@ -100,58 +72,9 @@ const AdminDashboard = ({ user }) => {
     { label: 'Total Applications', value: stats.newApplications.toString(), icon: Briefcase, trend: 'Recruitment pipeline', color: 'from-[#2a9d8f] to-sky-500', link: '/dashboard/recruitment' },
   ];
 
-  // Helper to draw smooth cubic bezier curves for SVG
-  const getSvgPath = (data, width, height) => {
-    const paddingX = 40;
-    const paddingY = 20;
-    const chartWidth = width - paddingX * 2;
-    const chartHeight = height - paddingY * 2;
-
-    const points = data.map((val, idx) => {
-      const x = paddingX + (idx / (data.length - 1)) * chartWidth;
-      const y = paddingY + chartHeight - (val / 100) * chartHeight;
-      return { x, y };
-    });
-
-    let path = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const cpX1 = points[i].x + chartWidth / (data.length - 1) / 2;
-      const cpY1 = points[i].y;
-      const cpX2 = points[i + 1].x - chartWidth / (data.length - 1) / 2;
-      const cpY2 = points[i + 1].y;
-      path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${points[i+1].x} ${points[i+1].y}`;
-    }
-    return path;
-  };
-
-  // Helper to draw closed area under the path
-  const getSvgAreaPath = (data, width, height) => {
-    const paddingX = 40;
-    const paddingY = 20;
-    const chartWidth = width - paddingX * 2;
-    const chartHeight = height - paddingY * 2;
-
-    const points = data.map((val, idx) => {
-      const x = paddingX + (idx / (data.length - 1)) * chartWidth;
-      const y = paddingY + chartHeight - (val / 100) * chartHeight;
-      return { x, y };
-    });
-
-    let path = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const cpX1 = points[i].x + chartWidth / (data.length - 1) / 2;
-      const cpY1 = points[i].y;
-      const cpX2 = points[i + 1].x - chartWidth / (data.length - 1) / 2;
-      const cpY2 = points[i + 1].y;
-      path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${points[i+1].x} ${points[i+1].y}`;
-    }
-    path += ` L ${points[points.length - 1].x} ${paddingY + chartHeight} L ${points[0].x} ${paddingY + chartHeight} Z`;
-    return path;
-  };
-
   return (
     <motion.div 
-      className="space-y-8 relative perspective-[1200px]"
+      className="space-y-8 relative"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -167,7 +90,7 @@ const AdminDashboard = ({ user }) => {
             Command Center
           </h1>
           <p className="text-white/40 mt-1 text-xs font-medium tracking-wide">
-            Welcome, <span className="text-white font-bold">Admin</span>. System is running at optimal capacity.
+            Welcome, <span className="text-white font-bold">{user?.name}</span>. System is running at optimal capacity.
           </p>
         </div>
       </motion.div>
@@ -179,20 +102,16 @@ const AdminDashboard = ({ user }) => {
             variants={itemVariants}
             key={i} 
             className="group relative cursor-pointer"
-            style={{ perspective: '1000px' }}
           >
             <Link to={stat.link} className="block w-full h-full">
               <div className="relative bg-[#1c222b] border border-white/5 p-6 rounded-[2rem] overflow-hidden transition-all duration-500 transform-gpu group-hover:-translate-y-1.5 group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
-                
                 <div className={`absolute -inset-0.5 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-500`}></div>
                 <div className={`absolute top-0 left-8 right-8 h-px bg-gradient-to-r ${stat.color} opacity-40`}></div>
-
                 <div className="relative z-10 flex items-start justify-between">
                   <div className="flex flex-col">
                     <span className="text-white/40 text-[9px] font-bold uppercase tracking-[0.2em] mb-2">{stat.label}</span>
                     <span className="text-4xl font-black text-white tracking-tighter drop-shadow-lg group-hover:text-[#00b4d8] transition-colors">{stat.value}</span>
                   </div>
-                  
                   <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.color} p-[1px] transform-gpu transition-transform duration-500 group-hover:scale-105`}>
                     <div className="w-full h-full bg-[#1c222b] rounded-2xl flex items-center justify-center relative overflow-hidden">
                       <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-10`}></div>
@@ -200,13 +119,8 @@ const AdminDashboard = ({ user }) => {
                     </div>
                   </div>
                 </div>
-
                 <div className="mt-6 flex items-center text-[10px] font-bold tracking-wider border-t border-white/5 pt-4">
-                  {stat.trend.includes('attention') ? (
-                    <Zap className="w-3.5 h-3.5 text-cyan-500 mr-2 animate-pulse" />
-                  ) : (
-                    <TrendingUp className="w-3.5 h-3.5 text-[#00b4d8] mr-2" />
-                  )}
+                  <TrendingUp className="w-3.5 h-3.5 text-[#00b4d8] mr-2" />
                   <span className="text-white/30 group-hover:text-white/60 transition-colors uppercase">{stat.trend}</span>
                 </div>
               </div>
@@ -215,194 +129,48 @@ const AdminDashboard = ({ user }) => {
         ))}
       </div>
 
-      {/* Full Width Project Progress Dashboard (Main Visual Chart + Project List) */}
-      <motion.div variants={itemVariants} className="relative group" style={{ perspective: '1200px' }}>
-        <div className="bg-[#1c222b] border border-white/5 rounded-[2.5rem] p-6 flex flex-col relative overflow-hidden transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,180,216,0.1)] hover:border-white/10">
-          
-          <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#00b4d8]/10 blur-[100px] rounded-full mix-blend-screen opacity-30 pointer-events-none"></div>
-          
-          {/* Dashboard Header */}
+      {/* Projects Timeline Dashboard */}
+      <motion.div variants={itemVariants} className="relative group">
+        <div className="bg-[#1c222b] border border-white/5 rounded-[2.5rem] p-6 flex flex-col relative overflow-hidden transition-all duration-500 hover:border-[#00b4d8]/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
             <div className="flex items-center gap-3">
               <Activity className="w-5 h-5 text-[#00b4d8]" />
               <div>
-                <h3 className="text-lg font-black text-white tracking-tight uppercase">Project Progress Analytics</h3>
-                <p className="text-[11px] text-white/35 font-medium mt-0.5">Development progress tracking & velocity trends</p>
+                <h3 className="text-lg font-black text-white tracking-tight uppercase">Active Projects Progress</h3>
+                <p className="text-[11px] text-white/35 font-medium mt-0.5">Real-time SDLC development status & completion</p>
               </div>
-            </div>
-            {/* Filter buttons */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              <button
-                onClick={() => setSelectedProject('All')}
-                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                  selectedProject === 'All'
-                    ? 'bg-[#00b4d8] text-[#020617] border-[#00b4d8] shadow-[0_0_10px_rgba(0,180,216,0.3)]'
-                    : 'bg-white/[0.03] text-white/40 border-white/8 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                All Projects
-              </button>
-              {currentTimelineData.projects.map(p => (
-                <button
-                  key={p.name}
-                  onClick={() => setSelectedProject(p.name)}
-                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border whitespace-nowrap ${
-                    selectedProject === p.name
-                      ? 'text-[#020617] border-current shadow-[0_0_10px_rgba(0,180,216,0.3)]'
-                      : 'bg-white/[0.03] text-white/40 border-white/8 hover:text-white hover:bg-white/5'
-                  }`}
-                  style={selectedProject === p.name ? { backgroundColor: p.color, borderColor: p.color } : {}}
-                >
-                  {p.name}
-                </button>
-              ))}
             </div>
           </div>
           
-          {/* Main Visual Board */}
-          <div className="flex flex-col lg:flex-row gap-6 relative z-10">
-            {/* SVG Interactive Line Chart */}
-            <div className="flex-1 bg-black/30 border border-white/6 rounded-2xl p-5 flex flex-col relative min-h-[300px]">
-              {/* Chart Grid Lines & Text labels */}
-              <div className="absolute inset-0 p-5 flex flex-col justify-between pointer-events-none">
-                {[100, 75, 50, 25, 0].map(val => (
-                  <div key={val} className="w-full flex items-center justify-between border-b border-white/[0.03] h-0">
-                    <span className="text-[8px] font-mono text-white/20 -translate-y-2">{val}%</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 z-10">
+            {projects.length === 0 ? (
+              <div className="col-span-2 py-8 text-center text-xs text-white/40">No projects registered. Create a project to start tracking.</div>
+            ) : (
+              projects.map(project => (
+                <div key={project.id} className="bg-black/35 border border-white/5 p-5 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest bg-white/5 border border-white/10 text-[#00b4d8]">{project.type}</span>
+                      <h4 className="text-sm font-black text-white uppercase tracking-wide mt-2">{project.name}</h4>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-white/60">{project.progress}%</span>
                   </div>
-                ))}
-              </div>
-
-              {/* The Graph Layer */}
-              <div className="flex-1 relative z-10 min-h-[220px]">
-                <svg className="w-full h-full" viewBox="0 0 600 240" preserveAspectRatio="none">
-                  {/* Gradients definitions */}
-                  <defs>
-                    {currentTimelineData.projects.map(p => (
-                      <linearGradient key={`grad-${p.name}`} id={`grad-${p.name.replace(/\s+/g, '')}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={p.color} stopOpacity="0.25" />
-                        <stop offset="100%" stopColor={p.color} stopOpacity="0.0" />
-                      </linearGradient>
-                    ))}
-                  </defs>
-
-                  {/* Render Curves */}
-                  {currentTimelineData.projects.map(p => {
-                    const isDimmed = selectedProject !== 'All' && selectedProject !== p.name;
-                    return (
-                      <g key={p.name} className="transition-all duration-500" style={{ opacity: isDimmed ? 0.15 : 1.0 }}>
-                        {/* Area Fill path */}
-                        <path
-                          d={getSvgAreaPath(p.data, 600, 240)}
-                          fill={`url(#grad-${p.name.replace(/\s+/g, '')})`}
-                        />
-                        {/* Line path */}
-                        <path
-                          d={getSvgPath(p.data, 600, 240)}
-                          fill="none"
-                          stroke={p.color}
-                          strokeWidth={selectedProject === p.name ? '3.5' : '2'}
-                          strokeLinecap="round"
-                          style={{ filter: `drop-shadow(0 0 4px ${p.color}50)` }}
-                        />
-                        {/* Data Points */}
-                        {p.data.map((val, idx) => {
-                          const paddingX = 40;
-                          const paddingY = 20;
-                          const chartWidth = 600 - paddingX * 2;
-                          const chartHeight = 240 - paddingY * 2;
-                          const cx = paddingX + (idx / (p.data.length - 1)) * chartWidth;
-                          const cy = paddingY + chartHeight - (val / 100) * chartHeight;
-                          return (
-                            <circle
-                              key={idx}
-                              cx={cx}
-                              cy={cy}
-                              r={selectedProject === p.name ? '4.5' : '3'}
-                              fill="#1c222b"
-                              stroke={p.color}
-                              strokeWidth={selectedProject === p.name ? '2.5' : '1.5'}
-                            />
-                          );
-                        })}
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-
-              {/* Weeks Labels Row */}
-              <div className="flex justify-between px-10 pt-3 border-t border-white/5 mt-2 text-white/30 font-mono text-[9px] uppercase tracking-widest relative z-10">
-                {currentTimelineData.weeks.map(w => (
-                  <span key={w}>{w}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* Side Details Panel: Live Projects Listing */}
-            <div className="w-full lg:w-80 bg-black/25 border border-white/6 rounded-2xl p-5 flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-widest border-b border-white/5 pb-2 mb-4">
-                  Active Sprint Goals
-                </h4>
-                <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                  {projects.length === 0 ? (
-                    // Mock Projects display if API returns empty
-                    fallbackTimelineData.projects.map(p => (
-                      <div key={p.name} className="space-y-1.5">
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-white/70">{p.name}</span>
-                          <span className="font-mono font-bold" style={{ color: p.color }}>{p.data[p.data.length - 1]}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-1000"
-                            style={{ width: `${p.data[p.data.length - 1]}%`, backgroundColor: p.color }}
-                          />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    projects.map(project => {
-                      const colorMap = {
-                        'COMPLETED': '#10b981',
-                        'LIVE': '#00b4d8',
-                        'PENDING_SRS': '#f59e0b',
-                        'DRAFT': '#94a3b8'
-                      };
-                      const color = colorMap[project.status] || '#a0aec0';
-                      return (
-                        <div key={project.id} className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="font-bold text-white/75 truncate pr-2">{project.name}</span>
-                            <span className="font-mono font-bold" style={{ color }}>{project.progress}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-1000"
-                              style={{ width: `${project.progress}%`, backgroundColor: color }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                  
+                  {/* Progress bar */}
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[#00b4d8] to-blue-500 rounded-full transition-all duration-1000"
+                      style={{ width: `${project.progress}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-[10px] text-white/40 font-bold uppercase tracking-wider">
+                    <span>Status: <span className="text-[#00b4d8]">{project.status}</span></span>
+                    <span>Deadline: <span className="text-white/60">{project.deadline}</span></span>
+                  </div>
                 </div>
-              </div>
-
-              {/* Progress Summary Metric */}
-              <div className="mt-4 pt-4 border-t border-white/5">
-                <div className="flex justify-between items-center text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5">
-                  <span>Sprint Velocity</span>
-                  <span className="text-[#00b4d8] font-mono">Good</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <span className="text-2xl font-black text-white">82%</span>
-                  <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-0.5 mb-1">
-                    ↑ 4.2% <span className="text-white/20">vs prev week</span>
-                  </span>
-                </div>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </motion.div>
@@ -414,36 +182,225 @@ const AdminDashboard = ({ user }) => {
 // DEVELOPER DASHBOARD
 // ==========================================
 const DeveloperDashboard = ({ user }) => {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitTask, setSubmitTask] = useState(null);
+  const [urls, setUrls] = useState({ url: '', demo: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const allTasks = await tasksAPI.getAll(null, user.id);
+      setTasks(allTasks);
+    } catch (e) {
+      console.error("Failed to load developer tasks", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, [user.id]);
+
+  const handleStartTask = async (taskId) => {
+    try {
+      await tasksAPI.updateStatus(taskId, 'IN_PROGRESS');
+      fetchTasks();
+    } catch (e) {
+      alert("Failed to start task");
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!urls.url) return;
+    setIsSubmitting(true);
+    try {
+      await tasksAPI.submit(submitTask.id, {
+        submission_url: urls.url,
+        submission_demo_url: urls.demo || null
+      });
+      setSubmitTask(null);
+      setUrls({ url: '', demo: '' });
+      fetchTasks();
+    } catch (e) {
+      alert("Failed to submit task");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Metrics calculations
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.status === 'COMPLETED').length;
+  const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS').length;
+  const pendingVerify = tasks.filter(t => t.status === 'PENDING_VERIFICATION').length;
+  const pending = tasks.filter(t => t.status === 'PENDING').length;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
   return (
-    <motion.div className="space-y-10" variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl font-black text-white">Developer Portal</h1>
-        <p className="text-white/50 mt-2">Welcome back, {user?.full_name || 'Developer'}. Here is your workspace overview.</p>
+    <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#00b4d8]/10 border border-[#00b4d8]/20 rounded-full mb-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00b4d8] animate-pulse"></div>
+            <span className="text-[#00b4d8] text-[9px] uppercase tracking-widest font-bold">Developer Workspace</span>
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Developer CommandCenter</h1>
+          <p className="text-white/40 mt-1 text-xs">
+            Welcome back, <span className="text-white font-bold">{user.name}</span>. Implement code and sync outputs.
+          </p>
+        </div>
+        <div className="bg-[#1c222b] border border-white/5 px-5 py-3 rounded-2xl flex items-center gap-4">
+          <div className="text-right">
+            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block">Performance Score</span>
+            <span className="text-lg font-black text-[#00b4d8] font-mono">{user.performance_score || 0} PTS</span>
+          </div>
+          <Zap className="w-6 h-6 text-[#00b4d8] animate-bounce" />
+        </div>
       </motion.div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         <Link to="/dashboard/tasks">
-           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 hover:bg-white/5 transition-all cursor-pointer">
-              <CheckSquare className="w-6 h-6 text-blue-400 mb-4" />
-              <h3 className="text-white/40 font-bold text-[10px] uppercase tracking-widest mb-1">My Active Tasks</h3>
-              <p className="text-4xl font-black text-white">4</p>
-           </div>
-         </Link>
-         
-         <Link to="/dashboard/projects">
-           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 hover:bg-white/5 transition-all cursor-pointer">
-              <FolderKanban className="w-6 h-6 text-sky-400 mb-4" />
-              <h3 className="text-white/40 font-bold text-[10px] uppercase tracking-widest mb-1">My Projects</h3>
-              <p className="text-4xl font-black text-white">2</p>
-           </div>
-         </Link>
-         
-         <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 hover:bg-white/5 transition-all cursor-pointer">
-            <Clock className="w-6 h-6 text-sky-400 mb-4" />
-            <h3 className="text-white/40 font-bold text-[10px] uppercase tracking-widest mb-1">Hours Tracked</h3>
-            <p className="text-4xl font-black text-white">32h</p>
-         </div>
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Tasks', value: total, icon: FolderKanban, color: 'text-blue-400' },
+          { label: 'In Progress', value: inProgress, icon: Clock, color: 'text-amber-400' },
+          { label: 'Awaiting Verify', value: pendingVerify, icon: Zap, color: 'text-cyan-400' },
+          { label: 'Completed Rate', value: `${completionRate}%`, icon: CheckCircle2, color: 'text-emerald-400' }
+        ].map((m, idx) => (
+          <motion.div key={idx} variants={itemVariants} className="bg-[#1c222b] border border-white/5 p-5 rounded-2xl">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-white/40 text-[9px] font-bold uppercase tracking-wider">{m.label}</span>
+              <m.icon className={`w-4 h-4 ${m.color}`} />
+            </div>
+            <span className="text-2xl font-black text-white">{m.value}</span>
+          </motion.div>
+        ))}
       </div>
+
+      {/* Tasks Section */}
+      <motion.div variants={itemVariants} className="bg-[#1c222b] border border-white/5 rounded-3xl p-6">
+        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-[#00b4d8]" /> My Task Desk
+        </h3>
+
+        {loading ? (
+          <div className="text-center py-8 text-white/40 text-xs font-mono">Syncing with task repository...</div>
+        ) : tasks.length === 0 ? (
+          <div className="text-center py-8 text-white/40 text-xs font-mono">No tasks assigned to you. Enjoy the downtime!</div>
+        ) : (
+          <div className="space-y-4">
+            {tasks.map(task => (
+              <div key={task.id} className="bg-black/25 border border-white/5 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors hover:border-[#00b4d8]/20">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[8px] font-bold text-white/50 uppercase tracking-widest">{task.phase_name || 'Planning'}</span>
+                    {task.rejection_remarks && (
+                      <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded text-[8px] font-bold text-rose-400 uppercase tracking-widest flex items-center gap-1">
+                        <AlertCircle className="w-2.5 h-2.5" /> Re-submission Required
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-sm font-bold text-white uppercase truncate">{task.title}</h4>
+                  <p className="text-xs text-white/40 line-clamp-2">{task.description || 'No description provided.'}</p>
+                  {task.due_date && <p className="text-[10px] text-white/30 font-bold uppercase">Due Date: {task.due_date}</p>}
+                  {task.rejection_remarks && (
+                    <div className="text-[10px] bg-rose-950/20 border border-rose-900/30 p-2.5 rounded-lg text-rose-300 font-mono mt-2">
+                      <strong>Rejection Reason:</strong> {task.rejection_remarks}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+                  {task.status === 'PENDING' && (
+                    <button 
+                      onClick={() => handleStartTask(task.id)}
+                      className="px-4 py-2 bg-[#00b4d8]/10 hover:bg-[#00b4d8]/20 border border-[#00b4d8]/30 rounded-xl text-[10px] font-black uppercase tracking-wider text-[#00b4d8]"
+                    >
+                      Start Task
+                    </button>
+                  )}
+                  {task.status === 'IN_PROGRESS' && (
+                    <button 
+                      onClick={() => setSubmitTask(task)}
+                      className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider text-emerald-400"
+                    >
+                      Submit Code
+                    </button>
+                  )}
+                  {task.status === 'PENDING_VERIFICATION' && (
+                    <span className="px-3 py-1.5 bg-cyan-500/5 border border-cyan-500/20 rounded-xl text-[9px] font-bold text-cyan-400 uppercase tracking-widest">
+                      Awaiting Mentor
+                    </span>
+                  )}
+                  {task.status === 'COMPLETED' && (
+                    <span className="px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-[9px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Task Submission Overlay Dialog */}
+      {submitTask && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-6 z-50">
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#1c222b] border border-white/10 rounded-[2rem] p-8 w-full max-w-lg space-y-6 shadow-2xl">
+            <div>
+              <span className="text-[9px] uppercase font-bold text-white/30 tracking-widest">Workspace Handshake</span>
+              <h3 className="text-lg font-black text-white uppercase mt-1">Submit Task Output</h3>
+              <p className="text-xs text-white/40 mt-1">Deliver production link & demonstration resources for: <strong>{submitTask.title}</strong></p>
+            </div>
+            
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">GitHub PR/Submission Link *</label>
+                <input 
+                  type="url" 
+                  required
+                  placeholder="https://github.com/..."
+                  value={urls.url}
+                  onChange={e => setUrls({ ...urls, url: e.target.value })}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00b4d8]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Hosted Demo URL (Optional)</label>
+                <input 
+                  type="url"
+                  placeholder="https://sdc-portal.com"
+                  value={urls.demo}
+                  onChange={e => setUrls({ ...urls, demo: e.target.value })}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00b4d8]"
+                />
+              </div>
+              
+              <div className="flex gap-3 justify-end pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setSubmitTask(null)}
+                  className="px-4 py-2 border border-white/5 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-wider rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-emerald-500 text-black hover:bg-emerald-400 font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Transmitting...' : 'Transmit Link'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -452,30 +409,249 @@ const DeveloperDashboard = ({ user }) => {
 // MENTOR DASHBOARD
 // ==========================================
 const MentorDashboard = ({ user }) => {
-  return (
-    <motion.div className="space-y-10" variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl font-black text-white">Mentor Hub</h1>
-        <p className="text-white/50 mt-2">Welcome back, {user?.full_name || 'Mentor'}. Overview of your assigned teams.</p>
-      </motion.div>
+  const [teams, setTeams] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [pendingTasks, setPendingTasks] = useState([]);
+  const [reviewTask, setReviewTask] = useState(null);
+  const [decision, setDecision] = useState(''); // VERIFY | REJECT
+  const [remarks, setRemarks] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const fetchMentorData = async () => {
+    setLoading(true);
+    try {
+      // 1. Get all teams and projects
+      const [allTeams, allProjects] = await Promise.all([
+        teamsAPI.getAll().catch(() => []),
+        projectsAPI.getAll().catch(() => [])
+      ]);
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-         <Link to="/dashboard/team">
-           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 hover:bg-white/5 transition-all cursor-pointer">
-              <Users className="w-6 h-6 text-sky-400 mb-4" />
-              <h3 className="text-white/40 font-bold text-[10px] uppercase tracking-widest mb-1">Mentoblue Teams</h3>
-              <p className="text-4xl font-black text-white">3</p>
-           </div>
-         </Link>
-         
-         <Link to="/dashboard/projects">
-           <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 hover:bg-white/5 transition-all cursor-pointer">
-              <Activity className="w-6 h-6 text-cyan-400 mb-4" />
-              <h3 className="text-white/40 font-bold text-[10px] uppercase tracking-widest mb-1">Pending Reviews</h3>
-              <p className="text-4xl font-black text-white">7</p>
-           </div>
-         </Link>
+      // Filter teams where this user is assigned as mentor
+      const mentoredTeams = [];
+      for (const t of allTeams) {
+        const members = await teamsAPI.getMembers(t.id).catch(() => []);
+        const hasMentor = members.some(m => m.user_id === user.id && m.designation === 'mentor');
+        if (hasMentor) {
+          mentoredTeams.push(t);
+        }
+      }
+      setTeams(mentoredTeams);
+      
+      const teamIds = mentoredTeams.map(t => t.id);
+      const supervisedProjects = allProjects.filter(p => teamIds.includes(p.team_id));
+      setProjects(supervisedProjects);
+      
+      // 2. Fetch tasks awaiting review
+      const allTasks = await tasksAPI.getAll().catch(() => []);
+      const projIds = supervisedProjects.map(p => p.id);
+      const reviews = allTasks.filter(t => t.status === 'PENDING_VERIFICATION' && projIds.includes(t.project_id));
+      
+      // Enrich review tasks with developer names
+      const allUsers = await usersAPI.getAll().catch(() => []);
+      const enrichedReviews = reviews.map(t => {
+        const dev = allUsers.find(u => u.id === t.assigned_to);
+        return {
+          ...t,
+          developer_name: dev ? dev.name : 'Unknown Developer'
+        };
+      });
+      
+      setPendingTasks(enrichedReviews);
+    } catch (e) {
+      console.error("Failed to load mentor metrics", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMentorData();
+  }, [user.id]);
+
+  const handleVerifySubmit = async (e) => {
+    e.preventDefault();
+    if (!decision) return;
+    setSubmittingReview(true);
+    try {
+      await tasksAPI.verify(reviewTask.id, {
+        decision: decision,
+        remarks: remarks || null
+      });
+      setReviewTask(null);
+      setDecision('');
+      setRemarks('');
+      fetchMentorData();
+    } catch (e) {
+      alert("Failed to record verification choice");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  return (
+    <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#00b4d8]/10 border border-[#00b4d8]/20 rounded-full mb-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00b4d8] animate-pulse"></div>
+            <span className="text-[#00b4d8] text-[9px] uppercase tracking-widest font-bold">Mentor Operations</span>
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Mentor Workspace</h1>
+          <p className="text-white/40 mt-1 text-xs">
+            Welcome back, <span className="text-white font-bold">{user.name}</span>. Oversee teams and verify task completions.
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <motion.div variants={itemVariants} className="bg-[#1c222b] border border-white/5 p-6 rounded-2xl flex items-center justify-between">
+          <div>
+            <span className="text-white/40 text-[9px] font-bold uppercase tracking-wider block">Supervised Teams</span>
+            <span className="text-3xl font-black text-white">{teams.length}</span>
+          </div>
+          <Users className="w-6 h-6 text-[#00b4d8]" />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-[#1c222b] border border-white/5 p-6 rounded-2xl flex items-center justify-between">
+          <div>
+            <span className="text-white/40 text-[9px] font-bold uppercase tracking-wider block">Assigned Projects</span>
+            <span className="text-3xl font-black text-white">{projects.length}</span>
+          </div>
+          <FolderKanban className="w-6 h-6 text-[#00b4d8]" />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="bg-[#1c222b] border border-white/5 p-6 rounded-2xl flex items-center justify-between">
+          <div>
+            <span className="text-white/40 text-[9px] font-bold uppercase tracking-wider block">Pending Verifications</span>
+            <span className="text-3xl font-black text-white text-[#f59e0b]">{pendingTasks.length}</span>
+          </div>
+          <ShieldAlert className="w-6 h-6 text-[#f59e0b] animate-pulse" />
+        </motion.div>
       </div>
+
+      {/* Review Queue */}
+      <motion.div variants={itemVariants} className="bg-[#1c222b] border border-white/5 rounded-3xl p-6">
+        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-[#f59e0b]" /> Verification Queue
+        </h3>
+
+        {loading ? (
+          <div className="text-center py-8 text-white/40 text-xs font-mono">Syncing review queue...</div>
+        ) : pendingTasks.length === 0 ? (
+          <div className="text-center py-8 text-white/40 text-xs font-mono">No tasks awaiting verification. Outstanding work!</div>
+        ) : (
+          <div className="space-y-4">
+            {pendingTasks.map(task => (
+              <div key={task.id} className="bg-black/25 border border-white/5 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-[#00b4d8]/10 border border-[#00b4d8]/20 rounded text-[8px] font-bold text-[#00b4d8] uppercase tracking-widest">{task.phase_name || 'Planning'}</span>
+                    <span className="text-[10px] text-white/40 font-medium">Assigned to: <strong className="text-white">{task.developer_name}</strong></span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white uppercase truncate">{task.title}</h4>
+                  <p className="text-xs text-white/40 line-clamp-2">{task.description}</p>
+                  
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
+                    {task.submission_url && (
+                      <a href={task.submission_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#00b4d8] hover:underline uppercase">
+                        <ExternalLink className="w-3.5 h-3.5" /> Output Link
+                      </a>
+                    )}
+                    {task.submission_demo_url && (
+                      <a href={task.submission_demo_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#2a9d8f] hover:underline uppercase">
+                        <ExternalLink className="w-3.5 h-3.5" /> Demo Link
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setReviewTask(task)}
+                  className="px-4 py-2 bg-[#f59e0b] hover:bg-[#f59e0b]/80 border border-[#f59e0b]/30 rounded-xl text-[10px] font-black uppercase tracking-wider text-black self-end md:self-center"
+                >
+                  Verify / Reject
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Review Dialog */}
+      {reviewTask && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-6 z-50">
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#1c222b] border border-white/10 rounded-[2rem] p-8 w-full max-w-lg space-y-6 shadow-2xl">
+            <div>
+              <span className="text-[9px] uppercase font-bold text-[#f59e0b] tracking-widest">Verification Dispatch</span>
+              <h3 className="text-lg font-black text-white uppercase mt-1">Review Submission</h3>
+              <p className="text-xs text-white/40 mt-1">Task: <strong>{reviewTask.title}</strong> by <strong>{reviewTask.developer_name}</strong></p>
+            </div>
+            
+            <form onSubmit={handleVerifySubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setDecision('VERIFY')}
+                  className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                    decision === 'VERIFY' 
+                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                      : 'bg-black/20 border-white/5 text-white/40 hover:border-white/10 hover:text-white'
+                  }`}
+                >
+                  <CheckCircle2 className="w-6 h-6" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Verify & Approve</span>
+                </button>
+                
+                <button 
+                  type="button"
+                  onClick={() => setDecision('REJECT')}
+                  className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                    decision === 'REJECT' 
+                      ? 'bg-rose-500/10 border-rose-500 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
+                      : 'bg-black/20 border-white/5 text-white/40 hover:border-white/10 hover:text-white'
+                  }`}
+                >
+                  <XCircle className="w-6 h-6" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Reject Task</span>
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">
+                  Remarks / Feedback {decision === 'REJECT' && '*'}
+                </label>
+                <textarea 
+                  required={decision === 'REJECT'}
+                  placeholder="Provide comments or modification requests here..."
+                  value={remarks}
+                  onChange={e => setRemarks(e.target.value)}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00b4d8] h-24 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setReviewTask(null)}
+                  className="px-4 py-2 border border-white/5 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-wider rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={submittingReview || !decision}
+                  className="px-5 py-2 bg-[#f59e0b] text-black hover:bg-[#f59e0b]/80 font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50"
+                >
+                  {submittingReview ? 'Recording...' : 'Submit Decision'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -490,6 +666,5 @@ export default function DashboardOverview() {
   if (role === 'developer') return <DeveloperDashboard user={user} />;
   if (role === 'mentor') return <MentorDashboard user={user} />;
   
-  // Fallback
   return <div className="text-white p-8">Initializing Dashboard...</div>;
 }

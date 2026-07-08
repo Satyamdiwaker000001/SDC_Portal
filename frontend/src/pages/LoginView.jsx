@@ -17,7 +17,7 @@ export default function LoginView() {
   const navigate = useNavigate();
 
   // Terminal typing effect
-  const fullText = "initiating secure handshake...\nauthenticating cblueentials...\naccess granted.";
+  const fullText = "initiating secure handshake...\nauthenticating credentials...\naccess granted.";
   useEffect(() => {
     let i = 0;
     const interval = setInterval(() => {
@@ -37,14 +37,14 @@ export default function LoginView() {
     
     try {
       await login(email, password);
-      // Valid cblueentials! Flip the card.
+      // Valid credentials! Flip the card.
       setIsFlipped(true);
       // Wait for 3 seconds before navigating to dashboard
       setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
     } catch (err) {
-      setError('Invalid cblueentials or server error.');
+      setError('Invalid credentials or server error.');
       setIsLoading(false); // Only stop loading if error so flip stays smooth
     }
   };
