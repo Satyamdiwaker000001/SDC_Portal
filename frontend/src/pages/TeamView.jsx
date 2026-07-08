@@ -21,8 +21,8 @@ const itemVariants = {
 const calculateAcademicYear = (user) => {
   if (user.isPassout) return "Passout (Alumni)";
   
-  const joiningYear = user.joiningYear || user.admission_year;
-  const joiningClass = user.joiningClass || '1st Year';
+  const joiningYear = user.admission_year;
+  const joiningClass = '1st Year';
   
   if (!joiningYear) return 'N/A';
   
@@ -182,7 +182,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
               <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
                 <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Joined SDC</span>
-                <span className="text-xs font-bold text-white">{user.joiningYear || user.admission_year || 'N/A'}</span>
+                <span className="text-xs font-bold text-white">{user.admission_year && user.admission_year > 0 ? user.admission_year : 'N/A'}</span>
               </div>
 
               <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
@@ -339,7 +339,7 @@ export default function TeamView() {
     if (!editUserData) return;
     setIsSubmittingEdit(true);
     try {
-      const updatedUser = await usersAPI.update(editUserData.id, {
+      const payload = role === 'admin' ? {
         name: editUserData.name,
         role: editUserData.role,
         github_url: editUserData.github_url || null,
@@ -351,7 +351,13 @@ export default function TeamView() {
         tech_stack: typeof editUserData.tech_stack === 'string'
           ? editUserData.tech_stack.split(',').map(s => s.trim()).filter(Boolean)
           : (Array.isArray(editUserData.tech_stack) ? editUserData.tech_stack : [])
-      });
+      } : {
+        github_url: editUserData.github_url || null,
+        linkedin_url: editUserData.linkedin_url || null,
+        profile_image: editUserData.profile_image || null
+      };
+      
+      const updatedUser = await usersAPI.update(editUserData.id, payload);
       setUsers(users.map(u => u.id === updatedUser.id ? { ...updatedUser, isPassout: updatedUser.membership_status === 'alumni' } : u));
       setEditModalOpen(false);
       setEditUserData(null);
@@ -402,7 +408,15 @@ export default function TeamView() {
     e.preventDefault();
     setModalStatus('Adding member...');
     try {
-      const createdUser = await usersAPI.create(newUser);
+      const payload = {
+        name: newUser.name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        admission_year: parseInt(newUser.joiningYear) || 0,
+        branch: "N/A"
+      };
+      const createdUser = await usersAPI.create(payload);
       setUsers([createdUser, ...users]);
       setModalStatus('');
       setIsModalOpen(false);

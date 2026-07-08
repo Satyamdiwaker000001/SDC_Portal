@@ -212,6 +212,8 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedProjects, setCompletedProjects] = useState([]);
   const [dbDevelopers, setDbDevelopers] = useState([]);
+  const [activeDevelopers, setActiveDevelopers] = useState([]);
+  const [alumniDevelopers, setAlumniDevelopers] = useState([]);
   const [dbMentors, setDbMentors] = useState([]);
   const [totalMembers, setTotalMembers] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
@@ -244,15 +246,19 @@ export default function LandingPage() {
           usersAPI.getAll().catch(() => [])
         ]);
         
-        setCompletedProjects(projData.filter(p => p.status === 'COMPLETED' || p.status === 'LIVE'));
+        // Only show projects that have a live hosted URL
+        setCompletedProjects(projData.filter(p => !!p.live_url));
         setTotalProjects(projData.length);
         setIsLive(settingsData?.value === 'true');
         
-        const activeUsers = usersData.filter(u => u.membership_status === 'active' && u.is_active && u.role !== 'admin');
-        setTotalMembers(activeUsers.length);
+        const allDevs = usersData.filter(u => u.role === 'developer' && u.is_active);
+        const activeMembers = usersData.filter(u => u.membership_status === 'active' && u.is_active && u.role !== 'admin');
+        setTotalMembers(activeMembers.length);
         
-        setDbMentors(activeUsers.filter(u => u.role === 'mentor'));
-        setDbDevelopers(activeUsers.filter(u => u.role === 'developer'));
+        setDbMentors(activeMembers.filter(u => u.role === 'mentor'));
+        setDbDevelopers(allDevs); // all devs (for backward compat)
+        setActiveDevelopers(allDevs.filter(d => d.membership_status === 'active'));
+        setAlumniDevelopers(allDevs.filter(d => d.membership_status === 'alumni'));
       } catch (err) {
         console.error("Failed to fetch initial data", err);
       }
@@ -613,32 +619,67 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. Developers (Divisions) */}
+      {/* 4. Developers (Divisions) — Active & Alumni */}
       <section className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
         <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
           <div className="text-center mb-20 flex flex-col items-center">
             <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">The Engine</span>
-            <h2 className="text-5xl font-medium tracking-tight text-center">Lead Developers</h2>
+            <h2 className="text-5xl font-medium tracking-tight text-center">Developers</h2>
           </div>
 
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-            {dbDevelopers.length > 0 ? (
-              dbDevelopers.slice(0, 6).map(dev => (
-                <ProfileCard
-                  key={dev.id}
-                  name={dev.name}
-                  role={dev.role === 'developer' ? 'Lead Developer' : dev.role}
-                  image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
-                  linkedin={dev.linkedin_url || "#"}
-                  github={dev.github_url || "#"}
-                />
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
-                No active developers in roster.
+          {/* Active Developers */}
+          {activeDevelopers.length > 0 && (
+            <>
+              <div className="w-full mb-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Active Developers</span>
+                </div>
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
+                  {activeDevelopers.slice(0, 6).map(dev => (
+                    <ProfileCard
+                      key={dev.id}
+                      name={dev.name}
+                      role={dev.role === 'developer' ? 'Active Developer' : dev.role}
+                      image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                      linkedin={dev.linkedin_url || "#"}
+                      github={dev.github_url || "#"}
+                    />
+                  ))}
+                </motion.div>
               </div>
-            )}
-          </motion.div>
+            </>
+          )}
+
+          {/* Alumni Developers */}
+          {alumniDevelopers.length > 0 && (
+            <>
+              <div className="w-full mt-12 pt-12 border-t border-white/5">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-2.5 h-2.5 rounded-full bg-cyan-400/50" />
+                  <span className="text-sm font-bold text-cyan-400/70 uppercase tracking-widest">Passout Developers (Alumni)</span>
+                </div>
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
+                  {alumniDevelopers.slice(0, 6).map(dev => (
+                    <ProfileCard
+                      key={dev.id}
+                      name={dev.name}
+                      role="SDC Alumni"
+                      image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                      linkedin={dev.linkedin_url || "#"}
+                      github={dev.github_url || "#"}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            </>
+          )}
+
+          {activeDevelopers.length === 0 && alumniDevelopers.length === 0 && (
+            <div className="col-span-3 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
+              No developers in roster yet.
+            </div>
+          )}
         </div>
       </section>
 

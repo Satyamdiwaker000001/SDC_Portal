@@ -79,20 +79,21 @@ function NoticeCard({ notice, onTogglePin, onDelete, onOpen, currentRole }) {
           <PushPin color={cfg.pinColor} isPinned={notice.pinned} onClick={() => onTogglePin(notice)} />
         )}
 
+        {currentRole === 'admin' && onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(notice.id); }}
+            className="absolute top-4 right-12 z-20 cursor-pointer transition-all p-1.5 rounded-full hover:bg-white/10 text-red-400 hover:text-red-300 hover:scale-110 opacity-40 hover:opacity-100"
+            title="Delete"
+          >
+            <Trash className="w-4 h-4" />
+          </button>
+        )}
+
         <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between relative z-10 bg-white/[0.02]">
           <div className="flex items-center gap-2">
             <cfg.icon className={`w-4 h-4 ${cfg.textColor}`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${cfg.textColor}`}>{notice.priority}</span>
           </div>
-          {currentRole === 'admin' && onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(notice.id); }}
-              className="mr-8 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-red-500/20 text-red-400 hover:text-red-300"
-              title="Delete"
-            >
-              <Trash className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
 
         <div className="p-6 flex-1 flex flex-col relative z-10">
@@ -347,11 +348,12 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
 }
 
 export default function NoticesView() {
-  const { role } = useAuth();
+  const { role, user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('notices'); // 'notices' or 'announcements'
   const [notices, setNotices] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [userTeams, setUserTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [openNotice, setOpenNotice] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -373,6 +375,15 @@ export default function NoticesView() {
           if (!a.pinned && b.pinned) return 1;
           return new Date(b.timestamp) - new Date(a.timestamp);
         });
+        
+        const memberships = await Promise.all(
+          tData.map(t => 
+            teamsAPI.getMembers(t.id)
+              .then(members => ({ teamId: t.id, members }))
+              .catch(() => ({ teamId: t.id, members: [] }))
+          )
+        );
+        setUserTeams(memberships);
         setNotices(sorted);
         setTeams(tData);
       } else {
@@ -381,6 +392,15 @@ export default function NoticesView() {
           teamsAPI.getAll().catch(() => [])
         ]);
         const sorted = aData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        const memberships = await Promise.all(
+          tData.map(t => 
+            teamsAPI.getMembers(t.id)
+              .then(members => ({ teamId: t.id, members }))
+              .catch(() => ({ teamId: t.id, members: [] }))
+          )
+        );
+        setUserTeams(memberships);
         setAnnouncements(sorted);
         setTeams(tData);
       }
@@ -448,8 +468,22 @@ export default function NoticesView() {
     }
   };
 
+  const myTeamIds = React.useMemo(() => {
+    if (role === 'admin') return [];
+    return userTeams.filter(ut => ut.members.some(m => m.user_id === currentUser?.id)).map(ut => ut.teamId);
+  }, [userTeams, currentUser, role]);
+
   const showCreateButton = activeTab === 'notices' ? (role === 'admin') : (role === 'admin' || role === 'mentor');
-  const currentList = activeTab === 'notices' ? notices : announcements;
+  const currentList = React.useMemo(() => {
+    let list = activeTab === 'notices' ? notices : announcements;
+    if (role !== 'admin') {
+      list = list.filter(item => 
+        item.is_global || 
+        (item.team_ids && item.team_ids.some(tid => myTeamIds.includes(tid)))
+      );
+    }
+    return list;
+  }, [activeTab, notices, announcements, role, myTeamIds]);
 
   return (
     <motion.div 

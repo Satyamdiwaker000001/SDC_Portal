@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { applicationsAPI, settingsAPI } from '../api/services';
-import { Check, X, Briefcase, ShieldAlert, Phone, Mail, FileText, Search, Power, Download } from 'lucide-react';
+import { Check, X, Briefcase, ShieldAlert, Phone, Mail, FileText, Search, Power, Download, Trash } from 'lucide-react';
 
 const STATUS_COLORS = {
   'PENDING':    'bg-amber-500/10 text-amber-400 border-amber-500/25',
@@ -315,6 +315,22 @@ export default function RecruitmentView() {
                       <option value="ACCEPTED"   className="bg-[#1c222b] text-white normal-case">✅ Accept</option>
                       <option value="REJECTED"   className="bg-[#1c222b] text-white normal-case">❌ Reject</option>
                     </select>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm("Are you sure you want to delete this application?")) {
+                          try {
+                            await applicationsAPI.delete(app.id);
+                            setApplications(prev => prev.filter(a => a.id !== app.id));
+                          } catch {
+                            alert("Failed to delete application");
+                          }
+                        }
+                      }}
+                      className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                      title="Delete Application"
+                    >
+                      <Trash className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </motion.div>
               ))}
