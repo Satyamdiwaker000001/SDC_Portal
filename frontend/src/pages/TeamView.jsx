@@ -473,17 +473,17 @@ export default function TeamView() {
         </div>
         
         {role === 'admin' && (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <button 
               onClick={() => setIsBulkModalOpen(true)}
-              className="bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shrink-0"
+              className="bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
               Bulk Upload
             </button>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-[#00b4d8] hover:bg-[#00c8f0] text-[#020617] px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] flex items-center gap-2 shrink-0"
+              className="bg-[#00b4d8] hover:bg-[#00c8f0] text-[#020617] px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Add Member
