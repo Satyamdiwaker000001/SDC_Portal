@@ -285,6 +285,14 @@ export default function LandingPage() {
     }
   };
 
+  const handleApplyNowClick = () => {
+    setIsFormOpen(true);
+    const element = document.getElementById('application-section');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll);
@@ -433,7 +441,7 @@ export default function LandingPage() {
                 <span className="text-emerald-400 font-bold text-sm tracking-wide uppercase">Recruitment Live:</span>
               </div>
               <span className="text-white text-sm font-medium">Accepting applications for <strong className="text-emerald-300">{recruitmentTarget}</strong></span>
-              <button onClick={() => setIsFormOpen(true)} className="sm:ml-auto bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors mt-2 sm:mt-0">Apply Now</button>
+              <button onClick={handleApplyNowClick} className="sm:ml-auto bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors mt-2 sm:mt-0">Apply Now</button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -920,7 +928,7 @@ export default function LandingPage() {
         )}
       </AnimatePresence>
 
-      <section className="py-20 md:py-40 px-5 lg:px-24 relative flex justify-center">
+      <section id="application-section" className="py-20 md:py-40 px-5 lg:px-24 relative flex justify-center">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-[600px] h-[600px] bg-[#00b4d8] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
 
         {/* ===== DESKTOP: Original slide-out animation ===== */}
