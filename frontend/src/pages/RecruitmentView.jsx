@@ -216,8 +216,8 @@ export default function RecruitmentView() {
       {/* Applications List */}
       <div className="flex-1 bg-[#1c222b] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
         
-        {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-8 py-5 border-b border-white/5 text-[10px] font-black text-white/30 uppercase tracking-widest bg-black/20">
+        {/* Table Header — hidden on mobile, shown on md+ */}
+        <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 border-b border-white/5 text-[10px] font-black text-white/30 uppercase tracking-widest bg-black/20">
           <div className="col-span-3">Candidate Identity</div>
           <div className="col-span-3">Contact Details</div>
           <div className="col-span-2">Specialization</div>
@@ -241,7 +241,7 @@ export default function RecruitmentView() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05, ease: "easeOut" }}
                   key={app.id}
-                  className="grid grid-cols-12 gap-4 px-6 py-4 items-center bg-white/[0.02] hover:bg-white/[0.04] transition-all border border-white/5 hover:border-white/10 rounded-2xl group"
+                  className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center bg-white/[0.02] hover:bg-white/[0.04] transition-all border border-white/5 hover:border-white/10 rounded-2xl group"
                 >
                   {/* Candidate Identity */}
                   <div className="col-span-3 flex items-center gap-4 pr-4">
