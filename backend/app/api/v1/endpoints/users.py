@@ -266,3 +266,78 @@ async def bulk_upload_users(
         "skipped": skipped_count,
         "limit_reached": row_count > max_limit
     }
+
+@router.patch("/{id}/membership", response_model=UserOut)
+def toggle_user_membership(
+    id: str,
+    is_retired: bool,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    user = db.get(User, id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.is_retired = is_retired
+    if is_retired:
+        from ....models.models import TeamMember
+        team_members = db.exec(select(TeamMember).where(TeamMember.user_id == id)).all()
+        for tm in team_members:
+            db.delete(tm)
+            
+    db.add(user)
+    
+    from ....models.models import ActivityLog
+    import uuid
+    db.add(ActivityLog(
+        id=str(uuid.uuid4()),
+        user_id=current_admin.id,
+        entity_type="user",
+        entity_id=id,
+        action=f"ALUMNI_CONVERSION_MANUAL: is_retired={is_retired}",
+        is_audit=True,
+        created_at=datetime.utcnow()
+    ))
+    
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.post("/alumni/auto-convert")
+def run_automatic_alumni_conversion(
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    current_year = datetime.utcnow().year
+    developers = db.exec(
+        select(User)
+        .where(User.role == "developer")
+        .where(User.is_retired == False)
+        .where(User.passout_year <= current_year)
+    ).all()
+    
+    converted_count = 0
+    from ....models.models import TeamMember, ActivityLog
+    import uuid
+    
+    for dev in developers:
+        dev.is_retired = True
+        db.add(dev)
+        team_members = db.exec(select(TeamMember).where(TeamMember.user_id == dev.id)).all()
+        for tm in team_members:
+            db.delete(tm)
+        converted_count += 1
+        
+        db.add(ActivityLog(
+            id=str(uuid.uuid4()),
+            user_id="SYSTEM",
+            entity_type="user",
+            entity_id=dev.id,
+            action="ALUMNI_CONVERSION_AUTO: transitioned to alumni",
+            is_audit=True,
+            created_at=datetime.utcnow()
+        ))
+        
+    db.commit()
+    return {"status": "SUCCESS", "converted_count": converted_count}
+

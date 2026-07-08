@@ -36,6 +36,14 @@ export const usersAPI = {
   update: async (id, userData) => {
     const { data } = await client.patch(`/users/${id}`, userData);
     return data;
+  },
+  toggleMembership: async (id, isRetired) => {
+    const { data } = await client.patch(`/users/${id}/membership?is_retired=${isRetired}`);
+    return data;
+  },
+  runAutoConvert: async () => {
+    const { data } = await client.post('/users/alumni/auto-convert');
+    return data;
   }
 };
 
@@ -90,13 +98,38 @@ export const projectsAPI = {
   delete: async (id) => {
     const { data } = await client.delete(`/projects/${id}`);
     return data;
+  },
+  getPhases: async (id) => {
+    const { data } = await client.get(`/projects/${id}/phases`);
+    return data;
+  },
+  unlockPhase: async (id, phaseId) => {
+    const { data } = await client.patch(`/projects/${id}/phases/${phaseId}/unlock`);
+    return data;
+  },
+  getDocuments: async (id) => {
+    const { data } = await client.get(`/projects/${id}/documents`);
+    return data;
+  },
+  uploadDocument: async (id, docId, formData) => {
+    const { data } = await client.post(`/projects/${id}/documents/${docId}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data;
   }
 };
 
 export const tasksAPI = {
-  getAll: async (projectId = null) => {
+  getAll: async (projectId = null, assignedTo = null, status = null) => {
+    let params = [];
+    if (projectId) params.push(`project_id=${projectId}`);
+    if (assignedTo) params.push(`assigned_to=${assignedTo}`);
+    if (status) params.push(`status=${status}`);
+    
     let url = '/tasks/';
-    if (projectId) url += `?project_id=${projectId}`;
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
     const { data } = await client.get(url);
     return data;
   },
@@ -106,6 +139,14 @@ export const tasksAPI = {
   },
   updateStatus: async (id, status) => {
     const { data } = await client.patch(`/tasks/${id}/status?status=${status}`);
+    return data;
+  },
+  submit: async (id, submissionData) => {
+    const { data } = await client.post(`/tasks/${id}/submit`, submissionData);
+    return data;
+  },
+  verify: async (id, verificationData) => {
+    const { data } = await client.post(`/tasks/${id}/verify`, verificationData);
     return data;
   }
 };
@@ -120,7 +161,7 @@ export const applicationsAPI = {
     return data;
   },
   updateStatus: async (id, status) => {
-    const { data } = await client.patch(`/applications/${id}/status?status=${status}`);
+    const { data } = await client.patch(`/applications/${id}/status?status_update=${status}`);
     return data;
   }
 };
@@ -160,6 +201,24 @@ export const settingsAPI = {
   },
   update: async (key, value) => {
     const { data } = await client.patch(`/settings/${key}?value=${value}`);
+    return data;
+  }
+};
+
+export const leaderboardsAPI = {
+  getDevelopers: async () => {
+    const { data } = await client.get('/leaderboards/developers');
+    return data;
+  },
+  getTeams: async () => {
+    const { data } = await client.get('/leaderboards/teams');
+    return data;
+  }
+};
+
+export const auditAPI = {
+  getLogs: async () => {
+    const { data } = await client.get('/audit/logs');
     return data;
   }
 };
