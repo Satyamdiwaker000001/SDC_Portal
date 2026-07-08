@@ -252,7 +252,12 @@ export default function LandingPage() {
         setCompletedProjects(projData.filter(p => !!p.live_url));
         setTotalProjects(projData.length);
         setIsLive(settingsData?.value === 'true');
-        setRecruitmentTarget(settingsTargetData?.value || "All Roles");
+        
+        let targetValue = settingsTargetData?.value;
+        if (!targetValue || targetValue === 'false' || targetValue === 'null') {
+            targetValue = "All Roles";
+        }
+        setRecruitmentTarget(targetValue);
         
         const allDevs = usersData.filter(u => u.role === 'developer' && u.is_active);
         const activeMembers = usersData.filter(u => u.membership_status === 'active' && u.is_active && u.role !== 'admin');
@@ -308,7 +313,7 @@ export default function LandingPage() {
     }
   };
   return (
-    <div className="bg-[#020617] w-full min-h-screen font-sans text-white selection:bg-[#0066ff] selection:text-white">
+    <div className="bg-[#020617] w-full min-h-screen overflow-x-hidden font-sans text-white selection:bg-[#0066ff] selection:text-white">
 
       {/* ===== NAVBAR ===== */}
       <nav className={`fixed w-full z-50 transition-all duration-500 flex flex-col items-center ${scrolled ? 'top-3' : 'top-4'}`}>
