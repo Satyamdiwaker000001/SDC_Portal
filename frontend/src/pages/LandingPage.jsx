@@ -300,23 +300,23 @@ export default function LandingPage() {
     <div className="bg-[#020617] w-full min-h-screen font-sans text-white selection:bg-[#0066ff] selection:text-white">
 
       {/* ===== NAVBAR ===== */}
-      <nav className={`fixed w-full z-50 transition-all duration-500 flex justify-center ${scrolled ? 'top-3' : 'top-6'
-        }`}>
-        <div className={`w-[95%] max-w-7xl px-4 lg:px-6 py-2.5 grid grid-cols-3 items-center rounded-full border transition-all duration-500 ${scrolled
-            ? 'bg-[#020617]/70 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
-            : 'bg-[#020617]/30 backdrop-blur-md border-white/5 shadow-lg'
+      <nav className={`fixed w-full z-50 transition-all duration-500 flex flex-col items-center ${scrolled ? 'top-3' : 'top-4'}`}>
+        {/* Main bar */}
+        <div className={`w-[95%] max-w-7xl px-4 lg:px-6 py-3 flex items-center justify-between rounded-2xl md:rounded-full border transition-all duration-500 ${scrolled
+            ? 'bg-[#020617]/80 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
+            : 'bg-[#020617]/40 backdrop-blur-md border-white/5 shadow-lg'
           }`}>
 
-          {/* LEFT: Logo only — no text */}
+          {/* LEFT: Logo */}
           <motion.div
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}
-            className="flex items-center cursor-pointer"
+            className="flex items-center cursor-pointer shrink-0"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <img src={sdcLogo} alt="SDC Logo" className="h-10 w-auto object-contain ml-2" />
+            <img src={sdcLogo} alt="SDC Logo" className="h-9 md:h-10 w-auto object-contain" />
           </motion.div>
 
-          {/* CENTER: Nav Links */}
+          {/* CENTER: Nav Links — desktop only */}
           <motion.div
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }}
             className="hidden md:flex items-center justify-center gap-1"
@@ -337,8 +337,9 @@ export default function LandingPage() {
           {/* RIGHT: CTA + Mobile toggle */}
           <motion.div
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex items-center justify-end gap-4"
+            className="flex items-center gap-3"
           >
+            {/* Desktop login CTA */}
             <button
               onClick={() => navigate('/login')}
               className="hidden md:flex items-center gap-2 relative group px-5 py-2 rounded-full bg-white/[0.05] border border-white/10 hover:border-[#00b4d8]/50 hover:bg-[#00b4d8]/10 transition-all duration-300 overflow-hidden"
@@ -352,34 +353,56 @@ export default function LandingPage() {
               </svg>
             </button>
 
+            {/* Mobile: login button (compact) */}
+            <button
+              onClick={() => navigate('/login')}
+              className="md:hidden px-4 py-2 rounded-full bg-[#00b4d8]/10 border border-[#00b4d8]/30 text-[#00b4d8] text-xs font-bold tracking-wider"
+            >
+              Login
+            </button>
+
             {/* Mobile hamburger */}
-            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden flex flex-col gap-1.5 p-2">
-              <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? 'opacity-0' : ''}`} />
-              <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="md:hidden flex flex-col gap-[5px] p-2 rounded-xl hover:bg-white/5 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <span className={`block w-5 h-[2px] bg-white rounded-full transition-all duration-300 origin-center ${menuOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
+              <span className={`block w-5 h-[2px] bg-white rounded-full transition-all duration-300 ${menuOpen ? 'opacity-0 scale-x-0' : ''}`} />
+              <span className={`block w-5 h-[2px] bg-white rounded-full transition-all duration-300 origin-center ${menuOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
             </button>
           </motion.div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Dropdown Menu */}
         <AnimatePresence>
           {menuOpen && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden bg-[#020617]/95 backdrop-blur-xl border-t border-white/5 overflow-hidden"
+              initial={{ opacity: 0, y: -10, scaleY: 0.95 }}
+              animate={{ opacity: 1, y: 0, scaleY: 1 }}
+              exit={{ opacity: 0, y: -10, scaleY: 0.95 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              style={{ originY: 0 }}
+              className="md:hidden w-[95%] max-w-7xl mt-2 bg-[#0a1020]/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
             >
-              <div className="px-8 py-6 flex flex-col gap-4">
+              <div className="p-4 flex flex-col gap-1">
                 {navLinks.map(link => (
-                  <button key={link} onClick={() => setMenuOpen(false)}
-                    className="text-white/70 text-sm font-medium hover:text-[#00b4d8] transition-colors text-left">
+                  <button
+                    key={link}
+                    onClick={() => { handleNavClick(link); setMenuOpen(false); }}
+                    className="text-white/70 text-sm font-medium hover:text-white hover:bg-white/5 transition-all text-left px-4 py-3 rounded-xl"
+                  >
                     {link}
                   </button>
                 ))}
-                <button onClick={() => navigate('/login')}
-                  className="bg-[#00b4d8] text-black font-black text-xs uppercase tracking-widest px-6 py-3 w-full mt-2">
-                  Member Login
-                </button>
+                <div className="border-t border-white/5 mt-2 pt-3">
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="w-full bg-gradient-to-r from-[#00b4d8] to-blue-600 text-white font-black text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl hover:shadow-[0_0_20px_rgba(0,180,216,0.4)] transition-all"
+                  >
+                    Member Access →
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -388,7 +411,7 @@ export default function LandingPage() {
 
 
       {/* ======= HERO SECTION ======= */}
-      <section className="relative min-h-[85vh] py-32 w-full flex flex-col items-center justify-center overflow-hidden bg-[#020617] pt-40">
+      <section className="relative min-h-[90vh] w-full flex flex-col items-center justify-center overflow-hidden bg-[#020617] pt-28 pb-16">
 
         {/* Background: Animated Grid & Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -402,9 +425,9 @@ export default function LandingPage() {
                }} 
           />
           {/* Primary Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-gradient-to-r from-[#00b4d8]/20 to-[#0066ff]/20 blur-[120px] rounded-full animate-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vw] max-w-[800px] max-h-[800px] bg-gradient-to-r from-[#00b4d8]/20 to-[#0066ff]/20 blur-[120px] rounded-full animate-pulse" style={{ animationDuration: '4s' }} />
           
-          {/* Floating Tech Symbols */}
+          {/* Floating Tech Symbols — hidden on mobile for cleaner look */}
           {[
             { symbol: '< />', top: '20%', left: '15%', delay: 0 },
             { symbol: '{ }', top: '70%', left: '10%', delay: 1 },
@@ -415,7 +438,7 @@ export default function LandingPage() {
               key={i}
               initial={{ y: 0 }} animate={{ y: [-20, 20, -20] }}
               transition={{ duration: 6, repeat: Infinity, delay: item.delay, ease: "easeInOut" }}
-              className="absolute text-white/10 font-mono font-bold text-4xl select-none"
+              className="hidden md:block absolute text-white/10 font-mono font-bold text-4xl select-none"
               style={{ top: item.top, left: item.left, right: item.right }}
             >
               {item.symbol}
@@ -424,25 +447,26 @@ export default function LandingPage() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-4xl mx-auto w-full">
+        <div className="relative z-10 flex flex-col items-center text-center px-5 max-w-4xl mx-auto w-full">
 
           {/* Pill badge */}
           <motion.div
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }}
-            className="inline-flex items-center gap-2.5 border border-[#00b4d8]/30 bg-[#00b4d8]/10 px-4 py-1.5 rounded-full mb-6"
+            className="inline-flex items-center gap-2 border border-[#00b4d8]/30 bg-[#00b4d8]/10 px-3 py-1.5 rounded-full mb-6 max-w-full"
           >
-            <span className="w-2 h-2 rounded-full bg-[#00b4d8] animate-pulse" />
-            <span className="text-[#00b4d8] text-[11px] font-semibold uppercase tracking-[0.25em]">Software Development Cell · Est. 2024</span>
+            <span className="w-2 h-2 rounded-full bg-[#00b4d8] animate-pulse shrink-0" />
+            <span className="text-[#00b4d8] text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.15em] sm:tracking-[0.25em] truncate">
+              Software Development Cell · Est. 2024
+            </span>
           </motion.div>
 
-          {/* Main headline — word-by-word reveal */}
+          {/* Main headline */}
           <div className="overflow-hidden mb-1">
             <motion.h1
               initial={{ y: '100%', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.25, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="font-black text-white leading-[1.1] tracking-tight drop-shadow-lg"
-              style={{ fontSize: 'clamp(2rem, 5vw, 4.5rem)' }}
+              className="font-black text-white leading-[1.1] tracking-tight drop-shadow-lg text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
             >
               Smart steps toward
             </motion.h1>
@@ -452,9 +476,8 @@ export default function LandingPage() {
               initial={{ y: '100%', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="font-black leading-[1.1] tracking-tight relative z-10"
+              className="font-black leading-[1.1] tracking-tight relative z-10 text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
               style={{
-                fontSize: 'clamp(2rem, 5vw, 4.5rem)',
                 backgroundImage: 'linear-gradient(to right, #00e5ff, #0066ff, #00b4d8)',
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
@@ -469,7 +492,7 @@ export default function LandingPage() {
           {/* Subheading */}
           <motion.p
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.7 }}
-            className="text-white/50 text-base font-light max-w-xl leading-relaxed mb-8"
+            className="text-white/50 text-sm sm:text-base font-light max-w-xl leading-relaxed mb-8 px-2"
           >
             Empowering students to bridge the gap between academia and industry.
             Join the official technical powerhouse of the institution.
@@ -478,15 +501,15 @@ export default function LandingPage() {
           {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75, duration: 0.6 }}
-            className="flex flex-wrap gap-5 justify-center mb-10 w-full"
+            className="flex flex-col sm:flex-row gap-4 justify-center mb-10 w-full px-2"
           >
             <button onClick={() => navigate('/login')}
-              className="relative overflow-hidden bg-gradient-to-r from-[#00b4d8] to-[#0066ff] text-white font-black text-[13px] uppercase tracking-widest px-10 py-4 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(0,180,216,0.6)] group"
+              className="relative overflow-hidden bg-gradient-to-r from-[#00b4d8] to-[#0066ff] text-white font-black text-[13px] uppercase tracking-widest px-8 py-4 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(0,180,216,0.6)] group w-full sm:w-auto"
             >
               <span className="relative z-10 drop-shadow-md">Initialize Access</span>
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
             </button>
-            <button className="bg-white/5 border border-white/20 text-white font-semibold text-[13px] uppercase tracking-widest px-10 py-4 rounded-full transition-all duration-300 hover:bg-white/10 hover:border-[#00b4d8]/50 hover:text-[#00b4d8] backdrop-blur-md">
+            <button className="bg-white/5 border border-white/20 text-white font-semibold text-[13px] uppercase tracking-widest px-8 py-4 rounded-full transition-all duration-300 hover:bg-white/10 hover:border-[#00b4d8]/50 hover:text-[#00b4d8] backdrop-blur-md w-full sm:w-auto">
               Explore Projects
             </button>
           </motion.div>
@@ -494,16 +517,16 @@ export default function LandingPage() {
           {/* Bottom stats bar — glass pill */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.95, duration: 0.7, type: "spring", bounce: 0.4 }}
-            className="w-full max-w-3xl bg-[#020617]/40 backdrop-blur-2xl border border-white/10 rounded-3xl px-10 py-6 grid grid-cols-3 divide-x divide-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] hover:border-white/20 transition-all duration-300 hover:-translate-y-1 group"
+            className="w-full max-w-2xl bg-[#020617]/40 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-3xl px-4 sm:px-8 py-4 sm:py-6 grid grid-cols-3 divide-x divide-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] hover:border-white/20 transition-all duration-300 hover:-translate-y-1 group"
           >
             {[
-              { value: totalMembers, label: 'Active Members' },
-              { value: totalProjects, label: 'Projects Built' },
-              { value: '2yr', label: 'Of Excellence' },
+              { value: totalMembers, label: 'Members' },
+              { value: totalProjects, label: 'Projects' },
+              { value: '2yr', label: 'Excellence' },
             ].map(({ value, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1.5 px-4 relative overflow-hidden">
-                <span className="text-4xl font-black text-white tracking-tight group-hover:scale-110 transition-transform duration-500 ease-out">{value}</span>
-                <span className="text-white/40 text-[10px] uppercase tracking-widest font-bold group-hover:text-[#00b4d8] transition-colors duration-300">{label}</span>
+              <div key={label} className="flex flex-col items-center gap-1 px-2 sm:px-4">
+                <span className="text-2xl sm:text-4xl font-black text-white tracking-tight group-hover:scale-110 transition-transform duration-500 ease-out">{value}</span>
+                <span className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-widest font-bold group-hover:text-[#00b4d8] transition-colors duration-300">{label}</span>
               </div>
             ))}
           </motion.div>
@@ -752,36 +775,36 @@ export default function LandingPage() {
       </section>
 
       {/* 6. Recruitment Form (Interactive Slide-Out Envelope) */}
-      <section className="py-40 px-6 lg:px-24 relative overflow-hidden flex justify-center">
+      <section className="py-24 md:py-40 px-5 lg:px-24 relative overflow-hidden flex justify-center">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-[600px] h-[600px] bg-[#00b4d8] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
 
-        <div className="w-full max-w-5xl relative min-h-[550px] flex items-center justify-center">
+        <div className="w-full max-w-5xl relative min-h-[300px] md:min-h-[550px] flex items-center justify-center">
 
-          {/* The Envelope / Folder Cover (Left Side, Goes to Background) */}
+          {/* The Envelope / Folder Cover — full width on mobile */}
           <motion.div
             initial={{ x: "0%", scale: 1, zIndex: 20 }}
             animate={isFormOpen ? { x: "-20%", scale: 0.9, zIndex: 10 } : { x: "0%", scale: 1, zIndex: 20 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
-            className="absolute w-full md:w-[55%] shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[3rem]"
+            className="absolute w-full md:w-[55%] shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[2rem] md:rounded-[3rem]"
           >
-            <div className="bg-[#1c222b] border border-white/10 rounded-[3rem] p-12 md:p-16 relative overflow-hidden">
+            <div className="bg-[#1c222b] border border-white/10 rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 relative overflow-hidden">
               {/* Background decorations */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#00b4d8] blur-[100px] opacity-20 rounded-full"></div>
               <div className="absolute -left-10 bottom-10 w-4 h-40 bg-[#2a9d8f] rounded-full blur-xl opacity-50"></div>
 
               <div className="relative z-10">
-                <span className="text-[#00b4d8] font-mono uppercase tracking-[0.3em] text-xs font-bold mb-6 block">Application 2026</span>
-                <h2 className="text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 text-white drop-shadow-lg">
+                <span className="text-[#00b4d8] font-mono uppercase tracking-[0.3em] text-xs font-bold mb-4 md:mb-6 block">Application 2026</span>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-4 md:mb-6 text-white drop-shadow-lg">
                   Ready to<br /><span className="text-white/60">Take Control?</span>
                 </h2>
-                <p className="text-white/40 text-sm mb-12 max-w-md leading-relaxed">
+                <p className="text-white/40 text-sm mb-8 md:mb-12 max-w-md leading-relaxed">
                   Become an official member of the Software Development Cell. Gain access to exclusive repositories, mentorship, and flagship projects.
                 </p>
 
                 <button
                   onClick={() => { if(isLive) setIsFormOpen(!isFormOpen); }}
                   disabled={!isLive}
-                  className={`group flex items-center gap-4 px-8 py-5 rounded-full font-bold text-sm tracking-widest uppercase transition-all ${isLive ? 'bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] hover:scale-105 cursor-pointer' : 'bg-gray-600/50 cursor-not-allowed opacity-50'}`}
+                  className={`group flex items-center gap-3 px-6 md:px-8 py-4 md:py-5 rounded-full font-bold text-sm tracking-widest uppercase transition-all ${isLive ? 'bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] hover:scale-105 cursor-pointer' : 'bg-gray-600/50 cursor-not-allowed opacity-50'}`}
                 >
                   {!isLive ? 'Recruitment Closed' : (isFormOpen ? 'Close Envelope' : 'Extract Form')}
                   {isLive && (
