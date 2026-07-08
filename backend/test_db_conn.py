@@ -1,8 +1,7 @@
-from sqlmodel import Session, create_engine, select
+from sqlmodel import Session, select
 from app.models.models import Team
 from app.core.config import settings
-
-engine = create_engine(settings.DATABASE_URL)
+from app.db.session import engine
 
 def test_db():
     try:

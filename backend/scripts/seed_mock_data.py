@@ -5,14 +5,12 @@ from datetime import datetime, timedelta
 # Add the parent directory to sys.path to import from 'app'
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from sqlmodel import Session, create_engine, select
+from sqlmodel import Session, select
 from sqlalchemy import text
 from app.models.models import Member, Team, Project, Task, TeamMemberLink, User, Module, File, TeamMentor, ProjectSRS
 from app.core.config import settings
 from app.core.security import get_password_hash
-
-DATABASE_URL = settings.DATABASE_URL
-engine = create_engine(DATABASE_URL)
+from app.db.session import engine
 
 def seed_data():
     with Session(engine) as session:

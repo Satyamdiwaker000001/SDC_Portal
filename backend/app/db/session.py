@@ -6,10 +6,28 @@ from ..core.security import get_password_hash
 
 DATABASE_URL = settings.DATABASE_URL
 
+connect_args = {}
+if "sqlite" in DATABASE_URL:
+    connect_args = {"check_same_thread": False}
+elif "mysql" in DATABASE_URL:
+    ca_path = settings.DB_CA_PATH
+    if not ca_path:
+        try:
+            import certifi
+            ca_path = certifi.where()
+        except ImportError:
+            ca_path = None
+    if ca_path:
+        connect_args = {
+            "ssl": {
+                "ca": ca_path
+            }
+        }
+
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+    connect_args=connect_args
 )
 
 def init_db():

@@ -7,12 +7,12 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "app")))
 
 from app.models.models import User
-from sqlmodel import SQLModel, create_engine, Session, select
+from sqlmodel import SQLModel, Session, select
 from app.core.security import get_password_hash
 from app.core.config import settings
+from app.db.session import engine
 
 def seed_admin_protocol():
-    engine = create_engine(settings.DATABASE_URL)
     SQLModel.metadata.create_all(engine)
     
     with Session(engine) as session:
