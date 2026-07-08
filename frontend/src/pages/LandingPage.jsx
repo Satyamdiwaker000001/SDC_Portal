@@ -774,53 +774,167 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 6. Recruitment Form (Interactive Slide-Out Envelope) */}
-      <section className="py-24 md:py-40 px-5 lg:px-24 relative overflow-hidden flex justify-center">
+      {/* 6. Recruitment Form */}
+
+      {/* ===== MOBILE: Full-screen bottom-sheet modal (rendered at root level so overflow-hidden never clips it) ===== */}
+      <AnimatePresence>
+        {isFormOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] md:hidden flex items-end justify-center"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+              onClick={() => setIsFormOpen(false)}
+            />
+            {/* Bottom Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="relative w-full max-h-[90vh] bg-white rounded-t-[2rem] shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0 bg-white">
+                <div>
+                  <h3 className="text-base font-extrabold text-gray-900">Official Application</h3>
+                  <p className="text-[10px] text-[#00b4d8] uppercase tracking-widest font-bold mt-0.5">SDC · Application 2026</p>
+                </div>
+                <button
+                  onClick={() => setIsFormOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Scrollable Form Body */}
+              <div className="overflow-y-auto flex-1 px-5 py-4">
+                {submitSuccess ? (
+                  <div className="flex flex-col items-center justify-center text-center space-y-3 py-12">
+                    <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl">✓</div>
+                    <h3 className="text-xl font-black text-slate-800">Application Received!</h3>
+                    <p className="text-sm text-slate-500">Your application has been securely routed to the Operations Center.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApply} className="space-y-4 pb-8">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name *</label>
+                      <input required type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">University Email *</label>
+                      <input required type="email" placeholder="name@university.edu" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Mobile Number *</label>
+                      <input required type="tel" placeholder="+91 99999 99999" value={formData.mobile_number} onChange={e => setFormData({...formData, mobile_number: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Branch *</label>
+                        <select required value={formData.branch} onChange={e => setFormData({...formData, branch: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent cursor-pointer">
+                          <option value="" disabled>Select...</option>
+                          <option value="Web Development">Web Dev</option>
+                          <option value="Mobile App Development">Mobile Dev</option>
+                          <option value="Artificial Intelligence">AI / ML</option>
+                          <option value="Cybersecurity">Cybersecurity</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Semester *</label>
+                        <select required value={formData.current_semester} onChange={e => setFormData({...formData, current_semester: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent cursor-pointer">
+                          <option value="" disabled>Select...</option>
+                          {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={`Semester ${s}`}>Sem {s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Admission Year *</label>
+                        <input required type="number" value={formData.admission_year} onChange={e => setFormData({...formData, admission_year: parseInt(e.target.value)})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Passout Year *</label>
+                        <input required type="number" value={formData.passout_year} onChange={e => setFormData({...formData, passout_year: parseInt(e.target.value)})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Technical Specialization *</label>
+                      <input required type="text" placeholder="Frontend, Backend, Design..." value={formData.technical_specialization} onChange={e => setFormData({...formData, technical_specialization: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">LinkedIn URL</label>
+                      <input type="url" placeholder="https://linkedin.com/in/..." value={formData.linkedin_url} onChange={e => setFormData({...formData, linkedin_url: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">GitHub URL</label>
+                      <input type="url" placeholder="https://github.com/..." value={formData.github_url} onChange={e => setFormData({...formData, github_url: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Additional Info</label>
+                      <textarea placeholder="Tell us about yourself..." value={formData.additional_information} onChange={e => setFormData({...formData, additional_information: e.target.value})} className="w-full border-b-2 border-gray-200 py-2.5 text-gray-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-[#00b4d8] transition-colors bg-transparent resize-none" rows="2" />
+                    </div>
+                    <div className="pt-3">
+                      <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-[#00b4d8] to-blue-600 text-white font-bold tracking-widest uppercase text-xs py-4 rounded-2xl hover:shadow-[0_0_20px_rgba(0,180,216,0.4)] transition-all disabled:opacity-50">
+                        {isSubmitting ? 'Transmitting...' : 'Submit Application'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <section className="py-20 md:py-40 px-5 lg:px-24 relative flex justify-center">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-[600px] h-[600px] bg-[#00b4d8] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
 
-        <div className="w-full max-w-5xl relative min-h-[300px] md:min-h-[550px] flex items-center justify-center">
+        {/* ===== DESKTOP: Original slide-out animation ===== */}
+        <div className="w-full max-w-5xl relative min-h-[550px] hidden md:flex items-center justify-center">
 
-          {/* The Envelope / Folder Cover — full width on mobile */}
+          {/* The Envelope / Folder Cover */}
           <motion.div
             initial={{ x: "0%", scale: 1, zIndex: 20 }}
             animate={isFormOpen ? { x: "-20%", scale: 0.9, zIndex: 10 } : { x: "0%", scale: 1, zIndex: 20 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
-            className="absolute w-full md:w-[55%] shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[2rem] md:rounded-[3rem]"
+            className="absolute w-full md:w-[55%] shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[3rem]"
           >
-            <div className="bg-[#1c222b] border border-white/10 rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 relative overflow-hidden">
-              {/* Background decorations */}
+            <div className="bg-[#1c222b] border border-white/10 rounded-[3rem] p-16 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#00b4d8] blur-[100px] opacity-20 rounded-full"></div>
               <div className="absolute -left-10 bottom-10 w-4 h-40 bg-[#2a9d8f] rounded-full blur-xl opacity-50"></div>
-
               <div className="relative z-10">
-                <span className="text-[#00b4d8] font-mono uppercase tracking-[0.3em] text-xs font-bold mb-4 md:mb-6 block">Application 2026</span>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-4 md:mb-6 text-white drop-shadow-lg">
+                <span className="text-[#00b4d8] font-mono uppercase tracking-[0.3em] text-xs font-bold mb-6 block">Application 2026</span>
+                <h2 className="text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 text-white drop-shadow-lg">
                   Ready to<br /><span className="text-white/60">Take Control?</span>
                 </h2>
-                <p className="text-white/40 text-sm mb-8 md:mb-12 max-w-md leading-relaxed">
+                <p className="text-white/40 text-sm mb-12 max-w-md leading-relaxed">
                   Become an official member of the Software Development Cell. Gain access to exclusive repositories, mentorship, and flagship projects.
                 </p>
-
                 <button
                   onClick={() => { if(isLive) setIsFormOpen(!isFormOpen); }}
                   disabled={!isLive}
-                  className={`group flex items-center gap-3 px-6 md:px-8 py-4 md:py-5 rounded-full font-bold text-sm tracking-widest uppercase transition-all ${isLive ? 'bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] hover:scale-105 cursor-pointer' : 'bg-gray-600/50 cursor-not-allowed opacity-50'}`}
+                  className={`group flex items-center gap-4 px-8 py-5 rounded-full font-bold text-sm tracking-widest uppercase transition-all ${isLive ? 'bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] hover:scale-105 cursor-pointer' : 'bg-gray-600/50 cursor-not-allowed opacity-50'}`}
                 >
                   {!isLive ? 'Recruitment Closed' : (isFormOpen ? 'Close Envelope' : 'Extract Form')}
                   {isLive && (
-                    <span className={`transition-transform duration-500 ${isFormOpen ? '-rotate-180' : 'group-hover:translate-x-2'}`}>
-                      &rarr;
-                    </span>
+                    <span className={`transition-transform duration-500 ${isFormOpen ? '-rotate-180' : 'group-hover:translate-x-2'}`}>&rarr;</span>
                   )}
                 </button>
               </div>
-
-              {/* Folder Tab Visual */}
               <div className="absolute top-0 right-10 w-24 h-4 bg-[#00b4d8]/20 rounded-b-xl border-b border-x border-[#00b4d8]/50"></div>
             </div>
           </motion.div>
 
-          {/* The Form Document (Right Side, Slides Out and Comes Forward) */}
+          {/* The Form Document — slides out to the right */}
           <motion.div
             initial={{ x: "0%", scale: 0.9, zIndex: 10, opacity: 0 }}
             animate={isFormOpen ?
@@ -830,18 +944,15 @@ export default function LandingPage() {
             transition={isFormOpen ? { duration: 1.5, times: [0, 0.6, 1], ease: "easeInOut" } : { duration: 0.8, ease: "easeInOut" }}
             className={`absolute w-full md:w-[45%] ${!isFormOpen ? 'pointer-events-none' : ''}`}
           >
-            <div className="bg-[#f8f9fa] border border-gray-300 rounded-[3rem] p-10 md:p-12 shadow-[0_30px_60px_rgba(0,0,0,0.4)] relative">
-
-              {/* Form Paper Styling */}
+            <div className="bg-[#f8f9fa] border border-gray-300 rounded-[3rem] p-12 shadow-[0_30px_60px_rgba(0,0,0,0.4)] relative">
               <div className="absolute top-0 right-10 w-16 h-8 bg-[#e63946] text-white text-[8px] font-bold flex items-center justify-center uppercase tracking-widest shadow-md">
                 Strictly<br />Confidential
               </div>
-
               {submitSuccess ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20">
-                   <div className="w-16 h-16 bg-emerald-500/20 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-4">✓</div>
-                   <h3 className="text-2xl font-black text-slate-800">Application Received</h3>
-                   <p className="text-sm text-slate-500 font-medium">Your application has been securely routed to the Operations Center.</p>
+                  <div className="w-16 h-16 bg-emerald-500/20 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-4">✓</div>
+                  <h3 className="text-2xl font-black text-slate-800">Application Received</h3>
+                  <p className="text-sm text-slate-500 font-medium">Your application has been securely routed to the Operations Center.</p>
                 </div>
               ) : (
                 <>
@@ -876,26 +987,19 @@ export default function LandingPage() {
                         <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Current Semester</label>
                         <select required value={formData.current_semester} onChange={e => setFormData({...formData, current_semester: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none cursor-pointer">
                           <option value="" disabled>Select Semester...</option>
-                          <option value="Semester 1">Semester 1</option>
-                          <option value="Semester 2">Semester 2</option>
-                          <option value="Semester 3">Semester 3</option>
-                          <option value="Semester 4">Semester 4</option>
-                          <option value="Semester 5">Semester 5</option>
-                          <option value="Semester 6">Semester 6</option>
-                          <option value="Semester 7">Semester 7</option>
-                          <option value="Semester 8">Semester 8</option>
+                          {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={`Semester ${s}`}>Semester {s}</option>)}
                         </select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                       <div>
-                         <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Admission Yr</label>
-                         <input required type="number" value={formData.admission_year} onChange={e => setFormData({...formData, admission_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
-                       </div>
-                       <div>
-                         <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Passout Yr</label>
-                         <input required type="number" value={formData.passout_year} onChange={e => setFormData({...formData, passout_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
-                       </div>
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Admission Yr</label>
+                        <input required type="number" value={formData.admission_year} onChange={e => setFormData({...formData, admission_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                      </div>
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Passout Yr</label>
+                        <input required type="number" value={formData.passout_year} onChange={e => setFormData({...formData, passout_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                      </div>
                     </div>
                     <div>
                       <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Technical Specialization</label>
@@ -923,14 +1027,36 @@ export default function LandingPage() {
                   </form>
                 </>
               )}
-
-              {/* Paper texture lines */}
               <div className="absolute bottom-6 left-12 w-[80%] h-[1px] bg-black/5"></div>
               <div className="absolute bottom-8 left-12 w-[60%] h-[1px] bg-black/5"></div>
             </div>
           </motion.div>
-
         </div>
+
+        {/* ===== MOBILE: Envelope card (button only) ===== */}
+        <div className="md:hidden w-full max-w-xl">
+          <div className="bg-[#1c222b] border border-white/10 rounded-[2rem] p-8 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-[#00b4d8] blur-[80px] opacity-20 rounded-full"></div>
+            <div className="relative z-10">
+              <span className="text-[#00b4d8] font-mono uppercase tracking-[0.3em] text-xs font-bold mb-4 block">Application 2026</span>
+              <h2 className="text-3xl font-extrabold tracking-tight leading-[1.15] mb-4 text-white">
+                Ready to<br /><span className="text-white/60">Take Control?</span>
+              </h2>
+              <p className="text-white/40 text-sm mb-8 leading-relaxed">
+                Become an official member of the Software Development Cell. Gain access to exclusive repositories, mentorship, and flagship projects.
+              </p>
+              <button
+                onClick={() => { if(isLive) setIsFormOpen(!isFormOpen); }}
+                disabled={!isLive}
+                className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all ${isLive ? 'bg-gradient-to-r from-[#00b4d8] to-[#2a9d8f] hover:shadow-[0_0_30px_rgba(0,180,216,0.5)] cursor-pointer' : 'bg-gray-600/50 cursor-not-allowed opacity-50'}`}
+              >
+                {!isLive ? 'Recruitment Closed' : 'Apply Now →'}
+              </button>
+            </div>
+            <div className="absolute top-0 right-8 w-20 h-3 bg-[#00b4d8]/20 rounded-b-lg border-b border-x border-[#00b4d8]/50"></div>
+          </div>
+        </div>
+
       </section>
 
       {/* ======= FOOTER ======= */}
