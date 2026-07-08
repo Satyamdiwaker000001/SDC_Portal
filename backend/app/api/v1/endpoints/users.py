@@ -139,23 +139,51 @@ def update_user(
 ) -> Any:
     """
     Update a user.
-    Developer can edit: profile_image, github_url, linkedin_url (SRS 3.3.1).
-    Admin can edit all fields.
+    Developer/Mentor can only edit: profile_image, github_url, linkedin_url (self only).
+    Admin can edit developer/mentor profiles and reset their passwords.
+    No user can change their own password or edit admin profiles.
     """
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if current_user.id != user.id and current_user.role != "admin":
+    # Rule: Admin cannot update their own profile.
+    if current_user.role == "admin" and current_user.id == id:
+        raise HTTPException(status_code=403, detail="Admin cannot update their own profile.")
+
+    # Rule: Admin can only update other developers and mentors, not other admins.
+    if current_user.role == "admin" and user.role == "admin":
+        raise HTTPException(status_code=403, detail="Admin cannot update other administrators.")
+
+    # Rule: Non-admin can only update themselves.
+    if current_user.role != "admin" and current_user.id != id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     update_data = user_in.model_dump(exclude_unset=True)
+
+    # Rule: Non-admin (Developer/Mentor) can only update: profile_image, github_url, linkedin_url.
+    if current_user.role != "admin":
+        allowed_fields = {"profile_image", "image", "github_url", "linkedin_url"}
+        disallowed = set(update_data.keys()) - allowed_fields
+        if disallowed:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Developers and Mentors can only update profile photo, github URL, and linkedin URL."
+            )
+
+    # Rule: Only admin can reset passwords of other developers/mentors. No one can change their own password.
     if "password" in update_data and update_data["password"]:
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Only administrators can reset passwords.")
+        if current_user.id == id:
+            raise HTTPException(status_code=403, detail="Administrators cannot reset their own password.")
         update_data["password_hash"] = security.get_password_hash(update_data.pop("password"))
+
     # Map 'image' field from schema to 'profile_image' column on the model
     if "image" in update_data:
         update_data["profile_image"] = update_data.pop("image")
-    # 'profile_image' already named correctly, just ensure it's handled
+
+    # Update attributes
     for field, value in update_data.items():
         if hasattr(user, field):
             setattr(user, field, value)
