@@ -281,7 +281,13 @@ export default function TeamsView() {
             const members = teamMembers[team.id] || [];
             const leaderMember = members.find(m => m.designation === 'lead');
             const leader = leaderMember ? getLeaderDetails(leaderMember.user_id) : null;
-            const memberUsers = members.filter(m => m.designation !== 'lead').map(m => getMemberDetails(m.user_id)).filter(Boolean);
+            // Enrich non-lead members with designation
+            const memberUsers = members
+              .filter(m => m.designation !== 'lead')
+              .map(m => ({ ...getMemberDetails(m.user_id), designation: m.designation }))
+              .filter(m => m && m.id);
+            const mentorChips = memberUsers.filter(m => m.designation === 'mentor');
+            const devChips = memberUsers.filter(m => m.designation !== 'mentor');
             const leaderInitials = leader ? (leader.name || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
             return (
               <motion.div
@@ -335,10 +341,28 @@ export default function TeamsView() {
                   </div>
 
                   <div>
-                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">{memberUsers.length} Squad Members</p>
+                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">
+                      {devChips.length} Developer{devChips.length !== 1 ? 's' : ''}{mentorChips.length > 0 ? ` · ${mentorChips.length} Mentor${mentorChips.length !== 1 ? 's' : ''}` : ''}
+                    </p>
                     {memberUsers.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
-                        {memberUsers.map(member => (
+                        {/* Mentor chips — gold */}
+                        {mentorChips.map(member => (
+                          <div key={member.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:border-amber-400/60 transition-colors group/chip">
+                            <div className="w-5 h-5 rounded-full bg-amber-500/30 flex items-center justify-center text-[9px] font-black text-amber-300 shrink-0">
+                              ⭐
+                            </div>
+                            <span className="text-[10px] font-bold text-amber-300 group-hover/chip:text-amber-200 truncate max-w-[60px]">{member.name?.split(' ')[0]}</span>
+                            {role === 'admin' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRemoveMember(team.id, member.id); }}
+                                className="w-4 h-4 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/30 flex items-center justify-center shrink-0 opacity-0 group-hover/chip:opacity-100 transition-opacity"
+                              ><X className="w-2.5 h-2.5" /></button>
+                            )}
+                          </div>
+                        ))}
+                        {/* Developer chips — blue */}
+                        {devChips.map(member => (
                           <div key={member.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:border-[#00b4d8]/40 transition-colors group/chip">
                             <div className="w-5 h-5 rounded-full bg-blue-800 flex items-center justify-center text-[9px] font-black text-blue-200 shrink-0">
                               {(member.name || '').charAt(0)}

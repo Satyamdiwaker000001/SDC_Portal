@@ -28,6 +28,22 @@ export default function TelemetryView() {
   const [moduleSearch, setModuleSearch] = useState('');
   const [expandedModule, setExpandedModule] = useState(null);
 
+  // Phase breakdown for selected project
+  const [selectedProjectPhases, setSelectedProjectPhases] = useState([]);
+  const [isLoadingPhases, setIsLoadingPhases] = useState(false);
+
+  useEffect(() => {
+    if (selectedProject) {
+      setIsLoadingPhases(true);
+      projectsAPI.getPhases(selectedProject.id)
+        .then(phases => setSelectedProjectPhases(phases || []))
+        .catch(() => setSelectedProjectPhases([]))
+        .finally(() => setIsLoadingPhases(false));
+    } else {
+      setSelectedProjectPhases([]);
+    }
+  }, [selectedProject]);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -433,7 +449,90 @@ export default function TelemetryView() {
                   className="w-full bg-black/20 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-xs text-white outline-none focus:border-[#00b4d8]/50 transition-colors placeholder:text-white/30"
                 />
               </div>
-            </div>            {/* Modules Table */}
+            </div>
+
+            {/* ===== PHASE BREAKDOWN PANEL ===== */}
+            {selectedProjectPhases.length > 0 && (
+              <div className="px-6 py-4 border-b border-white/5 bg-black/10">
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-3">SDLC Phase Breakdown</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {selectedProjectPhases.map(phase => {
+                    const phaseTasks = tasks.filter(t => t.phase_id === phase.id && t.project_id === selectedProject.id);
+                    const phaseDone = phaseTasks.filter(t => t.status === 'COMPLETED' || t.status === 'DONE').length;
+                    const phaseTotal = phaseTasks.length;
+                    const phaseProgress = phaseTotal === 0 ? (phase.progress || 0) : Math.round((phaseDone / phaseTotal) * 100);
+
+                    // Members working in this phase
+                    const phaseMembers = [];
+                    const seenIds = new Set();
+                    phaseTasks.forEach(t => {
+                      if (t.assigned_to && !seenIds.has(t.assigned_to)) {
+                        seenIds.add(t.assigned_to);
+                        const doneTasks = phaseTasks.filter(pt => pt.assigned_to === t.assigned_to && (pt.status === 'COMPLETED' || pt.status === 'DONE')).length;
+                        const totalMTasks = phaseTasks.filter(pt => pt.assigned_to === t.assigned_to).length;
+                        phaseMembers.push({ id: t.assigned_to, name: getUserName(t.assigned_to), done: doneTasks, total: totalMTasks });
+                      }
+                    });
+
+                    return (
+                      <div key={phase.id} className={`p-3 rounded-xl border transition-all ${
+                        phase.is_completed
+                          ? 'bg-emerald-500/5 border-emerald-500/20'
+                          : phase.is_unlocked
+                          ? 'bg-[#00b4d8]/5 border-[#00b4d8]/20'
+                          : 'bg-white/[0.02] border-white/5 opacity-50'
+                      }`}>
+                        <div className="flex justify-between items-center mb-2">
+                          <div>
+                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">Phase {phase.sequence}</p>
+                            <h5 className="text-xs font-black text-white truncate">{phase.name}</h5>
+                          </div>
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                            phase.is_completed
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : phase.is_unlocked
+                              ? 'bg-[#00b4d8]/20 text-[#00b4d8] border-[#00b4d8]/30'
+                              : 'bg-white/5 text-white/20 border-white/10'
+                          }`}>
+                            {phase.is_completed ? 'Done' : phase.is_unlocked ? 'Active' : 'Locked'}
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-2">
+                          <div
+                            className="h-full rounded-full transition-all duration-1000"
+                            style={{ width: `${phaseProgress}%`, backgroundColor: getProgressColor(phaseProgress) }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center text-[9px] text-white/30 mb-2">
+                          <span>{phaseProgress}% Complete</span>
+                          <span>{phaseDone}/{phaseTotal} Tasks</span>
+                        </div>
+                        {/* Per-member mini breakdown */}
+                        {phaseMembers.length > 0 && (
+                          <div className="space-y-1">
+                            {phaseMembers.map(m => (
+                              <div key={m.id} className="flex items-center justify-between">
+                                <span className="text-[9px] text-white/50 truncate max-w-[100px]">{m.name}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-16 h-1 bg-black/30 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full"
+                                      style={{ width: `${m.total === 0 ? 0 : Math.round((m.done / m.total) * 100)}%`, backgroundColor: getProgressColor(m.total === 0 ? 0 : Math.round((m.done / m.total) * 100)) }}
+                                    />
+                                  </div>
+                                  <span className="text-[9px] font-bold text-white/30">{m.done}/{m.total}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
               <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-[9px] font-black text-white/30 uppercase tracking-widest">
                 <div className="col-span-5">Module Name & Member</div>
@@ -490,7 +589,7 @@ export default function TelemetryView() {
 
                         <div className="col-span-1 md:col-span-2 flex items-center md:justify-end">
                           <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mr-2 md:hidden">Deadline:</span>
-                          <span className="text-[10px] font-bold text-white/50 font-mono">2026-06-15</span>
+                          <span className="text-[10px] font-bold text-white/50 font-mono">{t.due_date || '—'}</span>
                         </div>
 
                         <div className="col-span-1 md:col-span-1 flex items-center justify-end md:justify-center">
