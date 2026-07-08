@@ -436,17 +436,17 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-28 z-20 w-[90%] max-w-2xl px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500/10 via-emerald-400/20 to-emerald-500/10 border border-emerald-500/30 backdrop-blur-md shadow-[0_0_30px_rgba(16,185,129,0.15)] flex flex-col sm:flex-row items-center justify-center gap-3 text-center"
+              className="relative z-20 w-[92%] sm:w-[90%] max-w-2xl px-4 sm:px-6 py-2.5 sm:py-3 mb-8 sm:mb-12 rounded-2xl sm:rounded-full bg-gradient-to-r from-emerald-500/10 via-emerald-400/20 to-emerald-500/10 border border-emerald-500/30 backdrop-blur-md shadow-[0_0_30px_rgba(16,185,129,0.15)] flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-center"
             >
-              <div className="flex items-center justify-center gap-2">
-                <span className="relative flex h-3 w-3">
+              <div className="flex items-center justify-center gap-2 shrink-0">
+                <span className="relative flex h-2 w-2 sm:h-3 sm:w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-emerald-500"></span>
                 </span>
-                <span className="text-emerald-400 font-bold text-sm tracking-wide uppercase">Recruitment Live:</span>
+                <span className="text-emerald-400 font-bold text-[10px] sm:text-sm tracking-wide uppercase">Recruitment Live:</span>
               </div>
-              <span className="text-white text-sm font-medium">Accepting applications for <strong className="text-emerald-300">{recruitmentTarget}</strong></span>
-              <button onClick={handleApplyNowClick} className="sm:ml-auto bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors mt-2 sm:mt-0">Apply Now</button>
+              <span className="text-white text-[11px] sm:text-sm font-medium leading-tight">Accepting applications for <strong className="text-emerald-300">{recruitmentTarget}</strong></span>
+              <button onClick={handleApplyNowClick} className="w-full sm:w-auto sm:ml-auto bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 px-3 sm:px-4 py-1.5 sm:py-1.5 rounded-xl sm:rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors mt-1 sm:mt-0 shrink-0">Apply Now</button>
             </motion.div>
           )}
         </AnimatePresence>
