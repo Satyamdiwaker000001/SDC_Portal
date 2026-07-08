@@ -187,7 +187,16 @@ export default function TeamsView() {
     });
   };
 
-  const filteredTeams = teams.filter(t => t.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredTeams = useMemo(() => {
+    let list = teams;
+    if (role !== 'admin') {
+      list = list.filter(t => {
+        const members = teamMembers[t.id] || [];
+        return members.some(m => m.user_id === currentUser?.id);
+      });
+    }
+    return list.filter(t => t.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [teams, searchQuery, teamMembers, role, currentUser]);
 
   const availableUsers = users.filter(u => u.role !== 'admin' && !u.isPassout);
   const developerUsers = availableUsers.filter(u => u.role === 'developer');
@@ -269,9 +278,10 @@ export default function TeamsView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTeams.map(team => {
-            const leader = getLeaderDetails(team.leaderId);
             const members = teamMembers[team.id] || [];
-            const memberUsers = members.map(m => getMemberDetails(m.user_id)).filter(Boolean);
+            const leaderMember = members.find(m => m.designation === 'lead');
+            const leader = leaderMember ? getLeaderDetails(leaderMember.user_id) : null;
+            const memberUsers = members.filter(m => m.designation !== 'lead').map(m => getMemberDetails(m.user_id)).filter(Boolean);
             const leaderInitials = leader ? (leader.name || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
             return (
               <motion.div
@@ -428,15 +438,15 @@ export default function TeamsView() {
                     {/* Leader */}
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assign Team Leader (TL) *</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-44 overflow-y-auto custom-scrollbar pr-1">
-                        {availableUsers.map(u => (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                        {developerUsers.map(u => (
                           <div
                             key={u.id}
                             onClick={() => setNewTeam({ ...newTeam, leaderId: u.id })}
                             className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${newTeam.leaderId === u.id ? 'bg-[#00b4d8]/20 border-[#00b4d8] shadow-[0_0_15px_rgba(0,180,216,0.2)]' : 'bg-white/5 border-white/10 hover:border-white/30'}`}
                           >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${u.role === 'mentor' ? 'bg-sky-500/20 border-sky-500/50 text-sky-400' : 'bg-blue-500/20 border-blue-500/50 text-blue-400'}`}>
-                              {u.role === 'mentor' ? <Star className="w-3.5 h-3.5" /> : <Code className="w-3.5 h-3.5" />}
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center border shrink-0 bg-blue-500/20 border-blue-500/50 text-blue-400">
+                              <Code className="w-3.5 h-3.5" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-white truncate">{u.name || u.email?.split('@')[0]}</p>
@@ -483,7 +493,7 @@ export default function TeamsView() {
                       </div>
 
                       {/* User Chips List */}
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
                         {filteredMembersForCreate.length === 0 ? (
                           <p className="text-[10px] text-white/30 italic text-center py-4">No {memberTypeFilter}s found</p>
                         ) : filteredMembersForCreate.map(u => (
@@ -517,10 +527,10 @@ export default function TeamsView() {
                     {unassignedProjects.length > 0 && (
                       <div className="space-y-3 pt-2 border-t border-white/10">
                         <div>
-                          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assign to Unlinked Project (Optional)</label>
-                          <p className="text-[9px] text-white/30 ml-1 mt-1">These projects currently have no team assigned.</p>
+                           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assign to Unlinked Project (Optional)</label>
+                           <p className="text-[9px] text-white/30 ml-1 mt-1">These projects currently have no team assigned.</p>
                         </div>
-                        <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+                        <div className="space-y-1.5 max-h-24 overflow-y-auto custom-scrollbar pr-1">
                           {/* None option */}
                           <div
                             onClick={() => setNewTeam({ ...newTeam, projectId: '' })}

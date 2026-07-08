@@ -30,7 +30,7 @@ const navItems = [
   { path: '/dashboard/team', label: 'Personnel', icon: Users, roles: ['admin', 'developer', 'mentor'] },
   { path: '/dashboard/teams', label: 'Teams', icon: Network, roles: ['admin', 'developer', 'mentor'] },
   { path: '/dashboard/notices', label: 'Notices', icon: Megaphone, roles: ['admin', 'developer', 'mentor'] },
-  { path: '/dashboard/telemetry', label: 'Telemetry', icon: Activity, roles: ['admin'] },
+  { path: '/dashboard/telemetry', label: 'Telemetry', icon: Activity, roles: ['admin', 'mentor'] },
 ];
 
 const getInitials = (name) => {

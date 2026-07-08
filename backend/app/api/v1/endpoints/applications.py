@@ -226,3 +226,18 @@ def update_application_status(
     db.commit()
     db.refresh(app)
     return app
+
+
+@router.delete("/{id}")
+def delete_application(
+    id: str,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """Delete an application (Admin only)."""
+    app = db.get(Application, id)
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    db.delete(app)
+    db.commit()
+    return {"status": "SUCCESS", "message": "Application deleted successfully"}

@@ -57,6 +57,12 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeFile, setActiveFile] = useState('report'); // report | sdlc | documents | team | feedback
+
+  // Internal helper to get team name from teams prop
+  const getTeamName = (teamId) => {
+    const t = teams.find(team => team.id === teamId);
+    return t ? t.name : 'Unassigned';
+  };
   
   // States for sub-data
   const [teamMembers, setTeamMembers] = useState([]);
@@ -463,6 +469,42 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                             
                             {(role === 'admin' || role === 'developer') && (
                               <div className="flex gap-2">
+                                {(role === 'admin' || isTeamLeader) && (
+                                  <>
+                                    {project.status !== 'COMPLETED' && (
+                                      <button 
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            const updated = await projectsAPI.updateStatus(project.id, 'COMPLETED');
+                                            onUpdateProject(updated);
+                                          } catch {
+                                            alert("Failed to update status to COMPLETED");
+                                          }
+                                        }}
+                                        className="px-4 py-2 bg-emerald-100 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+                                      >
+                                        Mark Completed
+                                      </button>
+                                    )}
+                                    {project.status !== 'LIVE' && (
+                                      <button 
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            const updated = await projectsAPI.updateStatus(project.id, 'LIVE');
+                                            onUpdateProject(updated);
+                                          } catch {
+                                            alert("Failed to update status to LIVE");
+                                          }
+                                        }}
+                                        className="px-4 py-2 bg-cyan-100 border border-cyan-200 text-cyan-700 hover:bg-[#00b4d8] hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+                                      >
+                                        Mark Live
+                                      </button>
+                                    )}
+                                  </>
+                                )}
                                 <button 
                                   onClick={() => {
                                     setEditData({
@@ -867,10 +909,11 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
 // PROJECTS VIEW CONTAINER
 // ==========================================
 export default function ProjectsView() {
-  const { role } = useAuth();
+  const { role, user: currentUser } = useAuth();
   const [projects, setProjects] = useState([]);
   const [teams, setTeams] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [userTeams, setUserTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modal open for adding project
@@ -893,6 +936,15 @@ export default function ProjectsView() {
         teamsAPI.getAll().catch(() => []),
         usersAPI.getAll().catch(() => [])
       ]);
+      
+      const teamMembersList = await Promise.all(
+        tList.map(team => 
+          teamsAPI.getMembers(team.id)
+            .then(members => ({ teamId: team.id, members }))
+            .catch(() => ({ teamId: team.id, members: [] }))
+        )
+      );
+      setUserTeams(teamMembersList);
       setProjects(pList);
       setTeams(tList);
       setAllUsers(uList);
@@ -951,9 +1003,23 @@ export default function ProjectsView() {
     }
   };
 
+  const myTeamIds = useMemo(() => {
+    if (role === 'admin') return [];
+    return userTeams.filter(ut => ut.members.some(m => m.user_id === currentUser?.id)).map(ut => ut.teamId);
+  }, [userTeams, currentUser, role]);
+
   const filteredProjects = useMemo(() => {
-    return projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-  }, [projects, search]);
+    let list = projects;
+    if (role !== 'admin') {
+      list = list.filter(p => myTeamIds.includes(p.team_id) || p.created_by === currentUser?.id);
+    }
+    return list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  }, [projects, search, myTeamIds, role, currentUser]);
+
+  const filteredTeams = useMemo(() => {
+    if (role === 'admin') return teams;
+    return teams.filter(t => myTeamIds.includes(t.id));
+  }, [teams, myTeamIds, role]);
 
   const getTeamName = (teamId) => {
     const t = teams.find(team => team.id === teamId);
@@ -1091,7 +1157,7 @@ export default function ProjectsView() {
                       className="w-full px-4 py-2.5 rounded-xl bg-[#1c222b] border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] text-xs cursor-pointer"
                     >
                       <option value="">-- Leave Unassigned --</option>
-                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      {filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </div>
 

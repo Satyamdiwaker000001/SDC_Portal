@@ -91,9 +91,9 @@ def create_user(
         email=user_in.email,
         password_hash=security.get_password_hash(user_in.password),
         role=user_in.role or "developer",
-        branch="N/A",
-        admission_year=0,
-        passout_year=0,
+        branch=user_in.branch or "N/A",
+        admission_year=user_in.admission_year or 0,
+        passout_year=user_in.passout_year or 0,
         profile_image=user_in.image,
         membership_status="active",         # SRS 3.15
         is_active=True,

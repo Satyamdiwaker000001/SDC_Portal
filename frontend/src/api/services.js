@@ -175,6 +175,10 @@ export const applicationsAPI = {
   updateStatus: async (id, status) => {
     const { data } = await client.patch(`/applications/${id}/status?status_update=${status}`);
     return data;
+  },
+  delete: async (id) => {
+    const { data } = await client.delete(`/applications/${id}`);
+    return data;
   }
 };
 

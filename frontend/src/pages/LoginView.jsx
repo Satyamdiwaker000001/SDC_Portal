@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Lock, Mail, Command, Terminal, User } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, Command, Terminal, User, Eye, EyeOff } from 'lucide-react';
 import Barcode from 'react-barcode';
 import sdcLogo from '../assets/sdc_logo.png';
 
@@ -13,6 +13,7 @@ export default function LoginView() {
   const [isLoading, setIsLoading] = useState(false);
   const [terminalText, setTerminalText] = useState('');
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
@@ -235,22 +236,29 @@ export default function LoginView() {
 
                 {/* Password Input */}
                 <div className="space-y-1.5">
-                  <div className="flex justify-between items-center ml-1">
+                  <div className="flex items-center ml-1">
                     <label className="text-[10px] font-bold text-white/60 uppercase tracking-[0.15em]">Password</label>
-                    <a href="#" className="text-[10px] font-semibold text-[#00b4d8] hover:text-[#00e5ff] transition-colors">Forgot?</a>
                   </div>
                   <div className="relative group/input">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Lock className="h-4 w-4 text-white/30 group-focus-within/input:text-[#00e5ff] transition-colors duration-300" />
                     </div>
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00e5ff]/50 focus:bg-white/[0.06] focus:shadow-[0_0_20px_rgba(0,229,255,0.15)] transition-all duration-300"
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-11 pr-12 py-3.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00e5ff]/50 focus:bg-white/[0.06] focus:shadow-[0_0_20px_rgba(0,229,255,0.15)] transition-all duration-300"
                       placeholder="••••••••"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(prev => !prev)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/40 hover:text-[#00e5ff] transition-colors duration-300 z-10"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
