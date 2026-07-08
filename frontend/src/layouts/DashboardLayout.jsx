@@ -33,6 +33,18 @@ const navItems = [
   { path: '/dashboard/telemetry', label: 'Telemetry', icon: Activity, roles: ['admin'] },
 ];
 
+const getInitials = (name) => {
+  if (!name) return 'U';
+  const parts = name.split(/[\s_]+/);
+  const cleanParts = parts.filter(p => p.toLowerCase() !== 'sdc' && p.toLowerCase() !== 'root');
+  if (cleanParts.length > 0) {
+    const first = cleanParts[0][0];
+    const second = cleanParts[1] ? cleanParts[1][0] : (cleanParts[0][1] || '');
+    return (first + second).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 export default function DashboardLayout() {
   const { user, role, logout } = useAuth();
   const location = useLocation();
@@ -49,6 +61,7 @@ export default function DashboardLayout() {
   const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   // Global Search logic
   useEffect(() => {
@@ -86,7 +99,7 @@ export default function DashboardLayout() {
   }, [searchQuery]);
 
   return (
-    <div className="flex h-screen w-full bg-[#020617] text-white selection:bg-[#00b4d8] selection:text-[#020617] font-sans relative overflow-hidden p-4 gap-4" onClick={() => setShowSearchDropdown(false)}>
+    <div className="flex h-screen w-full bg-[#020617] text-white selection:bg-[#00b4d8] selection:text-[#020617] font-sans relative overflow-hidden p-4 gap-4" onClick={() => { setShowSearchDropdown(false); setShowProfileDropdown(false); }}>
 
       {/* 🚀 Extreme Background Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -149,7 +162,7 @@ export default function DashboardLayout() {
       <div className="flex-1 flex flex-col gap-4 min-w-0 relative z-30 h-full">
 
         {/* Floating Topbar */}
-        <header className="h-20 bg-white/[0.02] border border-white/10 rounded-[2rem] backdrop-blur-2xl flex items-center justify-between px-8 shadow-[0_20px_40px_rgba(0,0,0,0.3)] shrink-0">
+        <header className="h-20 bg-white/[0.02] border border-white/10 rounded-[2rem] backdrop-blur-2xl flex items-center justify-between px-8 shadow-[0_20px_40px_rgba(0,0,0,0.3)] shrink-0 relative z-40">
 
           <div className="flex items-center gap-3">
             <TerminalSquare className="w-5 h-5 text-[#00b4d8]" />
@@ -232,34 +245,32 @@ export default function DashboardLayout() {
               <span className="absolute top-2 right-2 w-2 h-2 bg-[#00b4d8] rounded-full border-2 border-[#020617]"></span>
             </button>
 
-            {/* Header Profile with Dropdown */}
-            <div className="relative group">
-              <button className="w-10 h-10 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/50 flex items-center justify-center overflow-hidden hover:scale-105 transition-transform backdrop-blur-md cursor-pointer">
-                {user ? (
-                  user?.profile_image ? (
-                    <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-sm font-black text-white/80">{user?.name ? user.name.substring(0, 2).toUpperCase() : <User className="w-4 h-4 text-white/50" />}</span>
-                  )
+            {/* Profile Avatar (Separate, static) */}
+            <div 
+              title={`${user?.name || 'Operator'} (${role} Access)`}
+              className="w-10 h-10 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/50 flex items-center justify-center overflow-hidden backdrop-blur-md"
+            >
+              {user ? (
+                user?.profile_image ? (
+                  <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-[#00b4d8] text-white flex items-center justify-center font-bold font-mono">U</div>
-                )}
-              </button>
-
-              {/* Dropdown */}
-              <div className="absolute right-0 mt-2 w-56 bg-[#020617]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.7)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right group-hover:translate-y-0 translate-y-2 z-50 overflow-hidden">
-                <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                  <p className="text-sm font-bold text-white truncate mb-1">{user?.name || 'Operator'}</p>
-                  <p className="text-[10px] font-mono text-[#00b4d8] uppercase tracking-widest">{role} Access</p>
-                </div>
-                <div className="p-2">
-                  <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 transition-colors text-xs font-bold uppercase tracking-wider">
-                    <LogOut className="w-4 h-4" />
-                    Disconnect Session
-                  </button>
-                </div>
-              </div>
+                  <span className="text-xs font-black text-white/80">
+                    {getInitials(user?.name)}
+                  </span>
+                )
+              ) : (
+                <div className="w-full h-full bg-[#00b4d8] text-white flex items-center justify-center font-bold font-mono">U</div>
+              )}
             </div>
+
+            {/* Direct Logout Button (Separate) */}
+            <button 
+              onClick={logout} 
+              title="Logout / Disconnect Session"
+              className="w-10 h-10 rounded-full bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 flex items-center justify-center text-white/50 hover:text-rose-400 transition-all backdrop-blur-md cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
 
           </div>
         </header>

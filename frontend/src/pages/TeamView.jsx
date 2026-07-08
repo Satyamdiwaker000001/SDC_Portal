@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera } from 'lucide-react';
+import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera, Key } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -47,7 +47,7 @@ const calculateAcademicYear = (user) => {
   return "Passout (Alumni)";
 };
 
-const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId }) => {
+const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId, onResetPassword }) => {
   const getRoleStyling = (userRole) => {
     switch (userRole?.toLowerCase()) {
       case 'admin': return { text: 'Admin', icon: Shield };
@@ -191,16 +191,24 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
               </div>
             </div>
 
-            {currentUserRole === 'admin' || currentUserId === user.id ? (
+            {(currentUserRole === 'admin' && user.role !== 'admin') || (currentUserId === user.id && currentUserRole !== 'admin') ? (
               <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10 shrink-0">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onEdit(user); }}
-                  className={`flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10 ${currentUserRole !== 'admin' ? 'col-span-2' : ''}`}
-                >
-                  <Edit3 className="w-3 h-3" /> Edit Profile
-                </button>
-                {currentUserRole === 'admin' && (
+                {currentUserId === user.id && currentUserRole !== 'admin' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onEdit(user); }}
+                    className="col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10"
+                  >
+                    <Edit3 className="w-3 h-3" /> Edit Profile
+                  </button>
+                )}
+                {currentUserRole === 'admin' && user.role !== 'admin' && (
                   <>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onResetPassword(user); }}
+                      className="flex items-center justify-center gap-1 py-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold transition-all border border-amber-500/20"
+                    >
+                      <Key className="w-3 h-3" /> Reset Pass
+                    </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); onDelete(user.id); }}
                       className="flex items-center justify-center gap-1 py-2 rounded-lg bg-blue-500/10 text-[#00b4d8] hover:bg-blue-500/20 text-[10px] font-bold transition-all border border-blue-500/20"
@@ -259,6 +267,11 @@ export default function TeamView() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const avatarInputRef = useRef(null);
+
+  // Password Reset State (Admin Only)
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -339,6 +352,24 @@ export default function TeamView() {
       alert(e.response?.data?.detail || "Failed to update user");
     } finally {
       setIsSubmittingEdit(false);
+    }
+  };
+
+  const handlePerformResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetPasswordUser || !newPassword.trim()) return;
+    setIsResetting(true);
+    try {
+      await usersAPI.update(resetPasswordUser.id, {
+        password: newPassword
+      });
+      alert(`Password for ${resetPasswordUser.name} has been reset successfully.`);
+      setResetPasswordUser(null);
+      setNewPassword('');
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to reset password");
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -515,6 +546,10 @@ export default function TeamView() {
                    }}
                   currentUserRole={role}
                   currentUserId={currentUser?.id}
+                  onResetPassword={(u) => {
+                     setResetPasswordUser(u);
+                     setNewPassword('');
+                  }}
                 />
               ))}
             </div>
@@ -747,74 +782,84 @@ export default function TeamView() {
 
               <div className="p-6 overflow-y-auto custom-scrollbar">
                 <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-4">
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Full Name</label>
-                     <input 
-                       type="text" required
-                       value={editUserData.name}
-                       onChange={e => setEditUserData({...editUserData, name: e.target.value})}
-                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                     />
-                  </div>
-
-                  {role === 'admin' && (
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assigned Role</label>
-                       <select
-                         required
-                         value={editUserData.role}
-                         onChange={e => setEditUserData({...editUserData, role: e.target.value})}
-                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                       >
-                         <option value="developer" className="bg-[#0f172a]">Developer</option>
-                         <option value="mentor" className="bg-[#0f172a]">Mentor</option>
-                         <option value="admin" className="bg-[#0f172a]">Admin</option>
-                       </select>
+                  {role !== 'admin' && (
+                    <div className="space-y-1 p-4 bg-white/5 border border-white/5 rounded-2xl mb-4">
+                      <p className="text-[10px] font-bold text-[#00b4d8] uppercase tracking-widest">Operator Profile</p>
+                      <p className="text-base font-black text-white">{editUserData.name}</p>
+                      <p className="text-[10px] text-[#00b4d8]/60 font-mono uppercase tracking-widest">{editUserData.role} Access</p>
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Branch / Division</label>
-                     <input 
-                       type="text"
-                       placeholder="e.g. CSE, IT"
-                       value={editUserData.branch || ''}
-                       onChange={e => setEditUserData({...editUserData, branch: e.target.value})}
-                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                     />
-                  </div>
+                  {role === 'admin' && (
+                    <>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Full Name</label>
+                         <input 
+                           type="text" required
+                           value={editUserData.name}
+                           onChange={e => setEditUserData({...editUserData, name: e.target.value})}
+                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                         />
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission Year</label>
-                       <input 
-                         type="number"
-                         value={editUserData.admission_year || ''}
-                         onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
-                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                       />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout Year</label>
-                       <input 
-                         type="number"
-                         value={editUserData.passout_year || ''}
-                         onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
-                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                       />
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assigned Role</label>
+                         <select
+                           required
+                           value={editUserData.role}
+                           onChange={e => setEditUserData({...editUserData, role: e.target.value})}
+                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                         >
+                           <option value="developer" className="bg-[#0f172a]">Developer</option>
+                           <option value="mentor" className="bg-[#0f172a]">Mentor</option>
+                           <option value="admin" className="bg-[#0f172a]">Admin</option>
+                         </select>
+                      </div>
 
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Tech Stack (comma-separated)</label>
-                     <input 
-                       type="text"
-                       placeholder="React, FastAPI, MySQL"
-                       value={editUserData.tech_stack || ''}
-                       onChange={e => setEditUserData({...editUserData, tech_stack: e.target.value})}
-                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                     />
-                  </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Branch / Division</label>
+                         <input 
+                           type="text"
+                           placeholder="e.g. CSE, IT"
+                           value={editUserData.branch || ''}
+                           onChange={e => setEditUserData({...editUserData, branch: e.target.value})}
+                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                         />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission Year</label>
+                           <input 
+                             type="number"
+                             value={editUserData.admission_year || ''}
+                             onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
+                             className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                           />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout Year</label>
+                           <input 
+                             type="number"
+                             value={editUserData.passout_year || ''}
+                             onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
+                             className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                           />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Tech Stack (comma-separated)</label>
+                         <input 
+                           type="text"
+                           placeholder="React, FastAPI, MySQL"
+                           value={editUserData.tech_stack || ''}
+                           onChange={e => setEditUserData({...editUserData, tech_stack: e.target.value})}
+                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                         />
+                      </div>
+                    </>
+                  )}
 
                   <div className="space-y-2">
                      <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">GitHub URL</label>
@@ -928,6 +973,68 @@ export default function TeamView() {
                   className="px-5 py-2.5 rounded-xl bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all text-sm font-black uppercase tracking-widest disabled:opacity-50"
                 >{isSubmittingEdit ? 'Saving...' : 'Save Updates'}</button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Password Reset Modal (Admin Only) */}
+      <AnimatePresence>
+        {resetPasswordUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setResetPasswordUser(null)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden"
+            >
+              <div className="p-6 border-b border-white/10 bg-gradient-to-r from-amber-500/20 to-transparent relative overflow-hidden">
+                <div className="flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-3">
+                    <Key className="w-5 h-5 text-amber-400" />
+                    <h2 className="text-lg font-black text-white tracking-widest uppercase">Reset Password</h2>
+                  </div>
+                  <button 
+                    onClick={() => setResetPasswordUser(null)}
+                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handlePerformResetPassword} className="p-6 space-y-4">
+                <p className="text-xs text-white/50">
+                  You are resetting the password for <strong className="text-white">{resetPasswordUser.name}</strong> ({resetPasswordUser.email}).
+                </p>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">New Password</label>
+                  <input 
+                    type="text" required minLength={6}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Enter new strong password"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500 focus:bg-white/10 transition-all font-medium text-sm"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <button 
+                    type="button" onClick={() => setResetPasswordUser(null)}
+                    className="px-5 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-wider"
+                  >Cancel</button>
+                  <button 
+                    type="submit" disabled={isResetting}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500 text-[#020617] hover:bg-amber-400 transition-all text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                  >{isResetting ? 'Resetting...' : 'Confirm Reset'}</button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

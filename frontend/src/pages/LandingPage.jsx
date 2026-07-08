@@ -248,7 +248,7 @@ export default function LandingPage() {
         setTotalProjects(projData.length);
         setIsLive(settingsData?.value === 'true');
         
-        const activeUsers = usersData.filter(u => u.membership_status === 'active' && u.is_active);
+        const activeUsers = usersData.filter(u => u.membership_status === 'active' && u.is_active && u.role !== 'admin');
         setTotalMembers(activeUsers.length);
         
         setDbMentors(activeUsers.filter(u => u.role === 'mentor'));
