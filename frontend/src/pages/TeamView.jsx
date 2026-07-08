@@ -70,7 +70,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="relative w-full h-[380px] group"
+      className="profile-card relative w-full h-[400px] group"
       style={{ perspective: '1200px' }}
     >
       <div
@@ -82,7 +82,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
       >
         {/* FRONT FACE — click to flip */}
         <div
-          className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5 cursor-pointer`}
+          className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5 cursor-pointer ${isFlipped ? 'pointer-events-none' : 'pointer-events-auto'}`}
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           onClick={onFlip}
         >
@@ -125,10 +125,13 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
             <h4 className={`text-sm font-bold ${TEXT_PRIMARY} uppercase tracking-widest`}>Assigned Role</h4>
             <p className="text-xs font-semibold mt-1 mb-3" style={{ color: THEME_HEX }}>{style.text}</p>
             
-            <div className="w-40 h-[1.5px] bg-white/10 rounded-full mb-3"></div>
-            
-            <h4 className={`text-sm font-bold ${TEXT_PRIMARY} uppercase tracking-widest`}>Academic Year</h4>
-            <p className={`text-xs font-semibold mt-1 ${TEXT_SECONDARY}`}>{calculateAcademicYear(user)}</p>
+            {user.role?.toLowerCase() !== 'mentor' && (
+              <>
+                <div className="w-40 h-[1.5px] bg-white/10 rounded-full mb-3"></div>
+                <h4 className={`text-sm font-bold ${TEXT_PRIMARY} uppercase tracking-widest`}>Academic Year</h4>
+                <p className={`text-xs font-semibold mt-1 ${TEXT_SECONDARY}`}>{calculateAcademicYear(user)}</p>
+              </>
+            )}
           </div>
 
           {/* Footer */}
@@ -139,7 +142,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
         {/* BACK FACE — clicks here should NOT flip back */}
         <div
-          className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5 shadow-2xl`}
+          className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5 shadow-2xl ${isFlipped ? 'pointer-events-auto' : 'pointer-events-none'}`}
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
@@ -148,7 +151,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Coloblue Banner with Curve (Same as front) */}
-          <div className={`relative h-[130px] w-full ${THEME_BG} shrink-0`}>
+          <div className={`relative h-[90px] w-full ${THEME_BG} shrink-0`}>
             <div className="absolute inset-0 opacity-10 bg-[linear-gradient(90deg,transparent_49%,rgba(255,255,255,1)_50%,transparent_51%)] bg-[length:30px_100%]"></div>
             
             <svg viewBox="0 0 100 25" preserveAspectRatio="none" className="absolute -bottom-1 left-0 w-full h-12">
@@ -298,6 +301,10 @@ export default function TeamView() {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
+      // Ignore click if it's on any modal wrapper (fixed overlays, z-50 elements)
+      if (e.target.closest('.z-50') || e.target.closest('.fixed')) {
+        return;
+      }
       if (!e.target.closest('.profile-card')) {
         setFlippedCardId(null);
       }
@@ -621,33 +628,56 @@ export default function TeamView() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Joined As (Class)</label>
-                      <div className="relative">
-                        <select required value={newUser.joiningClass} onChange={e => setNewUser({...newUser, joiningClass: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
-                          <option value="1st Year" className="bg-[#0a0a0a]">1st Year</option>
-                          <option value="2nd Year" className="bg-[#0a0a0a]">2nd Year</option>
-                          <option value="3rd Year" className="bg-[#0a0a0a]">3rd Year</option>
-                          <option value="Final Year" className="bg-[#0a0a0a]">Final Year</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    {newUser.role === 'developer' ? (
+                      <>
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Joined As (Class)</label>
+                          <div className="relative">
+                            <select required={newUser.role === 'developer'} value={newUser.joiningClass} onChange={e => setNewUser({...newUser, joiningClass: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
+                              <option value="1st Year" className="bg-[#0a0a0a]">1st Year</option>
+                              <option value="2nd Year" className="bg-[#0a0a0a]">2nd Year</option>
+                              <option value="3rd Year" className="bg-[#0a0a0a]">3rd Year</option>
+                              <option value="Final Year" className="bg-[#0a0a0a]">Final Year</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
+                          <div className="relative">
+                            <select required value={newUser.role} onChange={e => {
+                              const nextRole = e.target.value;
+                              setNewUser({...newUser, role: nextRole, joiningClass: nextRole === 'mentor' ? '' : '1st Year'});
+                            }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
+                              <option value="developer" className="bg-[#0a0a0a]">Developer</option>
+                              <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
+                        <div className="relative">
+                          <select required value={newUser.role} onChange={e => {
+                            const nextRole = e.target.value;
+                            setNewUser({...newUser, role: nextRole, joiningClass: nextRole === 'mentor' ? '' : '1st Year'});
+                          }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
+                            <option value="developer" className="bg-[#0a0a0a]">Developer</option>
+                            <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
-                      <div className="relative">
-                        <select required value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
-                          <option value="developer" className="bg-[#0a0a0a]">Developer</option>
-                          <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                   
                   {modalStatus && (
