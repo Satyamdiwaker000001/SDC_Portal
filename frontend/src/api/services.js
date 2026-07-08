@@ -44,7 +44,19 @@ export const usersAPI = {
   runAutoConvert: async () => {
     const { data } = await client.post('/users/alumni/auto-convert');
     return data;
-  }
+  },
+  delete: async (id) => {
+    const { data } = await client.delete(`/users/${id}`);
+    return data;
+  },
+  uploadAvatar: async (userId, formData) => {
+    const { data } = await client.post(
+      `/users/upload-avatar?user_id=${userId}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data;
+  },
 };
 
 export const teamsAPI = {
@@ -169,10 +181,83 @@ export const applicationsAPI = {
 export const announcementsAPI = {
   getAll: async () => {
     const { data } = await client.get('/announcements/');
-    return data;
+    return data.map(item => ({
+      id: item.id,
+      title: item.title,
+      body: item.content,
+      priority: 'Normal',
+      is_global: item.audience_type === 'ALL_USERS',
+      team_ids: item.target_team_ids || [],
+      timestamp: item.created_at || new Date().toISOString(),
+      pinned: false
+    }));
   },
   create: async (announcementData) => {
-    const { data } = await client.post('/announcements/', announcementData);
+    const payload = {
+      title: announcementData.title,
+      content: announcementData.body,
+      audience_type: announcementData.is_global ? "ALL_USERS" : "SPECIFIC_TEAMS",
+      target_team_ids: announcementData.team_ids || []
+    };
+    const { data } = await client.post('/announcements/', payload);
+    return {
+      id: data.id,
+      title: data.title,
+      body: data.content,
+      priority: announcementData.priority || 'Normal',
+      is_global: data.audience_type === 'ALL_USERS',
+      team_ids: data.target_team_ids || [],
+      timestamp: data.created_at || new Date().toISOString(),
+      pinned: false
+    };
+  },
+  delete: async (id) => {
+    const { data } = await client.delete(`/announcements/${id}`);
+    return data;
+  }
+};
+
+export const noticesAPI = {
+  getAll: async () => {
+    const { data } = await client.get('/notices/');
+    return data.map(item => ({
+      id: item.id,
+      title: item.title,
+      body: item.description,
+      priority: item.category === 'General' ? 'Normal' : item.category,
+      is_global: item.audience_type === 'ALL_USERS',
+      team_ids: item.target_team_ids || [],
+      timestamp: item.created_at || new Date().toISOString(),
+      pinned: item.is_pinned || false
+    }));
+  },
+  create: async (noticeData) => {
+    const payload = {
+      title: noticeData.title,
+      description: noticeData.body,
+      category: noticeData.priority === 'Normal' ? 'General' : noticeData.priority,
+      audience_type: noticeData.is_global ? "ALL_USERS" : "SPECIFIC_TEAMS",
+      target_team_ids: noticeData.team_ids || [],
+      is_pinned: noticeData.pinned || false
+    };
+    const { data } = await client.post('/notices/', payload);
+    return {
+      id: data.id,
+      title: data.title,
+      body: data.description,
+      priority: data.category === 'General' ? 'Normal' : data.category,
+      is_global: data.audience_type === 'ALL_USERS',
+      team_ids: data.target_team_ids || [],
+      timestamp: data.created_at || new Date().toISOString(),
+      pinned: data.is_pinned || false
+    };
+  },
+  update: async (id, noticeData) => {
+    const { data } = await client.patch(`/notices/${id}`, noticeData);
+    return data;
+  },
+  delete: async (id) => {
+    const { data } = await client.delete(`/notices/${id}`);
     return data;
   }
 };

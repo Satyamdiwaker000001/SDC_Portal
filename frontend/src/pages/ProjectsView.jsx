@@ -461,7 +461,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                               <span className="text-2xl font-black text-slate-800">{project.progress}% Complete</span>
                             </div>
                             
-                            {(role === 'admin' || isTeamLeader) && (
+                            {(role === 'admin' || role === 'developer') && (
                               <div className="flex gap-2">
                                 <button 
                                   onClick={() => {
@@ -976,7 +976,7 @@ export default function ProjectsView() {
           />
         </div>
 
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'developer') && (
           <button 
             onClick={() => setIsModalOpen(true)}
             className="w-full sm:w-auto px-5 py-3 bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,180,216,0.15)]"

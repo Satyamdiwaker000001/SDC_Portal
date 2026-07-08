@@ -11,7 +11,7 @@ def get_developer_leaderboard(
     db: Session = Depends(deps.get_db),
 ) -> Any:
     # Get active developers ordered by performance score descending
-    statement = select(User).where(User.role == "developer").where(User.is_retired == False).order_by(User.performance_score.desc())
+    statement = select(User).where(User.role == "developer").where(User.membership_status == "active").order_by(User.performance_score.desc())
     developers = db.exec(statement).all()
     
     leaderboard = []

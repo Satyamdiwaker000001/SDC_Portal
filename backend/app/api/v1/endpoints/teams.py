@@ -11,6 +11,8 @@ router = APIRouter()
 class TeamCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    leaderId: Optional[str] = None
+    memberIds: Optional[List[str]] = []
 
 class TeamOut(BaseModel):
     id: str
@@ -43,6 +45,35 @@ def create_team(
     db.add(team)
     db.commit()
     db.refresh(team)
+    
+    # 2. Add leader if provided
+    if team_in.leaderId:
+        leader_member = TeamMember(
+            id=str(uuid.uuid4()),
+            team_id=team.id,
+            user_id=team_in.leaderId,
+            designation="lead"
+        )
+        db.add(leader_member)
+        
+    # 3. Add members if provided
+    if team_in.memberIds:
+        for member_id in team_in.memberIds:
+            if member_id == team_in.leaderId:
+                continue
+            
+            member_user = db.get(User, member_id)
+            designation = "mentor" if (member_user and member_user.role == "mentor") else "member"
+            
+            member = TeamMember(
+                id=str(uuid.uuid4()),
+                team_id=team.id,
+                user_id=member_id,
+                designation=designation
+            )
+            db.add(member)
+            
+    db.commit()
     return team
 
 @router.get("/", response_model=List[TeamOut])

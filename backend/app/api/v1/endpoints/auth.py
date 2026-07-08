@@ -8,6 +8,7 @@ from ....core.config import settings
 from ....api import deps
 from ....models.models import User
 from ....schemas.token import Token
+from ....schemas.user import UserOut
 
 router = APIRouter()
 
@@ -70,7 +71,7 @@ def logout() -> Any:
     """
     return {"status": "SUCCESS", "message": "Logged out successfully"}
 
-@router.get("/me")
+@router.get("/me", response_model=UserOut)
 def read_user_me(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:

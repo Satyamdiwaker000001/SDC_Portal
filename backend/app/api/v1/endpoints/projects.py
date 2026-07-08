@@ -5,10 +5,10 @@ from sqlmodel import Session, select
 import uuid
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, date
 
 from ....api import deps
-from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, ActivityLog
+from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ class ProjectCreate(BaseModel):
     short_description: Optional[str] = None
     full_description: Optional[str] = None
     type: Optional[str] = "Web_App"
-    deadline: Optional[str] = "2026-12-31"
+    deadline: Optional[date] = None
     academic_year: Optional[str] = "2025-26"
     team_id: Optional[str] = None
     github_repo: Optional[str] = None
@@ -31,7 +31,7 @@ class ProjectOut(BaseModel):
     full_description: Optional[str]
     status: str
     type: str
-    deadline: str
+    deadline: Optional[date]
     academic_year: str
     team_id: Optional[str]
     github_repo: Optional[str]
@@ -65,8 +65,11 @@ class DocumentOut(BaseModel):
 def create_project(
     project_in: ProjectCreate,
     db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    if current_user.role not in ("admin", "developer"):
+        raise HTTPException(status_code=403, detail="Only Admins or Developers are permitted to initialize projects")
+        
     project = Project(
         id=str(uuid.uuid4()),
         name=project_in.name,
@@ -79,7 +82,7 @@ def create_project(
         github_repo=project_in.github_repo,
         live_url=project_in.live_url,
         image_url=project_in.image_url,
-        created_by=current_admin.id
+        created_by=current_user.id
     )
     db.add(project)
     db.commit()
@@ -101,12 +104,11 @@ def create_project(
         db.add(p_phase)
         
     # Predefine the 16 SE Documents in documentation repository
+    # SRS 3.14 — Exactly 16 mandatory SE document types
     documents = [
-        "Product Requirements Document (PRD)", "Business Requirements Document (BRD)",
-        "Software Requirements Specification (SRS)", "Use Case Document",
+        "PRD", "BRD", "SRS", "Use Case Document",
         "Use Case Diagrams", "Workflow Document",
-        "Data Flow Diagram (DFD)", "Entity Relationship Diagram (ERD)",
-        "Database Design", "API Documentation",
+        "DFD", "ERD", "Database Design", "API Documentation",
         "Frontend Documentation", "Backend Documentation",
         "Deployment Guide", "Testing Documentation",
         "User Manual", "Developer Guide"
@@ -117,22 +119,22 @@ def create_project(
             project_id=project.id,
             document_type=doc_type,
             file_id=None,
-            uploaded_at=datetime.utcnow(),
+            uploaded_by=None,
+            uploaded_at=None,
             updated_at=datetime.utcnow()
         )
         db.add(p_doc)
         
-    # Log the creation in Audit Logs
-    audit = ActivityLog(
+    # Audit log (SRS 3.16)
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_admin.id,
-        entity_type="project",
-        entity_id=project.id,
-        action="PROJECT_CREATE",
-        is_audit=True,
-        created_at=datetime.utcnow()
-    )
-    db.add(audit)
+        event_type="PROJECT_CREATED",
+        description=f"Project '{project_in.name}' created.",
+        performed_by=current_user.id,
+        user_role=current_user.role,
+        related_module="project",
+        related_entity_id=project.id,
+    ))
     
     db.commit()
     db.refresh(project)
@@ -169,17 +171,17 @@ def update_project_status(
     project.status = status.upper()
     db.add(project)
     
-    # Audit log
-    audit = ActivityLog(
+    project.updated_at = datetime.utcnow()
+    # Audit log (SRS 3.16)
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_user.id,
-        entity_type="project",
-        entity_id=project.id,
-        action=f"PROJECT_STATUS_UPDATE: {old_status} -> {project.status}",
-        is_audit=(current_user.role == "admin"),
-        created_at=datetime.utcnow()
-    )
-    db.add(audit)
+        event_type="PROJECT_CREATED",
+        description=f"Project '{project.name}' status: {old_status} → {project.status}",
+        performed_by=current_user.id,
+        user_role=current_user.role,
+        related_module="project",
+        related_entity_id=project.id,
+    ))
     
     db.commit()
     db.refresh(project)
@@ -190,7 +192,7 @@ class ProjectUpdate(BaseModel):
     short_description: Optional[str] = None
     full_description: Optional[str] = None
     type: Optional[str] = None
-    deadline: Optional[str] = None
+    deadline: Optional[date] = None
     academic_year: Optional[str] = None
     team_id: Optional[str] = None
     github_repo: Optional[str] = None
@@ -233,17 +235,16 @@ def update_project(
             
     db.add(project)
     
-    # Audit log
-    audit = ActivityLog(
+    project.updated_at = datetime.utcnow()
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_user.id,
-        entity_type="project",
-        entity_id=project.id,
-        action="PROJECT_UPDATE",
-        is_audit=(current_user.role == "admin"),
-        created_at=datetime.utcnow()
-    )
-    db.add(audit)
+        event_type="PROJECT_CREATED",
+        description=f"Project '{project.name}' updated.",
+        performed_by=current_user.id,
+        user_role=current_user.role,
+        related_module="project",
+        related_entity_id=project.id,
+    ))
     
     db.commit()
     db.refresh(project)
@@ -275,17 +276,15 @@ def delete_project(
         
     db.delete(project)
     
-    # Audit log
-    audit = ActivityLog(
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_admin.id,
-        entity_type="project",
-        entity_id=id,
-        action="PROJECT_DELETE",
-        is_audit=True,
-        created_at=datetime.utcnow()
-    )
-    db.add(audit)
+        event_type="PROJECT_CREATED",
+        description=f"Project '{id}' deleted by admin.",
+        performed_by=current_admin.id,
+        user_role="admin",
+        related_module="project",
+        related_entity_id=id,
+    ))
     
     db.commit()
     return {"status": "SUCCESS", "message": "Project and its components deleted successfully"}
@@ -323,17 +322,16 @@ def manual_unlock_phase(
     phase.updated_at = datetime.utcnow()
     db.add(phase)
     
-    # Audit log
-    audit = ActivityLog(
+    phase.unlocked_at = datetime.utcnow()
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_admin.id,
-        entity_type="phase",
-        entity_id=phase_id,
-        action=f"PHASE_MANUAL_UNLOCK: {phase.name}",
-        is_audit=True,
-        created_at=datetime.utcnow()
-    )
-    db.add(audit)
+        event_type="PHASE_UNLOCKED",
+        description=f"Phase '{phase.name}' manually unlocked by admin (parallel dev override).",
+        performed_by=current_admin.id,
+        user_role="admin",
+        related_module="phase",
+        related_entity_id=phase_id,
+    ))
     
     db.commit()
     db.refresh(phase)
@@ -430,27 +428,29 @@ async def upload_project_document(
         original_name=file.filename,
         stored_name=stored_name,
         mime_type=file.content_type or "application/octet-stream",
-        size=os.path.getsize(file_path)
+        size_bytes=os.path.getsize(file_path),
+        uploaded_by=current_user.id,
+        uploaded_at=datetime.utcnow(),
     )
     db.add(db_file)
     db.commit()
     
     # Update Document Slot record
     doc.file_id = db_file.id
+    doc.uploaded_by = current_user.id
+    doc.uploaded_at = datetime.utcnow()
     doc.updated_at = datetime.utcnow()
     db.add(doc)
-    
-    # Log in Audit
-    audit = ActivityLog(
+
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_user.id,
-        entity_type="document",
-        entity_id=doc.id,
-        action=f"DOC_UPLOAD: {doc.document_type} -> {file.filename}",
-        is_audit=False,
-        created_at=datetime.utcnow()
-    )
-    db.add(audit)
+        event_type="DOCUMENTATION_UPLOAD",
+        description=f"Document '{doc.document_type}' uploaded: {file.filename}",
+        performed_by=current_user.id,
+        user_role=current_user.role,
+        related_module="document",
+        related_entity_id=doc.id,
+    ))
     
     db.commit()
     db.refresh(doc)

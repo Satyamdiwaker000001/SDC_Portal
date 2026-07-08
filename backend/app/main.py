@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
-from .api.v1.endpoints import auth, users, teams, projects, applications, announcements, interactions, leaderboards, audit, settings as settings_endpoint
+from .api.v1.endpoints import auth, users, teams, projects, applications, announcements, notices, interactions, leaderboards, audit, settings as settings_endpoint, tasks
 from .db.session import init_db
 from .core.config import settings
 from fastapi.staticfiles import StaticFiles
@@ -68,3 +68,5 @@ app.include_router(interactions.router, prefix=f"{settings.API_V1_STR}/interacti
 app.include_router(leaderboards.router, prefix=f"{settings.API_V1_STR}/leaderboards", tags=["leaderboards"])
 app.include_router(audit.router, prefix=f"{settings.API_V1_STR}/audit", tags=["audit"])
 app.include_router(settings_endpoint.router, prefix=f"{settings.API_V1_STR}/settings", tags=["settings"])
+app.include_router(tasks.router, prefix=f"{settings.API_V1_STR}/tasks", tags=["tasks"])
+app.include_router(notices.router, prefix=f"{settings.API_V1_STR}/notices", tags=["notices"])
