@@ -85,11 +85,12 @@ export default function TelemetryView() {
     const pTotal = pTasks.length;
     const progress = pTotal === 0 ? 0 : Math.round((pDone / pTotal) * 100);
     
-    // Mock health score
+    // Calculate health score dynamically based on progress and overdue tasks (real data)
+    const overdueTasks = pTasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'COMPLETED' && t.status !== 'DONE').length;
     let score = progress;
-    if (progress === 100) score = Math.floor(Math.random() * (95 - 75 + 1)) + 75; // 75-95
-    else if (progress > 50) score = Math.floor(Math.random() * (70 - 45 + 1)) + 45; // 45-70
-    else score = Math.floor(Math.random() * 40); // <40
+    if (overdueTasks > 0) {
+      score = Math.max(0, progress - overdueTasks * 10);
+    }
 
     const teamMembers = users.filter(u => pTasks.some(t => t.assigned_to === u.id)).map(u => {
       const uTasks = pTasks.filter(t => t.assigned_to === u.id);
@@ -338,7 +339,7 @@ export default function TelemetryView() {
                 const pDone = pTasks.filter(t => t.status === 'COMPLETED' || t.status === 'DONE').length;
                 const pTotal = pTasks.length;
                 const pProgress = pTotal === 0 ? 0 : Math.round((pDone / pTotal) * 100);
-                const isOverdue = Math.random() > 0.7; // Mock overdue status for visual parity
+                const isOverdue = project.deadline ? new Date(project.deadline) < new Date() && project.status !== 'COMPLETED' : false;
 
                 return (
                   <div 

@@ -254,28 +254,43 @@ export default function RecruitmentView() {
                     </div>
                   </div>
                   
-                  {/* Contact Info */}
+                   {/* Contact Info */}
                   <div className="col-span-3">
                     <div className="flex items-center gap-2 mb-1">
                       <Mail className="w-3 h-3 text-white/30" />
                       <span className="text-xs font-medium text-white/60 truncate" title={app.email}>{app.email}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3 h-3 text-white/30" />
-                      <span className="text-xs font-medium text-white/60 truncate">{app.branch} ({app.admission_year})</span>
+                    {app.mobile_number && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <Phone className="w-3 h-3 text-white/30" />
+                        <span className="text-xs font-medium text-white/60 truncate">{app.mobile_number}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-white/40 text-[10px]">
+                      <span>{app.branch} ({app.admission_year})</span>
                     </div>
                   </div>
 
                   {/* Specialization */}
                   <div className="col-span-2">
-                    <span className="text-xs font-bold text-[#00b4d8] uppercase tracking-widest block mb-1">
-                      {app.batch_year || 'Developer'}
+                    <span className="text-xs font-bold text-[#00b4d8] uppercase tracking-widest block mb-0.5">
+                      {app.technical_specialization || app.batch_year || 'Developer'}
                     </span>
-                    {app.linkedin_url && (
-                      <a href={app.linkedin_url} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-white/40 hover:text-white transition-colors flex items-center gap-1 uppercase tracking-widest">
-                        <FileText className="w-2.5 h-2.5" /> View Profile
-                      </a>
-                    )}
+                    <span className="text-[10px] text-white/50 block mb-1.5">
+                      {app.current_semester || 'N/A'}
+                    </span>
+                    <div className="flex gap-2">
+                      {app.linkedin_url && (
+                        <a href={app.linkedin_url} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-white/40 hover:text-white transition-colors uppercase tracking-widest">
+                          LinkedIn
+                        </a>
+                      )}
+                      {app.github_url && (
+                        <a href={app.github_url} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-white/40 hover:text-white transition-colors uppercase tracking-widest">
+                          GitHub
+                        </a>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Status / Action */}

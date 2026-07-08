@@ -3,41 +3,60 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from sqlmodel import Session, select, or_
 import csv
 import io
+import uuid
+import os
+import shutil
 
 from ....api import deps
 from ....core import security
-from ....models.models import User
+from ....models.models import User, AuditLog
 from ....core.config import settings
 from ....schemas.user import UserCreate, UserUpdate, UserOut
 from datetime import datetime
-import shutil
-import os
 
 router = APIRouter()
+
 
 @router.post("/upload-avatar")
 async def upload_avatar(
     request: Request,
     file: UploadFile = File(...),
+    user_id: Optional[str] = None,
+    db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Upload profile image to secure cloud/local storage.
-    """
+    """Upload profile avatar image. Admin can pass user_id to upload for another user."""
+    # Determine target user
+    target_id = user_id if (user_id and current_user.role == "admin") else current_user.id
+
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     upload_dir = os.path.join(base_dir, "static", "uploads")
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
 
-    extension = file.filename.split(".")[-1]
-    filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}.{extension}"
-    file_path = os.path.join(upload_dir, filename)
+    extension = file.filename.split(".")[-1].lower()
+    if extension not in {"jpg", "jpeg", "png", "gif", "webp"}:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, gif, webp)")
 
+    filename = f"{target_id}_{int(datetime.utcnow().timestamp())}.{extension}"
+    file_path = os.path.join(upload_dir, filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
+
     base_url = str(request.base_url).rstrip("/")
-    return {"url": f"{base_url}/static/uploads/{filename}"}
+    image_url = f"{base_url}/static/uploads/{filename}"
+
+    # Save URL to user record in DB
+    target_user = db.get(User, target_id)
+    if target_user:
+        target_user.profile_image = image_url
+        target_user.updated_at = datetime.utcnow()
+        db.add(target_user)
+        db.commit()
+
+    return {"url": image_url}
+
 
 @router.get("/", response_model=List[UserOut])
 def read_users(
@@ -48,17 +67,14 @@ def read_users(
     role: Optional[str] = None,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Retrieve users.
-    """
+    """Retrieve users."""
     statement = select(User)
     if search:
         statement = statement.where(or_(User.name.contains(search), User.email.contains(search)))
     if role:
         statement = statement.where(User.role == role)
-    
-    users = db.exec(statement.offset(skip).limit(limit)).all()
-    return users
+    return db.exec(statement.offset(skip).limit(limit)).all()
+
 
 @router.post("/", response_model=UserOut)
 def create_user(
@@ -67,29 +83,39 @@ def create_user(
     user_in: UserCreate,
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    """
-    Create new user (Admin only).
-    """
-    user_id = f"USR-{int(datetime.utcnow().timestamp())}"
-    
+    """Create a new user (Admin only — FR-022, FR-023)."""
+    user_id = f"USR-{uuid.uuid4().hex[:8].upper()}"
     user = User(
         id=user_id,
         name=user_in.name,
         email=user_in.email,
         password_hash=security.get_password_hash(user_in.password),
         role=user_in.role or "developer",
-        branch="N/A", # Default since it's not in UserCreate
+        branch="N/A",
         admission_year=0,
         passout_year=0,
         profile_image=user_in.image,
+        membership_status="active",         # SRS 3.15
         is_active=True,
-        is_retired=False,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     db.add(user)
+
+    db.add(AuditLog(
+        id=str(uuid.uuid4()),
+        event_type="USER_CREATED",
+        description=f"User '{user_in.name}' ({user_in.role}) created by admin.",
+        performed_by=current_admin.id,
+        user_role="admin",
+        related_module="user",
+        related_entity_id=user_id,
+    ))
+
     db.commit()
     db.refresh(user)
     return user
+
 
 @router.get("/{id}", response_model=UserOut)
 def read_user_by_id(
@@ -97,13 +123,11 @@ def read_user_by_id(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Get a specific user by id.
-    """
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
 
 @router.patch("/{id}", response_model=UserOut)
 def update_user(
@@ -115,27 +139,44 @@ def update_user(
 ) -> Any:
     """
     Update a user.
+    Developer can edit: profile_image, github_url, linkedin_url (SRS 3.3.1).
+    Admin can edit all fields.
     """
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     if current_user.id != user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
-        
+
     update_data = user_in.model_dump(exclude_unset=True)
     if "password" in update_data and update_data["password"]:
-        hashed_password = security.get_password_hash(update_data["password"])
-        del update_data["password"]
-        update_data["password_hash"] = hashed_password
-        
+        update_data["password_hash"] = security.get_password_hash(update_data.pop("password"))
+    # Map 'image' field from schema to 'profile_image' column on the model
+    if "image" in update_data:
+        update_data["profile_image"] = update_data.pop("image")
+    # 'profile_image' already named correctly, just ensure it's handled
     for field, value in update_data.items():
-        setattr(user, field, value)
-        
+        if hasattr(user, field):
+            setattr(user, field, value)
+
+    user.updated_at = datetime.utcnow()
     db.add(user)
+
+    db.add(AuditLog(
+        id=str(uuid.uuid4()),
+        event_type="USER_UPDATED",
+        description=f"User '{user.name}' profile updated.",
+        performed_by=current_user.id,
+        user_role=current_user.role,
+        related_module="user",
+        related_entity_id=id,
+    ))
+
     db.commit()
     db.refresh(user)
     return user
+
 
 @router.delete("/{id}")
 def delete_user(
@@ -144,16 +185,13 @@ def delete_user(
     id: str,
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    """
-    Delete a user.
-    """
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
     db.delete(user)
     db.commit()
     return {"message": "User deleted successfully"}
+
 
 @router.get("/lookup/{query}")
 def lookup_users(
@@ -161,12 +199,13 @@ def lookup_users(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Quick lookup for assigning tasks/projects.
-    """
-    statement = select(User).where(or_(User.name.contains(query), User.email.contains(query))).limit(5)
+    """Quick lookup for task/project assignment."""
+    statement = select(User).where(
+        or_(User.name.contains(query), User.email.contains(query))
+    ).limit(5)
     users = db.exec(statement).all()
     return [{"id": u.id, "name": u.name, "email": u.email, "role": u.role} for u in users]
+
 
 @router.post("/bulk-upload")
 async def bulk_upload_users(
@@ -174,73 +213,52 @@ async def bulk_upload_users(
     db: Session = Depends(deps.get_db),
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    """
-    Bulk upload users from a CSV file.
-    Required columns: Name, Email, Password, Role, Branch, Admission Year
-    Optional: Passout Year
-    """
+    """Bulk upload users from CSV. Required columns: Name, Email, Password, Role, Branch, Admission Year."""
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
-    
+
     content = await file.read()
     try:
         csv_text = content.decode("utf-8")
     except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid file encoding. Please use UTF-8.")
-    
+        raise HTTPException(status_code=400, detail="Invalid file encoding. Use UTF-8.")
+
     csv_reader = csv.DictReader(io.StringIO(csv_text))
-    
-    # Check headers
     headers = [h.strip().lower() for h in (csv_reader.fieldnames or [])]
-    required_headers = ["name", "email", "password", "role", "branch", "admission year"]
-    missing_headers = [req for req in required_headers if req not in headers]
-    if missing_headers:
-        raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(missing_headers)}")
-    
+    required = ["name", "email", "password", "role", "branch", "admission year"]
+    missing = [r for r in required if r not in headers]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(missing)}")
+
+    existing_emails = {u.email for u in db.exec(select(User)).all()}
     users_to_add = []
-    skipped_count = 0
-    added_count = 0
-    max_limit = 500
-    row_count = 0
-    
-    # Retrieve existing emails to avoid dupes in bulk
-    existing_emails_set = {u.email for u in db.exec(select(User)).all()}
-    
-    import uuid
+    added = skipped = 0
+
     for row in csv_reader:
-        row_count += 1
-        if row_count > max_limit:
+        if added + skipped >= 500:
             break
-            
-        # Clean row keys based on stripped lowercase headers
-        cleaned_row = {k.strip().lower(): v.strip() if v else "" for k, v in row.items() if k}
-        
-        name = cleaned_row.get("name", "")
-        email = cleaned_row.get("email", "").lower()
-        password = cleaned_row.get("password", "")
-        role = cleaned_row.get("role", "developer").lower()
-        branch = cleaned_row.get("branch", "N/A")
-        admission_year = cleaned_row.get("admission year", "0")
-        passout_year = cleaned_row.get("passout year", "0")
-        
-        if not email or not name or not password:
-            skipped_count += 1
+        cleaned = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items() if k}
+        name = cleaned.get("name", "")
+        email = cleaned.get("email", "").lower()
+        password = cleaned.get("password", "")
+        role = cleaned.get("role", "developer").lower()
+        branch = cleaned.get("branch", "N/A")
+        admission_year = cleaned.get("admission year", "0")
+        passout_year = cleaned.get("passout year", "0")
+
+        if not email or not name or not password or email in existing_emails:
+            skipped += 1
             continue
-            
-        if email in existing_emails_set:
-            skipped_count += 1
-            continue
-            
+
         try:
             adm_yr = int(admission_year)
         except ValueError:
             adm_yr = 0
-            
         try:
             pass_yr = int(passout_year)
         except ValueError:
             pass_yr = 0
-            
+
         new_user = User(
             id=f"USR-{uuid.uuid4().hex[:8].upper()}",
             name=name,
@@ -249,95 +267,113 @@ async def bulk_upload_users(
             role=role if role in ["admin", "developer", "mentor"] else "developer",
             branch=branch,
             admission_year=adm_yr,
-            passout_year=pass_yr
+            passout_year=pass_yr,
+            membership_status="active",
         )
         users_to_add.append(new_user)
-        existing_emails_set.add(email) # To prevent dupes within the same CSV
-        added_count += 1
+        existing_emails.add(email)
+        added += 1
 
     if users_to_add:
         db.add_all(users_to_add)
         db.commit()
-        
+
     return {
         "status": "success",
-        "message": f"Successfully added {added_count} members. Skipped {skipped_count} invalid or duplicate entries.",
-        "added": added_count,
-        "skipped": skipped_count,
-        "limit_reached": row_count > max_limit
+        "message": f"Added {added} users. Skipped {skipped} invalid/duplicate.",
+        "added": added,
+        "skipped": skipped,
     }
+
 
 @router.patch("/{id}/membership", response_model=UserOut)
 def toggle_user_membership(
     id: str,
-    is_retired: bool,
+    membership_status: Optional[str] = None,  # 'active' or 'alumni'
+    is_retired: Optional[bool] = None,       # backward compatibility
     db: Session = Depends(deps.get_db),
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
+    """
+    Manually set a Developer's membership status to 'active' or 'alumni' (FR-029, SRS 3.15).
+    Converting to alumni automatically removes them from teams.
+    """
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
-    user.is_retired = is_retired
-    if is_retired:
+
+    status_val = "active"
+    if membership_status is not None:
+        status_val = membership_status.lower()
+    elif is_retired is not None:
+        status_val = "alumni" if is_retired else "active"
+
+    if status_val not in ["active", "alumni"]:
+        raise HTTPException(status_code=400, detail="membership_status must be 'active' or 'alumni'")
+
+    user.membership_status = status_val
+    user.updated_at = datetime.utcnow()
+
+    if status_val == "alumni":
         from ....models.models import TeamMember
         team_members = db.exec(select(TeamMember).where(TeamMember.user_id == id)).all()
         for tm in team_members:
             db.delete(tm)
-            
+
     db.add(user)
-    
-    from ....models.models import ActivityLog
-    import uuid
-    db.add(ActivityLog(
+    db.add(AuditLog(
         id=str(uuid.uuid4()),
-        user_id=current_admin.id,
-        entity_type="user",
-        entity_id=id,
-        action=f"ALUMNI_CONVERSION_MANUAL: is_retired={is_retired}",
-        is_audit=True,
-        created_at=datetime.utcnow()
+        event_type="ALUMNI_CONVERSION",
+        description=f"User '{user.name}' membership_status set to '{status_val}'.",
+        performed_by=current_admin.id,
+        user_role="admin",
+        related_module="user",
+        related_entity_id=id,
     ))
-    
+
     db.commit()
     db.refresh(user)
     return user
 
+
 @router.post("/alumni/auto-convert")
 def run_automatic_alumni_conversion(
     db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin)
+    current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
+    """
+    Auto-convert Developers who have passed their passout_year to Alumni status (FR-030).
+    """
     current_year = datetime.utcnow().year
     developers = db.exec(
         select(User)
         .where(User.role == "developer")
-        .where(User.is_retired == False)
+        .where(User.membership_status == "active")
         .where(User.passout_year <= current_year)
     ).all()
-    
-    converted_count = 0
-    from ....models.models import TeamMember, ActivityLog
-    import uuid
-    
+
+    from ....models.models import TeamMember
+    converted = 0
     for dev in developers:
-        dev.is_retired = True
+        dev.membership_status = "alumni"
+        dev.updated_at = datetime.utcnow()
         db.add(dev)
+
+        # Remove from teams
         team_members = db.exec(select(TeamMember).where(TeamMember.user_id == dev.id)).all()
         for tm in team_members:
             db.delete(tm)
-        converted_count += 1
-        
-        db.add(ActivityLog(
-            id=str(uuid.uuid4()),
-            user_id="SYSTEM",
-            entity_type="user",
-            entity_id=dev.id,
-            action="ALUMNI_CONVERSION_AUTO: transitioned to alumni",
-            is_audit=True,
-            created_at=datetime.utcnow()
-        ))
-        
-    db.commit()
-    return {"status": "SUCCESS", "converted_count": converted_count}
 
+        converted += 1
+        db.add(AuditLog(
+            id=str(uuid.uuid4()),
+            event_type="ALUMNI_CONVERSION",
+            description=f"Developer '{dev.name}' auto-converted to alumni (passout_year {dev.passout_year} <= {current_year}).",
+            performed_by="SYSTEM",
+            user_role="system",
+            related_module="user",
+            related_entity_id=dev.id,
+        ))
+
+    db.commit()
+    return {"status": "SUCCESS", "converted_count": converted}

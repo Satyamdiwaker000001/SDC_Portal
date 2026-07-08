@@ -236,12 +236,10 @@ export default function DashboardLayout() {
             <div className="relative group">
               <button className="w-10 h-10 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/50 flex items-center justify-center overflow-hidden hover:scale-105 transition-transform backdrop-blur-md cursor-pointer">
                 {user ? (
-                  user?.role === 'admin' ? (
-                    <span className="text-sm font-black text-white/80">AD</span>
-                  ) : user?.profile_image_url ? (
-                    <img src={user.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+                  user?.profile_image ? (
+                    <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-sm font-black text-white/80">{user?.full_name ? user.full_name.substring(0, 2).toUpperCase() : <User className="w-4 h-4 text-white/50" />}</span>
+                    <span className="text-sm font-black text-white/80">{user?.name ? user.name.substring(0, 2).toUpperCase() : <User className="w-4 h-4 text-white/50" />}</span>
                   )
                 ) : (
                   <div className="w-full h-full bg-[#00b4d8] text-white flex items-center justify-center font-bold font-mono">U</div>
@@ -251,7 +249,7 @@ export default function DashboardLayout() {
               {/* Dropdown */}
               <div className="absolute right-0 mt-2 w-56 bg-[#020617]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.7)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right group-hover:translate-y-0 translate-y-2 z-50 overflow-hidden">
                 <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                  <p className="text-sm font-bold text-white truncate mb-1">{role === 'admin' ? 'Administrator' : (user?.full_name || 'Operator')}</p>
+                  <p className="text-sm font-bold text-white truncate mb-1">{user?.name || 'Operator'}</p>
                   <p className="text-[10px] font-mono text-[#00b4d8] uppercase tracking-widest">{role} Access</p>
                 </div>
                 <div className="p-2">

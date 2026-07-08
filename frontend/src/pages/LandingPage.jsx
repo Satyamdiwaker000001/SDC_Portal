@@ -6,7 +6,7 @@ import head1 from '../assets/heads/Dr. Rahul Rastogi.jpg';
 import head2 from '../assets/heads/Mr. Prateek Agrawal.jpeg';
 import founderAyush from '../assets/founders/Ayush.jpg';
 import founderTushar from '../assets/founders/Tushar.jpg';
-import { projectsAPI, applicationsAPI, settingsAPI } from '../api/services';
+import { projectsAPI, applicationsAPI, settingsAPI, usersAPI } from '../api/services';
 
 
 // Reusable animation variants
@@ -211,11 +211,26 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedProjects, setCompletedProjects] = useState([]);
+  const [dbDevelopers, setDbDevelopers] = useState([]);
+  const [dbMentors, setDbMentors] = useState([]);
+  const [totalMembers, setTotalMembers] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
   
   // Recruitment Form State
   const [isLive, setIsLive] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', email: '', branch: '', admission_year: new Date().getFullYear(), passout_year: new Date().getFullYear() + 3, batch_year: '2025-26'
+    name: '',
+    email: '',
+    mobile_number: '',
+    branch: '',
+    admission_year: new Date().getFullYear(),
+    passout_year: new Date().getFullYear() + 3,
+    batch_year: '2025-26',
+    current_semester: '',
+    technical_specialization: '',
+    additional_information: '',
+    linkedin_url: '',
+    github_url: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -223,12 +238,21 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        const [projData, settingsData] = await Promise.all([
-          projectsAPI.getAll(),
-          settingsAPI.get('is_recruitment_live')
+        const [projData, settingsData, usersData] = await Promise.all([
+          projectsAPI.getAll().catch(() => []),
+          settingsAPI.get('is_recruitment_live').catch(() => null),
+          usersAPI.getAll().catch(() => [])
         ]);
-        setCompletedProjects(projData.filter(p => p.status === 'COMPLETED'));
+        
+        setCompletedProjects(projData.filter(p => p.status === 'COMPLETED' || p.status === 'LIVE'));
+        setTotalProjects(projData.length);
         setIsLive(settingsData?.value === 'true');
+        
+        const activeUsers = usersData.filter(u => u.membership_status === 'active' && u.is_active);
+        setTotalMembers(activeUsers.length);
+        
+        setDbMentors(activeUsers.filter(u => u.role === 'mentor'));
+        setDbDevelopers(activeUsers.filter(u => u.role === 'developer'));
       } catch (err) {
         console.error("Failed to fetch initial data", err);
       }
@@ -261,7 +285,6 @@ export default function LandingPage() {
   const navLinks = ['About', 'Founders', 'Projects', 'Mentors'];
 
   const handleNavClick = (link) => {
-    if (link === 'About') return;
     const el = document.getElementById(link.toLowerCase());
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
@@ -468,8 +491,8 @@ export default function LandingPage() {
             className="w-full max-w-3xl bg-[#020617]/40 backdrop-blur-2xl border border-white/10 rounded-3xl px-10 py-6 grid grid-cols-3 divide-x divide-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] hover:border-white/20 transition-all duration-300 hover:-translate-y-1 group"
           >
             {[
-              { value: '50+', label: 'Active Members' },
-              { value: '20+', label: 'Projects Built' },
+              { value: totalMembers, label: 'Active Members' },
+              { value: totalProjects, label: 'Projects Built' },
               { value: '2yr', label: 'Of Excellence' },
             ].map(({ value, label }) => (
               <div key={label} className="flex flex-col items-center gap-1.5 px-4 relative overflow-hidden">
@@ -489,6 +512,62 @@ export default function LandingPage() {
           <div className="w-px h-10 bg-gradient-to-b from-white/20 to-transparent" />
         </motion.div>
 
+      </section>
+
+
+      {/* ======= 1.5 ABOUT SDC SECTION ======= */}
+      <section id="about" className="py-32 px-6 lg:px-24 bg-[#0a192f]/20 border-y border-white/5 flex flex-col items-center justify-center min-h-[90vh] w-full relative">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        
+        <div className="w-full max-w-7xl mx-auto flex flex-col items-center relative z-10">
+          <div className="text-center mb-24 flex flex-col items-center max-w-3xl">
+            <span className="border border-white/20 text-[#00b4d8] px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-bold bg-[#00b4d8]/5">The Foundation</span>
+            <h2 className="text-4xl md:text-5xl font-black mt-8 tracking-tight leading-tight text-center uppercase">About the Cell</h2>
+            <div className="w-20 h-1 bg-gradient-to-r from-[#00b4d8] to-blue-500 rounded-full mt-6 mb-6"></div>
+            <p className="text-white/50 text-base md:text-lg font-light leading-relaxed">
+              Software Development Cell (SDC) is the official technical engineering powerhouse of the institution. We build production-ready software solutions while establishing strict professional software engineering culture.
+            </p>
+          </div>
+
+          <motion.div 
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full"
+          >
+            {[
+              {
+                title: "Production Engineering",
+                desc: "We build enterprise-grade software to optimize cell and institution operations, keeping everything 100% database-driven.",
+                icon: "⚙️"
+              },
+              {
+                title: "Rigorous SDLC",
+                desc: "We model workflows according to industry standards, leveraging 7 stages of development and 16 mandatory software engineering documents.",
+                icon: "📋"
+              },
+              {
+                title: "Real-time Telemetry",
+                desc: "Task velocity, leaderboard score, and application reviews are monitored in real time, driving transparency and active contribution.",
+                icon: "⚡"
+              },
+              {
+                title: "Mentorship-Led",
+                desc: "Guided directly by senior institutional heads and industry-aligned alumni, fostering a growth-oriented community.",
+                icon: "🎓"
+              }
+            ].map((feature, idx) => (
+              <motion.div 
+                key={idx} variants={fadeInUp}
+                className="bg-white/[0.02] border border-white/10 hover:border-[#00b4d8]/30 rounded-3xl p-8 hover:-translate-y-2 transition-all duration-300 backdrop-blur-md flex flex-col group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#00b4d8]/10 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="text-4xl mb-6">{feature.icon}</div>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide mb-3 group-hover:text-[#00b4d8] transition-colors">{feature.title}</h3>
+                <p className="text-xs text-white/40 leading-relaxed font-medium">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
       </section>
 
 
@@ -543,21 +622,22 @@ export default function LandingPage() {
           </div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-            <ProfileCard
-              name="Elena Rostova" role="Web Dev Lead"
-              image="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80"
-              linkedin="#" github="#"
-            />
-            <ProfileCard
-              name="Marcus Doe" role="App Dev Lead"
-              image="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80"
-              linkedin="#" github="#"
-            />
-            <ProfileCard
-              name="Aisha Khan" role="AI/ML Lead"
-              image="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80"
-              linkedin="#" github="#"
-            />
+            {dbDevelopers.length > 0 ? (
+              dbDevelopers.slice(0, 6).map(dev => (
+                <ProfileCard
+                  key={dev.id}
+                  name={dev.name}
+                  role={dev.role === 'developer' ? 'Lead Developer' : dev.role}
+                  image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                  linkedin={dev.linkedin_url || "#"}
+                  github={dev.github_url || "#"}
+                />
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
+                No active developers in roster.
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -570,7 +650,7 @@ export default function LandingPage() {
             <p className="text-xl text-white/50 font-light mb-12">Guiding the next generation of engineers.</p>
             <div className="flex gap-12 items-center justify-center">
               <div className="text-center">
-                <h4 className="text-4xl font-medium text-white">50+</h4>
+                <h4 className="text-4xl font-medium text-white">{dbMentors.length}</h4>
                 <p className="text-[#00e5ff] text-xs uppercase tracking-widest mt-2">Active Mentors</p>
               </div>
               <div className="w-px h-16 bg-white/20"></div>
@@ -582,10 +662,21 @@ export default function LandingPage() {
           </div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full place-items-center">
-            <ProfileCard name="David Kim" role="Senior Mentor" image="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80" linkedin="#" />
-            <ProfileCard name="Priya Patel" role="UI/UX Mentor" image="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&q=80" linkedin="#" />
-            <ProfileCard name="Tom Wilson" role="Backend Mentor" image="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80" linkedin="#" />
-            <ProfileCard name="Nina Smith" role="DevOps Mentor" image="https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=400&q=80" linkedin="#" />
+            {dbMentors.length > 0 ? (
+              dbMentors.slice(0, 8).map(mentor => (
+                <ProfileCard
+                  key={mentor.id}
+                  name={mentor.name}
+                  role="SDC Mentor"
+                  image={mentor.profile_image || "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&q=80"}
+                  linkedin={mentor.linkedin_url || "#"}
+                />
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
+                No mentors registered yet.
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -604,33 +695,16 @@ export default function LandingPage() {
                 <ProjectCard
                   key={p.id}
                   title={p.name}
-                  desc={p.short_description || p.description || "Official completed flagship project developed by Software Development Cell members."}
+                  desc={p.short_description || p.full_description || "Official flagship project developed by Software Development Cell members."}
                   image={p.image_url || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80"}
                   tags={[p.type ? p.type.replace('_', ' ') : "Web App"]}
                   link={p.live_url || "#"}
                 />
               ))
             ) : (
-              <>
-                <ProjectCard
-                  title="SDC Internal Portal"
-                  desc="A comprehensive internal management system streamlining cell operations, attendance, and recruitment tracking."
-                  image="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80"
-                  tags={["React", "FastAPI", "PostgreSQL"]} link="#"
-                />
-                <ProjectCard
-                  title="Project Beta Open Source"
-                  desc="An open-source initiative driving collaborative engineering. Members contribute to real-world libraries."
-                  image="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80"
-                  tags={["Python", "Machine Learning", "Docker"]} link="#"
-                />
-                <ProjectCard
-                  title="Hackathon Nexus"
-                  desc="A unified platform for hosting and managing national-level competitive coding events and symposiums."
-                  image="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&q=80"
-                  tags={["Next.js", "Node.js", "MongoDB"]} link="#"
-                />
-              </>
+              <div className="col-span-3 text-center py-16 text-white/30 font-bold uppercase tracking-widest text-sm">
+                No flagship projects published yet.
+              </div>
             )}
           </motion.div>
         </div>
@@ -708,24 +782,46 @@ export default function LandingPage() {
               ) : (
                 <>
                   <h3 className="text-2xl font-extrabold text-gray-900 mb-8 border-b-2 border-black/10 pb-4 inline-block">Official Application</h3>
-                  <form onSubmit={handleApply} className="space-y-4">
+                  <form onSubmit={handleApply} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                     <div>
                       <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Full Legal Name</label>
                       <input required type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
                     </div>
-                    <div>
-                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">University Email</label>
-                      <input required type="email" placeholder="john.doe@university.edu" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">University Email</label>
+                        <input required type="email" placeholder="john@university.edu" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                      </div>
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Mobile Number</label>
+                        <input required type="tel" placeholder="+91 99999 99999" value={formData.mobile_number} onChange={e => setFormData({...formData, mobile_number: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Primary Division</label>
-                      <select required value={formData.branch} onChange={e => setFormData({...formData, branch: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none cursor-pointer">
-                        <option value="" disabled>Select Assignment...</option>
-                        <option value="Web Development">Web Development</option>
-                        <option value="Mobile App Development">Mobile App Development</option>
-                        <option value="Artificial Intelligence">Artificial Intelligence</option>
-                        <option value="Cybersecurity">Cybersecurity</option>
-                      </select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Primary Division</label>
+                        <select required value={formData.branch} onChange={e => setFormData({...formData, branch: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none cursor-pointer">
+                          <option value="" disabled>Select Assignment...</option>
+                          <option value="Web Development">Web Development</option>
+                          <option value="Mobile App Development">Mobile App Development</option>
+                          <option value="Artificial Intelligence">Artificial Intelligence</option>
+                          <option value="Cybersecurity">Cybersecurity</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Current Semester</label>
+                        <select required value={formData.current_semester} onChange={e => setFormData({...formData, current_semester: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none cursor-pointer">
+                          <option value="" disabled>Select Semester...</option>
+                          <option value="Semester 1">Semester 1</option>
+                          <option value="Semester 2">Semester 2</option>
+                          <option value="Semester 3">Semester 3</option>
+                          <option value="Semester 4">Semester 4</option>
+                          <option value="Semester 5">Semester 5</option>
+                          <option value="Semester 6">Semester 6</option>
+                          <option value="Semester 7">Semester 7</option>
+                          <option value="Semester 8">Semester 8</option>
+                        </select>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                        <div>
@@ -736,6 +832,24 @@ export default function LandingPage() {
                          <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Passout Yr</label>
                          <input required type="number" value={formData.passout_year} onChange={e => setFormData({...formData, passout_year: parseInt(e.target.value)})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
                        </div>
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Technical Specialization</label>
+                      <input required type="text" placeholder="Frontend, Backend, Design, DevOps..." value={formData.technical_specialization} onChange={e => setFormData({...formData, technical_specialization: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">LinkedIn Profile URL</label>
+                        <input type="url" placeholder="https://linkedin.com/in/..." value={formData.linkedin_url} onChange={e => setFormData({...formData, linkedin_url: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                      </div>
+                      <div>
+                        <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">GitHub Profile URL</label>
+                        <input type="url" placeholder="https://github.com/..." value={formData.github_url} onChange={e => setFormData({...formData, github_url: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Additional Information (Optional)</label>
+                      <textarea placeholder="Tell us more about your projects, skills, etc..." value={formData.additional_information} onChange={e => setFormData({...formData, additional_information: e.target.value})} className="w-full bg-transparent border-b-2 border-gray-300 py-2 text-gray-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00b4d8] transition-colors rounded-none resize-none" rows="2" />
                     </div>
                     <div className="pt-6">
                       <button type="submit" disabled={isSubmitting} className="w-full bg-[#1c222b] text-white font-bold tracking-widest uppercase text-xs py-4 rounded-full hover:bg-black transition-colors hover:shadow-xl disabled:opacity-50">
@@ -754,6 +868,37 @@ export default function LandingPage() {
 
         </div>
       </section>
+
+      {/* ======= FOOTER ======= */}
+      <footer className="bg-[#050b18] border-t border-white/5 py-12 px-6 lg:px-24 w-full text-white/50 text-xs font-medium">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <div className="flex items-center gap-3">
+              <img src={sdcLogo} alt="SDC Logo" className="h-8 w-auto opacity-80" />
+              <span className="text-white font-extrabold text-sm uppercase tracking-widest">Software Development Cell</span>
+            </div>
+            <p className="mt-1 text-white/30 text-center md:text-left">Smart steps toward technical mastery.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-8 justify-center uppercase tracking-widest text-[10px] font-bold">
+            {navLinks.map((link) => (
+              <button 
+                key={link} 
+                onClick={() => handleNavClick(link)}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                {link}
+              </button>
+            ))}
+            <button onClick={() => navigate('/login')} className="hover:text-white transition-colors cursor-pointer">Portal Access</button>
+          </div>
+
+          <div className="text-center md:text-right text-white/30">
+            <p>© {new Date().getFullYear()} Software Development Cell. All rights reserved.</p>
+            <p className="mt-1 font-mono text-[9px]">Designed & engineered by SDC Developers.</p>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );

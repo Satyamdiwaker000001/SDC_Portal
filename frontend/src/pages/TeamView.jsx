@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3 } from 'lucide-react';
+import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -47,7 +47,7 @@ const calculateAcademicYear = (user) => {
   return "Passout (Alumni)";
 };
 
-const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole }) => {
+const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId }) => {
   const getRoleStyling = (userRole) => {
     switch (userRole?.toLowerCase()) {
       case 'admin': return { text: 'Admin', icon: Shield };
@@ -70,21 +70,21 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="relative w-full h-[380px] cursor-pointer group"
+      className="relative w-full h-[380px] group"
       style={{ perspective: '1200px' }}
-      onClick={onFlip}
     >
       <div
-        className="w-full h-full relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu hover:-translate-y-2 shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-3xl"
+        className="w-full h-full relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-3xl"
         style={{
           transformStyle: 'preserve-3d',
           transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
         }}
       >
-        {/* FRONT FACE */}
+        {/* FRONT FACE — click to flip */}
         <div
-          className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5`}
+          className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5 cursor-pointer`}
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+          onClick={onFlip}
         >
           {/* Top Coloblue Banner with Curve */}
           <div className={`relative h-[130px] w-full ${THEME_BG}`}>
@@ -106,10 +106,10 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
           <div className="absolute top-[75px] left-1/2 -translate-x-1/2 z-10">
             <div className={`w-[104px] h-[104px] rounded-full p-1 ${CARD_BG} shadow-xl`}>
               <div className="w-full h-full rounded-full border-2 overflow-hidden" style={{ borderColor: THEME_HEX }}>
-                {user?.profile_image_url ? (
-                    <img src={user.profile_image_url} alt={user.name} className="w-full h-full object-cover" />
+                {user?.profile_image ? (
+                    <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
-                    <img src={`https://ui-avatars.com/api/?name=${user.name || user.email}&background=${THEME_HEX.replace('#','')}&color=fff&bold=true&size=200`} alt={user.name} className="w-full h-full object-cover" />
+                    <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email)}&background=${THEME_HEX.replace('#','')}&color=fff&bold=true&size=200`} alt={user.name} className="w-full h-full object-cover" />
                 )}
               </div>
             </div>
@@ -137,7 +137,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
           </div>
         </div>
 
-        {/* BACK FACE */}
+        {/* BACK FACE — clicks here should NOT flip back */}
         <div
           className={`absolute inset-0 ${CARD_BG} rounded-3xl overflow-hidden flex flex-col border border-white/5 shadow-2xl`}
           style={{
@@ -145,6 +145,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
             WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)'
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Top Coloblue Banner with Curve (Same as front) */}
           <div className={`relative h-[130px] w-full ${THEME_BG} shrink-0`}>
@@ -178,7 +179,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
               <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
                 <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Joined SDC</span>
-                <span className="text-xs font-bold text-white">{user.joiningYear || 'N/A'}</span>
+                <span className="text-xs font-bold text-white">{user.joiningYear || user.admission_year || 'N/A'}</span>
               </div>
 
               <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
@@ -190,29 +191,33 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
               </div>
             </div>
 
-            {currentUserRole === 'admin' ? (
+            {currentUserRole === 'admin' || currentUserId === user.id ? (
               <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10 shrink-0">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onEdit(user); }}
-                  className="flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10"
+                  className={`flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10 ${currentUserRole !== 'admin' ? 'col-span-2' : ''}`}
                 >
-                  <Edit3 className="w-3 h-3" /> Edit
+                  <Edit3 className="w-3 h-3" /> Edit Profile
                 </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onDelete(user.id); }}
-                  className="flex items-center justify-center gap-1 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-[10px] font-bold transition-all border border-blue-500/20"
-                >
-                  <Trash2 className="w-3 h-3" /> Remove
-                </button>
-                {user.role?.toLowerCase() !== 'mentor' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onMarkPassout(user.id); }}
-                    disabled={user.isPassout}
-                    className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${user.isPassout ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed' : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'}`}
-                  >
-                    <GraduationCap className="w-3 h-3" />
-                    {user.isPassout ? 'Alumni' : 'Mark as Passout'}
-                  </button>
+                {currentUserRole === 'admin' && (
+                  <>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onDelete(user.id); }}
+                      className="flex items-center justify-center gap-1 py-2 rounded-lg bg-blue-500/10 text-[#00b4d8] hover:bg-blue-500/20 text-[10px] font-bold transition-all border border-blue-500/20"
+                    >
+                      <Trash2 className="w-3 h-3" /> Remove
+                    </button>
+                    {user.role?.toLowerCase() !== 'mentor' && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onMarkPassout(user.id); }}
+                        disabled={user.isPassout}
+                        className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${user.isPassout ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed' : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'}`}
+                      >
+                        <GraduationCap className="w-3 h-3" />
+                        {user.isPassout ? 'Alumni' : 'Mark as Passout'}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
@@ -235,7 +240,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
 
 export default function TeamView() {
-  const { role } = useAuth();
+  const { role, user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -251,6 +256,9 @@ export default function TeamView() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserData, setEditUserData] = useState(null);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const avatarInputRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -259,7 +267,11 @@ export default function TeamView() {
           usersAPI.getAll().catch(() => []),
           teamsAPI.getAll().catch(() => [])
         ]);
-        setUsers(u && u.length > 0 ? u : []);
+        const mapped = (u || []).map(usr => ({
+          ...usr,
+          isPassout: usr.membership_status === 'alumni'
+        }));
+        setUsers(mapped);
         setTeams(t && t.length > 0 ? t : []);
       } catch (e) {
         setUsers([]);
@@ -283,18 +295,22 @@ export default function TeamView() {
 
   const handleDeleteUser = async (id) => {
     try {
+      await usersAPI.delete(id);
       setUsers(users.filter(u => u.id !== id));
       setFlippedCardId(null);
     } catch(e) {
       console.error(e);
+      alert("Failed to delete user from database.");
     }
   };
 
   const handleMarkPassout = async (id) => {
     try {
-      setUsers(users.map(u => u.id === id ? { ...u, isPassout: true } : u));
+      await usersAPI.toggleMembership(id, true);
+      setUsers(users.map(u => u.id === id ? { ...u, isPassout: true, membership_status: 'alumni' } : u));
     } catch(e) {
       console.error(e);
+      alert("Failed to mark user as passout/alumni");
     }
   };
 
@@ -306,15 +322,41 @@ export default function TeamView() {
       const updatedUser = await usersAPI.update(editUserData.id, {
         name: editUserData.name,
         role: editUserData.role,
-        image: editUserData.profile_image_url
+        github_url: editUserData.github_url || null,
+        linkedin_url: editUserData.linkedin_url || null,
+        profile_image: editUserData.profile_image || null,
+        branch: editUserData.branch || "N/A",
+        admission_year: parseInt(editUserData.admission_year) || 0,
+        passout_year: parseInt(editUserData.passout_year) || 0,
+        tech_stack: typeof editUserData.tech_stack === 'string'
+          ? editUserData.tech_stack.split(',').map(s => s.trim()).filter(Boolean)
+          : (Array.isArray(editUserData.tech_stack) ? editUserData.tech_stack : [])
       });
-      setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+      setUsers(users.map(u => u.id === updatedUser.id ? { ...updatedUser, isPassout: updatedUser.membership_status === 'alumni' } : u));
       setEditModalOpen(false);
       setEditUserData(null);
     } catch(e) {
       alert(e.response?.data?.detail || "Failed to update user");
     } finally {
       setIsSubmittingEdit(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await usersAPI.uploadAvatar(editUserData.id, formData);
+      setEditUserData({...editUserData, profile_image: res.url});
+      setAvatarPreview(res.url);
+    } catch (err) {
+      alert("Failed to upload avatar");
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -371,7 +413,6 @@ export default function TeamView() {
             <div className="w-8 h-8 rounded-lg bg-[#00b4d8]/10 border border-[#00b4d8]/30 flex items-center justify-center">
               <Users className="w-4 h-4 text-[#00b4d8]" />
             </div>
-            {/* Header section (Removed Personnel Registry) */}
           </div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">
             Team Directory
@@ -465,10 +506,15 @@ export default function TeamView() {
                   onDelete={handleDeleteUser}
                   onMarkPassout={handleMarkPassout}
                   onEdit={(u) => {
-                     setEditUserData(u);
+                     setEditUserData({
+                       ...u,
+                       tech_stack: Array.isArray(u.tech_stack) ? u.tech_stack.join(', ') : (u.tech_stack || '')
+                     });
+                     setAvatarPreview(u.profile_image || null);
                      setEditModalOpen(true);
-                  }}
+                   }}
                   currentUserRole={role}
+                  currentUserId={currentUser?.id}
                 />
               ))}
             </div>
@@ -711,34 +757,163 @@ export default function TeamView() {
                      />
                   </div>
 
+                  {role === 'admin' && (
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assigned Role</label>
+                       <select
+                         required
+                         value={editUserData.role}
+                         onChange={e => setEditUserData({...editUserData, role: e.target.value})}
+                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                       >
+                         <option value="developer" className="bg-[#0f172a]">Developer</option>
+                         <option value="mentor" className="bg-[#0f172a]">Mentor</option>
+                         <option value="admin" className="bg-[#0f172a]">Admin</option>
+                       </select>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assigned Role</label>
-                     <select
-                       required
-                       value={editUserData.role}
-                       onChange={e => setEditUserData({...editUserData, role: e.target.value})}
-                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                     >
-                       <option value="developer" className="bg-[#0f172a]">Developer</option>
-                       <option value="mentor" className="bg-[#0f172a]">Mentor</option>
-                       <option value="admin" className="bg-[#0f172a]">Admin</option>
-                     </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Avatar Image URL (Optional)</label>
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Branch / Division</label>
                      <input 
-                       type="url"
-                       placeholder="https://example.com/image.jpg"
-                       value={editUserData.profile_image_url || ''}
-                       onChange={e => setEditUserData({...editUserData, profile_image_url: e.target.value})}
+                       type="text"
+                       placeholder="e.g. CSE, IT"
+                       value={editUserData.branch || ''}
+                       onChange={e => setEditUserData({...editUserData, branch: e.target.value})}
                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                      />
-                     {editUserData.profile_image_url && (
-                       <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border border-white/20 mx-auto">
-                         <img src={editUserData.profile_image_url} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission Year</label>
+                       <input 
+                         type="number"
+                         value={editUserData.admission_year || ''}
+                         onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
+                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout Year</label>
+                       <input 
+                         type="number"
+                         value={editUserData.passout_year || ''}
+                         onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
+                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Tech Stack (comma-separated)</label>
+                     <input 
+                       type="text"
+                       placeholder="React, FastAPI, MySQL"
+                       value={editUserData.tech_stack || ''}
+                       onChange={e => setEditUserData({...editUserData, tech_stack: e.target.value})}
+                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                     />
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">GitHub URL</label>
+                     <input 
+                       type="url"
+                       placeholder="https://github.com/username"
+                       value={editUserData.github_url || ''}
+                       onChange={e => setEditUserData({...editUserData, github_url: e.target.value})}
+                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                     />
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">LinkedIn URL</label>
+                     <input 
+                       type="url"
+                       placeholder="https://linkedin.com/in/username"
+                       value={editUserData.linkedin_url || ''}
+                       onChange={e => setEditUserData({...editUserData, linkedin_url: e.target.value})}
+                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                     />
+                  </div>
+                  
+                  {/* Profile Image Upload Section */}
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Profile Photo</label>
+                     
+                     {/* Avatar Preview + Upload Button */}
+                     <div className="flex items-center gap-4">
+                       <div className="relative w-16 h-16 shrink-0">
+                         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#00b4d8]/40 bg-white/5">
+                           <img 
+                             src={avatarPreview || `https://ui-avatars.com/api/?name=${encodeURIComponent(editUserData?.name || 'User')}&background=00b4d8&color=fff&bold=true&size=128`}
+                             alt="Avatar"
+                             className="w-full h-full object-cover"
+                           />
+                         </div>
+                         <button
+                           type="button"
+                           onClick={() => avatarInputRef.current?.click()}
+                           disabled={avatarUploading}
+                           className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#00b4d8] flex items-center justify-center hover:bg-[#00c8f0] transition-colors disabled:opacity-50"
+                         >
+                           {avatarUploading ? (
+                             <div className="w-3 h-3 border border-white/50 border-t-white rounded-full animate-spin" />
+                           ) : (
+                             <Camera className="w-3 h-3 text-white" />
+                           )}
+                         </button>
                        </div>
-                     )}
+                       <div className="flex-1 min-w-0">
+                         <p className="text-xs text-white/50 mb-2">Upload a photo or paste a URL below</p>
+                         <button
+                           type="button"
+                           onClick={() => avatarInputRef.current?.click()}
+                           disabled={avatarUploading}
+                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
+                         >
+                           <Upload className="w-3 h-3" />
+                           {avatarUploading ? 'Uploading...' : 'Upload Image'}
+                         </button>
+                       </div>
+                       {/* Hidden file input */}
+                       <input
+                         ref={avatarInputRef}
+                         type="file"
+                         accept="image/*"
+                         className="hidden"
+                         onChange={async (e) => {
+                           const file = e.target.files?.[0];
+                           if (!file) return;
+                           setAvatarUploading(true);
+                           try {
+                             const fd = new FormData();
+                             fd.append('file', file);
+                             const res = await usersAPI.uploadAvatar(editUserData.id, fd);
+                             setAvatarPreview(res.url);
+                             setEditUserData(prev => ({ ...prev, profile_image: res.url }));
+                           } catch (err) {
+                             alert('Image upload failed. Try a URL instead.');
+                           } finally {
+                             setAvatarUploading(false);
+                             e.target.value = '';
+                           }
+                         }}
+                       />
+                     </div>
+
+                     {/* URL Fallback input */}
+                     <input 
+                       type="url"
+                       placeholder="Or paste image URL here..."
+                       value={editUserData.profile_image || ''}
+                       onChange={e => {
+                         setEditUserData({...editUserData, profile_image: e.target.value});
+                         setAvatarPreview(e.target.value || null);
+                       }}
+                       className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-xs placeholder:text-white/20"
+                     />
                   </div>
                 </form>
               </div>
