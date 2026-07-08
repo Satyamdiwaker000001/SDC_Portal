@@ -220,6 +220,7 @@ export default function LandingPage() {
   
   // Recruitment Form State
   const [isLive, setIsLive] = useState(false);
+  const [recruitmentTarget, setRecruitmentTarget] = useState("");
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -240,9 +241,10 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        const [projData, settingsData, usersData] = await Promise.all([
+        const [projData, settingsData, settingsTargetData, usersData] = await Promise.all([
           projectsAPI.getAll().catch(() => []),
           settingsAPI.get('is_recruitment_live').catch(() => null),
+          settingsAPI.get('recruitment_open_for').catch(() => null),
           usersAPI.getAll().catch(() => [])
         ]);
         
@@ -250,6 +252,7 @@ export default function LandingPage() {
         setCompletedProjects(projData.filter(p => !!p.live_url));
         setTotalProjects(projData.length);
         setIsLive(settingsData?.value === 'true');
+        setRecruitmentTarget(settingsTargetData?.value || "All Roles");
         
         const allDevs = usersData.filter(u => u.role === 'developer' && u.is_active);
         const activeMembers = usersData.filter(u => u.membership_status === 'active' && u.is_active && u.role !== 'admin');
@@ -412,6 +415,28 @@ export default function LandingPage() {
 
       {/* ======= HERO SECTION ======= */}
       <section className="relative min-h-[90vh] w-full flex flex-col items-center justify-center overflow-hidden bg-[#020617] pt-28 pb-16">
+
+        {/* Recruitment Alert Banner */}
+        <AnimatePresence>
+          {isLive && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-28 z-20 w-[90%] max-w-2xl px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500/10 via-emerald-400/20 to-emerald-500/10 border border-emerald-500/30 backdrop-blur-md shadow-[0_0_30px_rgba(16,185,129,0.15)] flex flex-col sm:flex-row items-center justify-center gap-3 text-center"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span className="text-emerald-400 font-bold text-sm tracking-wide uppercase">Recruitment Live:</span>
+              </div>
+              <span className="text-white text-sm font-medium">Accepting applications for <strong className="text-emerald-300">{recruitmentTarget}</strong></span>
+              <button onClick={() => setIsFormOpen(true)} className="sm:ml-auto bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors mt-2 sm:mt-0">Apply Now</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Background: Animated Grid & Glows */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">

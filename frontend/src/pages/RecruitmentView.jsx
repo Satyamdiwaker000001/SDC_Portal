@@ -36,10 +36,20 @@ export default function RecruitmentView() {
   };
 
   const toggleLiveStatus = async () => {
+    let role = "All Roles";
+    if (!isLive) {
+      const res = window.prompt("Recruitment is opening. Enter the roles this is open for (e.g., 'Developers', 'Mentors', '1st Year', or 'All Roles'):", "All Roles");
+      if (res === null) return;
+      role = res.trim() || "All Roles";
+    }
+    
     setIsToggling(true);
     try {
       const newVal = !isLive ? 'true' : 'false';
       await settingsAPI.update('is_recruitment_live', newVal);
+      if (!isLive) {
+        await settingsAPI.update('recruitment_open_for', role);
+      }
       setIsLive(!isLive);
     } catch (e) {
       console.error("Failed to toggle recruitment status", e);

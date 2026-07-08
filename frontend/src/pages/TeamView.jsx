@@ -231,8 +231,11 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
                 )}
               </div>
             ) : (
-              <div className="mt-auto text-[10px] font-bold text-white/30 text-center flex items-center justify-center gap-1 shrink-0">
-                <X className="w-3 h-3" /> Tap to close
+              <div 
+                onClick={(e) => { e.stopPropagation(); onFlip(); }}
+                className="mt-auto text-[10px] font-bold text-white/30 text-center flex items-center justify-center gap-1 shrink-0 cursor-pointer hover:text-white/70 transition-colors"
+              >
+                <X className="w-3 h-3" /> Tap here to close
               </div>
             )}
           </div>
