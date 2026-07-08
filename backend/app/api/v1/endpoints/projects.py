@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlmodel import Session, select
 import uuid
@@ -10,20 +11,6 @@ from datetime import datetime, date
 from ....api import deps
 from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog
 from ....core.config import settings
-
-try:
-    import cloudinary
-    import cloudinary.uploader
-    has_cloudinary = True
-except ImportError:
-    has_cloudinary = False
-
-if has_cloudinary and settings.CLOUDINARY_CLOUD_NAME and settings.CLOUDINARY_API_KEY and settings.CLOUDINARY_API_SECRET:
-    cloudinary.config(
-        cloud_name=settings.CLOUDINARY_CLOUD_NAME,
-        api_key=settings.CLOUDINARY_API_KEY,
-        api_secret=settings.CLOUDINARY_API_SECRET
-    )
 
 router = APIRouter()
 
@@ -384,10 +371,7 @@ def get_project_documents(
         if d.file_id:
             db_file = db.get(DBFile, d.file_id)
             if db_file:
-                if db_file.stored_name.startswith("http"):
-                    d_out.file_url = db_file.stored_name
-                else:
-                    d_out.file_url = f"{base_url}/static/uploads/{db_file.stored_name}"
+                d_out.file_url = f"{base_url}{settings.API_V1_STR}/projects/documents/{d.file_id}/download"
                 d_out.file_name = db_file.original_name
         enriched_docs.append(d_out)
         
@@ -428,43 +412,16 @@ async def upload_project_document(
         raise HTTPException(status_code=404, detail="Document slot not found")
 
     file_uuid = str(uuid.uuid4())
-    extension = file.filename.split(".")[-1]
+    file_content = await file.read()
     
-    use_cloudinary = bool(settings.CLOUDINARY_CLOUD_NAME and settings.CLOUDINARY_API_KEY and settings.CLOUDINARY_API_SECRET)
-    
-    if use_cloudinary:
-        # Upload to Cloudinary
-        file_content = await file.read()
-        try:
-            upload_result = cloudinary.uploader.upload(
-                file_content,
-                public_id=f"doc_{file_uuid}",
-                resource_type="auto"
-            )
-            stored_name = upload_result.get("secure_url")
-            file_size = upload_result.get("bytes", 0)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {str(e)}")
-    else:
-        # Fallback: Save physical file locally
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-        upload_dir = os.path.join(base_dir, "static", "uploads")
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        stored_name = f"doc_{file_uuid}.{extension}"
-        file_path = os.path.join(upload_dir, stored_name)
-        
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        file_size = os.path.getsize(file_path)
-        
     # Save File record in DB
     db_file = DBFile(
         id=file_uuid,
         original_name=file.filename,
-        stored_name=stored_name,
+        stored_name=file.filename,
         mime_type=file.content_type or "application/octet-stream",
-        size_bytes=file_size,
+        size_bytes=len(file_content),
+        file_data=file_content,
         uploaded_by=current_user.id,
         uploaded_at=datetime.utcnow(),
     )
@@ -492,7 +449,7 @@ async def upload_project_document(
     db.refresh(doc)
     
     base_url = str(request.base_url).rstrip("/")
-    file_url = stored_name if stored_name.startswith("http") else f"{base_url}/static/uploads/{stored_name}"
+    file_url = f"{base_url}{settings.API_V1_STR}/projects/documents/{db_file.id}/download"
     
     d_out = DocumentOut(
         id=doc.id,
@@ -505,3 +462,21 @@ async def upload_project_document(
         file_name=file.filename
     )
     return d_out
+
+@router.get("/documents/{file_id}/download")
+def download_document(
+    file_id: str,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Download a document directly from the database.
+    """
+    db_file = db.get(DBFile, file_id)
+    if not db_file or not db_file.file_data:
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    return Response(
+        content=db_file.file_data,
+        media_type=db_file.mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{db_file.original_name}"'}
+    )

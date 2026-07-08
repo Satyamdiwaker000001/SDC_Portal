@@ -18,6 +18,8 @@ class SystemSetting(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+from sqlalchemy import LargeBinary
+
 # --- 2. Files (centralised registry for all uploaded files) ---
 class File(SQLModel, table=True):
     __tablename__ = "files"
@@ -26,6 +28,7 @@ class File(SQLModel, table=True):
     stored_name: str
     mime_type: str
     size_bytes: int = Field(default=0)
+    file_data: Optional[bytes] = Field(default=None, sa_column=Column(LargeBinary))
     uploaded_by: Optional[str] = None          # user id who uploaded
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
 
