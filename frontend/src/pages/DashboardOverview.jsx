@@ -45,7 +45,15 @@ const AdminDashboard = ({ user }) => {
         ]);
 
         const activeProjectsCount = pData ? pData.filter(p => p.status === 'LIVE' || p.status === 'PENDING_SRS').length : 0;
-        const membersCount = usersList ? usersList.length : 0;
+        const membersCount = usersList
+  ? usersList.filter(user => {
+      const role = (user.role || "").toLowerCase();
+      return (
+        user.membership_status === "active" &&
+        (role === "developer" || role === "mentor")
+      );
+    }).length
+  : 0;
         const pendingCount = appsList ? appsList.filter(a => a.status === 'PENDING').length : 0;
         
         setStats({

@@ -5,7 +5,8 @@ import csv
 import io
 import uuid
 import os
-import shutil
+import cloudinary
+import cloudinary.uploader
 
 from ....api import deps
 from ....core import security
@@ -15,6 +16,13 @@ from ....schemas.user import UserCreate, UserUpdate, UserOut
 from datetime import datetime
 
 router = APIRouter()
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
 
 
 @router.post("/upload-avatar")
@@ -29,33 +37,47 @@ async def upload_avatar(
     # Determine target user
     target_id = user_id if (user_id and current_user.role == "admin") else current_user.id
 
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    upload_dir = os.path.join(base_dir, "static", "uploads")
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
+    if not all(
+        [
+            os.getenv("CLOUDINARY_CLOUD_NAME"),
+            os.getenv("CLOUDINARY_API_KEY"),
+            os.getenv("CLOUDINARY_API_SECRET"),
+        ]
+    ):
+        raise HTTPException(status_code=500, detail="Cloudinary is not configured")
 
-    extension = file.filename.split(".")[-1].lower()
+    extension = (file.filename or "").split(".")[-1].lower()
     if extension not in {"jpg", "jpeg", "png", "gif", "webp"}:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, gif, webp)")
 
-    filename = f"{target_id}_{int(datetime.utcnow().timestamp())}.{extension}"
-    file_path = os.path.join(upload_dir, filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File size exceeds 5 MB limit")
 
-    base_url = str(request.base_url).rstrip("/")
-    image_url = f"{base_url}/static/uploads/{filename}"
+    try:
+        upload_result = cloudinary.uploader.upload(
+            io.BytesIO(contents),
+            folder="sdc/users",
+            public_id=f"{target_id}_{int(datetime.utcnow().timestamp())}",
+            resource_type="image",
+            allowed_formats=["jpg", "jpeg", "png", "gif", "webp"],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Image upload failed") from exc
+
+    secure_url = upload_result.get("secure_url")
+    if not secure_url:
+        raise HTTPException(status_code=500, detail="Image upload failed")
 
     # Save URL to user record in DB
     target_user = db.get(User, target_id)
     if target_user:
-        target_user.profile_image = image_url
+        target_user.profile_image = secure_url
         target_user.updated_at = datetime.utcnow()
         db.add(target_user)
         db.commit()
 
-    return {"url": image_url}
+    return {"url": secure_url}
 
 
 @router.get("/", response_model=List[UserOut])

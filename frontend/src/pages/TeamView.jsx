@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera, Key } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
@@ -75,7 +75,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="profile-card relative w-full h-[440px] group"
+      className="profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group mx-auto"
       style={{ perspective: '1200px' }}
     >
       <div
@@ -92,7 +92,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
           onClick={onFlip}
         >
           {/* Top Coloblue Banner with Curve */}
-          <div className={`relative h-[130px] w-full ${THEME_BG}`}>
+          <div className={`relative h-[140px] w-full ${THEME_BG}`}>
             {/* Subtle Texture (Vertical Stripes) */}
             <div className="absolute inset-0 opacity-10 bg-[linear-gradient(90deg,transparent_49%,rgba(255,255,255,1)_50%,transparent_51%)] bg-[length:30px_100%]"></div>
             
@@ -108,8 +108,8 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
           </div>
 
           {/* Avatar Section */}
-          <div className="absolute top-[75px] left-1/2 -translate-x-1/2 z-10">
-            <div className={`w-[104px] h-[104px] rounded-full p-1 ${CARD_BG} shadow-xl`}>
+          <div className="absolute top-[82px] left-1/2 -translate-x-1/2 z-10">
+            <div className={`w-[112px] h-[112px] rounded-full p-1 ${CARD_BG} shadow-xl`}>
               <div className="w-full h-full rounded-full border-2 overflow-hidden" style={{ borderColor: THEME_HEX }}>
                 {user?.profile_image ? (
                     <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
@@ -313,10 +313,23 @@ export default function TeamView() {
   // Edit User State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserData, setEditUserData] = useState(null);
+  const [initialEditUserData, setInitialEditUserData] = useState(null);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const avatarInputRef = useRef(null);
+
+  const normalizeEditValue = (value) => {
+    if (value === undefined || value === null) return '';
+    if (Array.isArray(value)) return value.map(item => String(item).trim()).filter(Boolean).join(', ');
+    return String(value).trim();
+  };
+
+  const editFormHasChanges = useMemo(() => {
+    if (!initialEditUserData || !editUserData) return false;
+    const fields = ['name', 'role', 'branch', 'admission_year', 'passout_year', 'tech_stack', 'github_url', 'linkedin_url', 'profile_image'];
+    return fields.some(field => normalizeEditValue(editUserData[field]) !== normalizeEditValue(initialEditUserData[field]));
+  }, [editUserData, initialEditUserData]);
 
   // Password Reset State (Admin Only)
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
@@ -408,6 +421,7 @@ export default function TeamView() {
       setUsers(users.map(u => u.id === updatedUser.id ? { ...updatedUser, isPassout: updatedUser.membership_status === 'alumni' } : u));
       setEditModalOpen(false);
       setEditUserData(null);
+      setInitialEditUserData(null);
     } catch(e) {
       alert(e.response?.data?.detail || "Failed to update user");
     } finally {
@@ -567,13 +581,13 @@ export default function TeamView() {
             <div className="grid grid-cols-2 gap-4">
               {/* Mentor Stat */}
               <div className="bg-[#1c222b] p-4 rounded-2xl border border-sky-500/20 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                <span className="text-3xl font-black text-sky-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'mentor').length}</span>
+                <span className="text-3xl font-black text-sky-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'mentor' && u.membership_status === 'active').length}</span>
                 <span className="text-[10px] font-bold text-sky-400/60 uppercase tracking-widest">Mentors</span>
               </div>
 
               {/* Developer Stat */}
               <div className="bg-[#1c222b] p-4 rounded-2xl border border-blue-500/20 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                <span className="text-3xl font-black text-blue-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'developer').length}</span>
+                <span className="text-3xl font-black text-blue-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'developer' && u.membership_status === 'active').length}</span>
                 <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Developers</span>
               </div>
             </div>
@@ -581,7 +595,7 @@ export default function TeamView() {
             {/* Alumni Stat */}
             <div className="mt-4 bg-[#1c222b] p-3.5 rounded-xl border border-cyan-500/20 flex items-center justify-between shadow-[0_0_10px_rgba(249,115,22,0.05)]">
                <span className="text-[10px] font-bold text-cyan-400/60 uppercase tracking-widest flex items-center gap-1.5"><GraduationCap className="w-4 h-4" /> Alumni Network</span>
-               <span className="text-xl font-black text-cyan-400">{users.filter(u => u.isPassout).length}</span>
+               <span className="text-xl font-black text-cyan-400">{users.filter(u => u.membership_status === 'alumni').length}</span>
             </div>
           </div>
         </motion.div>
@@ -605,11 +619,13 @@ export default function TeamView() {
                   onDelete={handleDeleteUser}
                   onMarkPassout={handleMarkPassout}
                   onEdit={(u) => {
-                     setEditUserData({
+                     const editData = {
                        ...u,
                        role: (u.role || 'developer').toLowerCase(),
                        tech_stack: Array.isArray(u.tech_stack) ? u.tech_stack.join(', ') : (u.tech_stack || '')
-                     });
+                     };
+                     setEditUserData(editData);
+                     setInitialEditUserData(editData);
                      setAvatarPreview(u.profile_image || null);
                      setEditModalOpen(true);
                    }}
@@ -847,7 +863,10 @@ export default function TeamView() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setEditModalOpen(false)}
+              onClick={() => {
+                setEditModalOpen(false);
+                setInitialEditUserData(null);
+              }}
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -855,8 +874,8 @@ export default function TeamView() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-6 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent relative overflow-hidden shrink-0">
-                 <div className="flex items-center justify-between relative z-10">
+              <div className="px-5 py-4 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent relative overflow-hidden shrink-0">
+                 <div className="flex items-center justify-between relative z-10 gap-3">
                    <div className="flex items-center gap-3">
                      <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/20 flex items-center justify-center border border-[#00b4d8]/30">
                        <Edit3 className="w-5 h-5 text-[#00b4d8]" />
@@ -864,7 +883,10 @@ export default function TeamView() {
                      <h2 className="text-lg font-black text-white tracking-widest uppercase">Edit Dossier</h2>
                    </div>
                    <button 
-                     onClick={() => setEditModalOpen(false)}
+                     onClick={() => {
+                       setEditModalOpen(false);
+                       setInitialEditUserData(null);
+                     }}
                      className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
                    >
                      <X className="w-4 h-4" />
@@ -872,8 +894,13 @@ export default function TeamView() {
                  </div>
               </div>
 
+<<<<<<< HEAD
               <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                 <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-4">
+=======
+              <div className="px-5 py-4 overflow-y-auto custom-scrollbar max-h-[calc(92vh-220px)] min-h-0">
+                <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-3">
+>>>>>>> ec645ca248d1e7222d24b746dd06d8d5431cb4fa
                   {role !== 'admin' && (
                     <div className="space-y-1 p-4 bg-white/5 border border-white/5 rounded-2xl mb-4">
                       <p className="text-[10px] font-bold text-[#00b4d8] uppercase tracking-widest">Operator Profile</p>
@@ -890,7 +917,7 @@ export default function TeamView() {
                            type="text" required
                            value={editUserData.name}
                            onChange={e => setEditUserData({...editUserData, name: e.target.value})}
-                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                           className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                          />
                       </div>
 
@@ -900,11 +927,10 @@ export default function TeamView() {
                            required
                            value={editUserData.role}
                            onChange={e => setEditUserData({...editUserData, role: e.target.value})}
-                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                           className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                          >
                            <option value="developer" className="bg-[#0f172a]">Developer</option>
                            <option value="mentor" className="bg-[#0f172a]">Mentor</option>
-                           <option value="admin" className="bg-[#0f172a]">Admin</option>
                          </select>
                       </div>
 
@@ -915,18 +941,18 @@ export default function TeamView() {
                            placeholder="e.g. CSE, IT"
                            value={editUserData.branch || ''}
                            onChange={e => setEditUserData({...editUserData, branch: e.target.value})}
-                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                           className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                          />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission Year</label>
                            <input 
                              type="number"
                              value={editUserData.admission_year || ''}
                              onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
-                             className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                             className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                            />
                         </div>
                         <div className="space-y-2">
@@ -935,7 +961,7 @@ export default function TeamView() {
                              type="number"
                              value={editUserData.passout_year || ''}
                              onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
-                             className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                             className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                            />
                         </div>
                       </div>
@@ -947,7 +973,7 @@ export default function TeamView() {
                            placeholder="React, FastAPI, MySQL"
                            value={editUserData.tech_stack || ''}
                            onChange={e => setEditUserData({...editUserData, tech_stack: e.target.value})}
-                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                           className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                          />
                       </div>
                     </>
@@ -960,7 +986,7 @@ export default function TeamView() {
                        placeholder="https://github.com/username"
                        value={editUserData.github_url || ''}
                        onChange={e => setEditUserData({...editUserData, github_url: e.target.value})}
-                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                       className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                      />
                   </div>
 
@@ -971,7 +997,7 @@ export default function TeamView() {
                        placeholder="https://linkedin.com/in/username"
                        value={editUserData.linkedin_url || ''}
                        onChange={e => setEditUserData({...editUserData, linkedin_url: e.target.value})}
-                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                       className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                      />
                   </div>
                   
@@ -980,9 +1006,9 @@ export default function TeamView() {
                      <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Profile Photo</label>
                      
                      {/* Avatar Preview + Upload Button */}
-                     <div className="flex items-center gap-4">
-                       <div className="relative w-16 h-16 shrink-0">
-                         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#00b4d8]/40 bg-white/5">
+                     <div className="flex items-center gap-3">
+                       <div className="relative w-14 h-14 shrink-0">
+                         <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#00b4d8]/40 bg-white/5">
                            <img 
                              src={avatarPreview || `https://ui-avatars.com/api/?name=${encodeURIComponent(editUserData?.name || 'User')}&background=00b4d8&color=fff&bold=true&size=128`}
                              alt="Avatar"
@@ -1003,7 +1029,7 @@ export default function TeamView() {
                          </button>
                        </div>
                        <div className="flex-1 min-w-0">
-                         <p className="text-xs text-white/50 mb-2">Upload a photo or paste a URL below</p>
+                         <p className="text-[11px] text-white/50 mb-2">Upload a photo or paste a URL below</p>
                          <button
                            type="button"
                            onClick={() => avatarInputRef.current?.click()}
@@ -1055,15 +1081,15 @@ export default function TeamView() {
                 </form>
               </div>
 
-              <div className="p-5 border-t border-white/10 bg-black/20 flex justify-end gap-3 shrink-0">
+              <div className="sticky bottom-0 z-10 border-t border-white/10 bg-[#0f172a]/95 backdrop-blur-sm px-5 py-3 flex flex-col sm:flex-row sm:justify-end gap-3 shrink-0">
                 <button 
                   type="button" onClick={() => setEditModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-wider"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-wider"
                 >Cancel</button>
                 <button 
-                  form="edit-user-form" type="submit" disabled={isSubmittingEdit}
-                  className="px-5 py-2.5 rounded-xl bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all text-sm font-black uppercase tracking-widest disabled:opacity-50"
-                >{isSubmittingEdit ? 'Saving...' : 'Save Updates'}</button>
+                  form="edit-user-form" type="submit" disabled={!editFormHasChanges || isSubmittingEdit}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${editFormHasChanges && !isSubmittingEdit ? 'bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] cursor-pointer' : 'bg-slate-700 text-white/40 cursor-not-allowed'}`}
+                >{isSubmittingEdit ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </motion.div>
           </div>
