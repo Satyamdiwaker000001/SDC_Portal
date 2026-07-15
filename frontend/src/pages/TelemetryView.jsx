@@ -164,7 +164,7 @@ export default function TelemetryView() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-black/20">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-black/20">
           {leaderboardTab === 'overall' && (
             <div className="space-y-3">
               {leaderboard.length === 0 ? (
@@ -193,7 +193,7 @@ export default function TelemetryView() {
           )}
 
           {leaderboardTab === 'projects' && (
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               {projectLeaderboard.length === 0 ? (
                 <div className="text-center py-8 text-white/40 font-medium">No projects available.</div>
               ) : (

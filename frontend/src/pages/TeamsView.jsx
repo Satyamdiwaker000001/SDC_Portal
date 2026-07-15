@@ -33,7 +33,7 @@ export default function TeamsView() {
 
   // Edit / Delete State
   const [editingTeam, setEditingTeam] = useState(null);
-  const [editTeamData, setEditTeamData] = useState({ name: '', description: '' });
+  const [editTeamData, setEditTeamData] = useState({ name: '', description: '', leaderId: '', memberIds: [], projectId: '' });
   const [deletingTeam, setDeletingTeam] = useState(null);
 
   // Team members cache
@@ -151,9 +151,60 @@ export default function TeamsView() {
   const handleEditTeam = async (e) => {
     e.preventDefault();
     if (!editTeamData.name) return;
+    
+    // Total members: 1 leader + X members
+    if (1 + editTeamData.memberIds.length > 5) {
+      alert("A team can have a maximum of 5 members (including the leader and mentor).");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const updated = await teamsAPI.update(editingTeam.id, editTeamData);
+      const updated = await teamsAPI.update(editingTeam.id, { name: editTeamData.name, description: editTeamData.description });
+      
+      // Update Project
+      const currentProjectId = projects.find(p => p.team_id === editingTeam.id)?.id;
+      if (editTeamData.projectId !== currentProjectId) {
+        if (currentProjectId) {
+          await projectsAPI.update(currentProjectId, { team_id: null }).catch(() => {});
+          setProjects(prev => prev.map(p => p.id === currentProjectId ? { ...p, team_id: null } : p));
+        }
+        if (editTeamData.projectId) {
+          await projectsAPI.update(editTeamData.projectId, { team_id: editingTeam.id }).catch(() => {});
+          setProjects(prev => prev.map(p => p.id === editTeamData.projectId ? { ...p, team_id: editingTeam.id } : p));
+        }
+      }
+
+      // Update Members
+      const oldMembers = teamMembers[editingTeam.id] || [];
+      const oldLeader = oldMembers.find(m => m.designation === 'lead');
+      const oldMemberIds = oldMembers.filter(m => m.designation !== 'lead').map(m => m.user_id);
+
+      // Handle Leader change
+      if (oldLeader && oldLeader.user_id !== editTeamData.leaderId) {
+        await teamsAPI.removeMember(editingTeam.id, oldLeader.user_id).catch(() => {});
+        if (editTeamData.leaderId) {
+          await teamsAPI.addMember(editingTeam.id, { user_id: editTeamData.leaderId, designation: 'lead' }).catch(() => {});
+        }
+      } else if (!oldLeader && editTeamData.leaderId) {
+         await teamsAPI.addMember(editingTeam.id, { user_id: editTeamData.leaderId, designation: 'lead' }).catch(() => {});
+      }
+
+      // Handle other members
+      const membersToRemove = oldMemberIds.filter(id => !editTeamData.memberIds.includes(id));
+      const membersToAdd = editTeamData.memberIds.filter(id => !oldMemberIds.includes(id));
+
+      for (const id of membersToRemove) {
+        await teamsAPI.removeMember(editingTeam.id, id).catch(() => {});
+      }
+      for (const id of membersToAdd) {
+        const userDetails = users.find(u => u.id === id);
+        const designation = (userDetails && userDetails.role === 'mentor') ? 'mentor' : 'member';
+        await teamsAPI.addMember(editingTeam.id, { user_id: id, designation }).catch(() => {});
+      }
+
+      await fetchTeamMembers(editingTeam.id);
+      
       setTeams(prev => prev.map(t => t.id === updated.id ? { ...t, name: updated.name, description: updated.description } : t));
       setEditingTeam(null);
     } catch (err) {
@@ -161,6 +212,18 @@ export default function TeamsView() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const toggleEditMemberSelection = (userId) => {
+    setEditTeamData(prev => {
+      const current = prev.memberIds;
+      return {
+        ...prev,
+        memberIds: current.includes(userId)
+          ? current.filter(id => id !== userId)
+          : [...current, userId]
+      };
+    });
   };
 
   const handleDeleteTeam = async () => {
@@ -309,7 +372,14 @@ export default function TeamsView() {
                     {role === 'admin' && (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => { setEditingTeam(team); setEditTeamData({ name: team.name, description: team.description || '' }); }}
+                          onClick={() => {
+                            const currentMembers = teamMembers[team.id] || [];
+                            const cLeader = currentMembers.find(m => m.designation === 'lead')?.user_id || '';
+                            const cMembers = currentMembers.filter(m => m.designation !== 'lead').map(m => m.user_id);
+                            const cProject = projects.find(p => p.team_id === team.id)?.id || '';
+                            setEditingTeam(team);
+                            setEditTeamData({ name: team.name, description: team.description || '', leaderId: cLeader, memberIds: cMembers, projectId: cProject });
+                          }}
                           className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#00b4d8]/20 hover:text-[#00b4d8] hover:border-[#00b4d8]/30 transition-colors text-white/50"
                         ><Edit2 className="w-4 h-4" /></button>
                         <button
@@ -322,10 +392,11 @@ export default function TeamsView() {
                 </div>
 
                 <div className="p-5 flex-1 flex flex-col gap-4">
+                  {/* Squad Commander */}
                   <div>
-                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Squad Commander (TL)</p>
+                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5"><Shield className="w-3 h-3 text-blue-400"/> Squad Commander</p>
                     {leader ? (
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/5 border border-blue-500/15">
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 shadow-inner">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00b4d8] to-blue-600 flex items-center justify-center text-white text-xs font-black shrink-0 shadow-[0_0_15px_rgba(0,180,216,0.4)]">
                           {leaderInitials}
                         </div>
@@ -336,50 +407,64 @@ export default function TeamsView() {
                       </div>
                     ) : (
                       <div className="p-3 rounded-xl bg-white/5 border border-dashed border-white/20 text-center">
-                        <span className="text-xs font-medium text-white/40">No Leader Assigned</span>
+                        <span className="text-[10px] font-medium text-white/40 italic">No Leader Assigned</span>
                       </div>
                     )}
                   </div>
 
-                  <div>
-                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">
-                      {devChips.length} Developer{devChips.length !== 1 ? 's' : ''}{mentorChips.length > 0 ? ` · ${mentorChips.length} Mentor${mentorChips.length !== 1 ? 's' : ''}` : ''}
-                    </p>
-                    {memberUsers.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {/* Mentor chips — gold */}
+                  {/* Mentors */}
+                  {mentorChips.length > 0 && (
+                    <div>
+                      <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5"><Star className="w-3 h-3 text-amber-400"/> Mentors ({mentorChips.length})</p>
+                      <div className="flex flex-col gap-2">
                         {mentorChips.map(member => (
-                          <div key={member.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:border-amber-400/60 transition-colors group/chip">
-                            <div className="w-5 h-5 rounded-full bg-amber-500/30 flex items-center justify-center text-[9px] font-black text-amber-300 shrink-0">
+                          <div key={member.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 transition-colors group/chip shadow-sm">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[11px] font-black text-white shrink-0 shadow-sm shadow-amber-500/20">
                               ⭐
                             </div>
-                            <span className="text-[10px] font-bold text-amber-300 group-hover/chip:text-amber-200 truncate max-w-[60px]">{member.name?.split(' ')[0]}</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-amber-100 truncate">{member.name || member.email?.split('@')[0]}</p>
+                              <p className="text-[8px] text-amber-400/80 uppercase tracking-widest font-bold truncate">Project Mentor</p>
+                            </div>
                             {role === 'admin' && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleRemoveMember(team.id, member.id); }}
-                                className="w-4 h-4 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/30 flex items-center justify-center shrink-0 opacity-0 group-hover/chip:opacity-100 transition-opacity"
-                              ><X className="w-2.5 h-2.5" /></button>
+                                className="w-6 h-6 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 flex items-center justify-center shrink-0 opacity-0 group-hover/chip:opacity-100 transition-all hover:text-white"
+                              ><X className="w-3 h-3" /></button>
                             )}
                           </div>
                         ))}
-                        {/* Developer chips — blue */}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Developers */}
+                  <div>
+                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5"><Code className="w-3 h-3 text-cyan-400"/> Developers ({devChips.length})</p>
+                    {devChips.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
                         {devChips.map(member => (
-                          <div key={member.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:border-[#00b4d8]/40 transition-colors group/chip">
-                            <div className="w-5 h-5 rounded-full bg-blue-800 flex items-center justify-center text-[9px] font-black text-blue-200 shrink-0">
-                              {(member.name || '').charAt(0)}
+                          <div key={member.id} className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-colors group/chip shadow-sm">
+                            <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-black text-cyan-300 shrink-0 border border-slate-600 shadow-inner">
+                              {(member.name || '?').charAt(0)}
                             </div>
-                            <span className="text-[10px] font-bold text-white/70 group-hover/chip:text-white truncate max-w-[60px]">{member.name?.split(' ')[0]}</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold text-slate-200 truncate">{member.name?.split(' ')[0]}</p>
+                              <p className="text-[8px] text-slate-500 uppercase tracking-widest font-bold truncate">Developer</p>
+                            </div>
                             {role === 'admin' && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleRemoveMember(team.id, member.id); }}
-                                className="w-4 h-4 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/30 flex items-center justify-center shrink-0 opacity-0 group-hover/chip:opacity-100 transition-opacity"
-                              ><X className="w-2.5 h-2.5" /></button>
+                                className="w-5 h-5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 flex items-center justify-center shrink-0 opacity-0 group-hover/chip:opacity-100 transition-all hover:text-white ml-auto"
+                              ><X className="w-3 h-3" /></button>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-white/30 font-medium italic">No members added yet</p>
+                      <div className="p-3 rounded-xl bg-white/5 border border-dashed border-white/10 text-center">
+                        <p className="text-[10px] text-white/30 font-medium italic">No developers assigned</p>
+                      </div>
                     )}
                   </div>
 
@@ -679,21 +764,130 @@ export default function TeamsView() {
         {editingTeam && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setEditingTeam(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-xl bg-[#0f172a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent relative overflow-hidden shrink-0">
                 <div className="flex items-center justify-between relative z-10">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/20 flex items-center justify-center border border-[#00b4d8]/30"><Edit2 className="w-5 h-5 text-[#00b4d8]" /></div>
-                    <h2 className="text-lg font-black text-white tracking-widest uppercase">Edit Team</h2>
+                    <h2 className="text-xl font-black text-white tracking-widest uppercase">Edit Team Configuration</h2>
                   </div>
                   <button onClick={() => setEditingTeam(null)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
                 </div>
               </div>
-              <div className="p-6">
-                <form id="edit-team-form" onSubmit={handleEditTeam} className="space-y-4">
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                <form id="edit-team-form" onSubmit={handleEditTeam} className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Team Name</label>
                     <input type="text" required value={editTeamData.name} onChange={e => setEditTeamData({ ...editTeamData, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] transition-all font-medium text-sm" />
+                  </div>
+
+                  {/* Leader */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Assign Team Leader (TL) *</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                      {developerUsers.map(u => (
+                        <div
+                          key={u.id}
+                          onClick={() => setEditTeamData({ ...editTeamData, leaderId: u.id })}
+                          className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${editTeamData.leaderId === u.id ? 'bg-[#00b4d8]/20 border-[#00b4d8] shadow-[0_0_15px_rgba(0,180,216,0.2)]' : 'bg-white/5 border-white/10 hover:border-white/30'}`}
+                        >
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center border shrink-0 bg-blue-500/20 border-blue-500/50 text-blue-400">
+                            <Code className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{u.name || u.email?.split('@')[0]}</p>
+                            <p className="text-[9px] text-white/40 uppercase tracking-widest truncate">{u.role}</p>
+                          </div>
+                          {editTeamData.leaderId === u.id && <CheckCircle2 className="w-4 h-4 text-[#00b4d8] shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Mentors Selection */}
+                  <div className="space-y-3 pt-2 border-t border-white/10">
+                    <label className="text-[10px] font-bold text-amber-400/80 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Star className="w-3 h-3"/> Select Mentors</label>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                      {availableUsers.filter(u => u.id !== editTeamData.leaderId && u.role === 'mentor').map(u => (
+                        <div
+                          key={u.id}
+                          onClick={() => toggleEditMemberSelection(u.id)}
+                          className={`px-3 py-2 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${editTeamData.memberIds.includes(u.id) ? 'bg-amber-500/10 border-amber-500/40 text-white' : 'bg-white/[0.02] border-white/5 hover:border-white/20 text-white/70'}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 bg-sky-500/20 text-sky-300">
+                              {(u.name || '?').charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate">{u.name || u.email?.split('@')[0]}</p>
+                              <p className="text-[9px] text-white/30 uppercase tracking-widest">Mentor</p>
+                            </div>
+                          </div>
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${editTeamData.memberIds.includes(u.id) ? 'bg-amber-500 border-amber-500' : 'border-white/20'}`}>
+                            {editTeamData.memberIds.includes(u.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Developers Selection */}
+                  <div className="space-y-3 pt-2 border-t border-white/10">
+                    <label className="text-[10px] font-bold text-cyan-400/80 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Code className="w-3 h-3"/> Select Developers</label>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                      {availableUsers.filter(u => u.id !== editTeamData.leaderId && u.role !== 'mentor').map(u => (
+                        <div
+                          key={u.id}
+                          onClick={() => toggleEditMemberSelection(u.id)}
+                          className={`px-3 py-2 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${editTeamData.memberIds.includes(u.id) ? 'bg-[#00b4d8]/10 border-[#00b4d8]/40 text-white' : 'bg-white/[0.02] border-white/5 hover:border-white/20 text-white/70'}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 bg-blue-500/20 text-blue-300">
+                              {(u.name || '?').charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate">{u.name || u.email?.split('@')[0]}</p>
+                              <p className="text-[9px] text-white/30 uppercase tracking-widest">Developer</p>
+                            </div>
+                          </div>
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${editTeamData.memberIds.includes(u.id) ? 'bg-[#00b4d8] border-[#00b4d8]' : 'border-white/20'}`}>
+                            {editTeamData.memberIds.includes(u.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {editTeamData.memberIds.length > 0 && (
+                      <p className={`text-[10px] font-bold ${1 + editTeamData.memberIds.length > 5 ? 'text-red-400' : 'text-[#00b4d8]'}`}>{editTeamData.memberIds.length} member(s) selected (Total: {1 + editTeamData.memberIds.length}/5)</p>
+                    )}
+                  </div>
+
+                  {/* Project Assignment */}
+                  <div className="space-y-3 pt-2 border-t border-white/10">
+                    <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Change / Assign Project</label>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                      <div
+                        onClick={() => setEditTeamData({ ...editTeamData, projectId: '' })}
+                        className={`px-3 py-2 rounded-lg border flex items-center gap-3 cursor-pointer transition-all ${!editTeamData.projectId ? 'bg-[#00b4d8]/10 border-[#00b4d8]/40' : 'bg-white/[0.02] border-white/5 hover:border-white/20 text-white/70'}`}
+                      >
+                        <X className="w-3.5 h-3.5 shrink-0" />
+                        <span className="text-xs font-bold">Unassigned (No Project)</span>
+                        {!editTeamData.projectId && <CheckCircle2 className="w-4 h-4 text-[#00b4d8] ml-auto shrink-0" />}
+                      </div>
+                      {projects.filter(p => !p.team_id || p.team_id === editingTeam.id).map(p => (
+                        <div
+                          key={p.id}
+                          onClick={() => setEditTeamData({ ...editTeamData, projectId: p.id })}
+                          className={`px-3 py-2 rounded-lg border flex items-center gap-3 cursor-pointer transition-all ${editTeamData.projectId === p.id ? 'bg-[#00b4d8]/10 border-[#00b4d8]/40 text-white' : 'bg-white/[0.02] border-white/5 hover:border-white/20 text-white/70'}`}
+                        >
+                          <FolderKanban className={`w-3.5 h-3.5 shrink-0 ${editTeamData.projectId === p.id ? 'text-[#00b4d8]' : 'text-white/30'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold truncate">{p.name}</p>
+                            <p className="text-[9px] text-white/30 uppercase tracking-wider">{p.type}</p>
+                          </div>
+                          {editTeamData.projectId === p.id && <CheckCircle2 className="w-4 h-4 text-[#00b4d8] shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </form>
               </div>

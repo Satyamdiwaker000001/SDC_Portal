@@ -75,7 +75,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="profile-card relative w-full h-[400px] group"
+      className="profile-card relative w-full h-[440px] group"
       style={{ perspective: '1200px' }}
     >
       <div
@@ -155,136 +155,130 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Top Coloblue Banner with Curve (Same as front) */}
-          <div className={`relative h-[90px] w-full ${THEME_BG} shrink-0`}>
+          {/* Top Banner (Back) */}
+          <div className={`relative h-[70px] w-full ${THEME_BG} shrink-0`}>
             <div className="absolute inset-0 opacity-10 bg-[linear-gradient(90deg,transparent_49%,rgba(255,255,255,1)_50%,transparent_51%)] bg-[length:30px_100%]"></div>
-            
-            <svg viewBox="0 0 100 25" preserveAspectRatio="none" className="absolute -bottom-1 left-0 w-full h-12">
+            <svg viewBox="0 0 100 25" preserveAspectRatio="none" className="absolute -bottom-1 left-0 w-full h-10">
               <path d="M0,25 L0,0 C30,25 70,5 100,0 L100,25 Z" fill={CARD_BG_HEX} />
             </svg>
-
-            <div className="absolute top-5 w-full flex justify-center items-center gap-1.5 opacity-90">
-              <span className="text-white font-black tracking-widest text-lg uppercase drop-shadow-md">Dossier</span>
+            <div className="absolute top-3 w-full flex justify-center items-center gap-1.5 opacity-90">
+              <span className="text-white font-black tracking-widest text-base uppercase drop-shadow-md">Dossier</span>
             </div>
           </div>
 
-          <div className="px-5 pb-3 pt-3 flex-1 flex flex-col">
+          <div className="px-4 pb-2 pt-2 flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-center gap-2 mb-2 shrink-0">
-              <RoleIcon className="w-4 h-4" style={{ color: THEME_HEX }} />
-              <h4 className={`text-xs font-black ${TEXT_PRIMARY} uppercase tracking-widest`}>Dossier Info</h4>
+              <RoleIcon className="w-3.5 h-3.5" style={{ color: THEME_HEX }} />
+              <h4 className={`text-[10px] font-black ${TEXT_PRIMARY} uppercase tracking-widest`}>Dossier Info</h4>
             </div>
 
-            <div className="space-y-2 flex-1 flex flex-col justify-center my-auto">
-              <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
-                <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Assigned Role</span>
-                <span className="text-xs font-bold text-white">{style.text}</span>
+            <div className="space-y-1.5 flex-1 flex flex-col justify-center">
+              <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Assigned Role</span>
+                <span className="text-[10px] font-bold text-white">{style.text}</span>
               </div>
 
-              <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
-                <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Division</span>
-                <span className="text-xs font-bold text-white">{user.branch || 'N/A'}</span>
+              <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Division</span>
+                <span className="text-[10px] font-bold text-white">{user.branch || 'N/A'}</span>
               </div>
 
-              <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
-                <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Joined SDC</span>
-                <span className="text-xs font-bold text-white">{user.admission_year && user.admission_year > 0 ? user.admission_year : 'N/A'}</span>
+              <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Joined SDC</span>
+                <span className="text-[10px] font-bold text-white">{user.admission_year && user.admission_year > 0 ? user.admission_year : 'N/A'}</span>
               </div>
 
-              <div className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
-                <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Status</span>
+              <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Status</span>
                 <div className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${user.isPassout ? 'bg-cyan-500' : 'bg-sky-500'}`}></span>
-                  <span className="text-xs font-bold text-white">{user.isPassout ? 'Alumni' : 'Active'}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${user.isPassout ? 'bg-cyan-500' : 'bg-sky-500'}`}></span>
+                  <span className="text-[10px] font-bold text-white">{user.isPassout ? 'Alumni' : 'Active'}</span>
                 </div>
               </div>
             </div>
 
             {(isAdmin && !isTargetAdmin) || (currentUserId === user.id && !isAdmin) ? (
-              <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10 shrink-0">
+              <div className="mt-auto flex flex-col gap-1.5 pt-2 border-t border-white/10 shrink-0">
+                {/* Edit Profile — full width */}
                 {(currentUserId === user.id || isAdmin) && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onEdit(user); }}
-                    className="col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg bg-white/5 text-white/70 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all border border-white/10"
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 text-[9px] font-bold transition-all border border-[#00b4d8]/20"
                   >
                     <Edit3 className="w-3 h-3" /> Edit Profile
                   </button>
                 )}
+                {/* Admin-only actions */}
                 {isAdmin && !isTargetAdmin && (
                   <>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onResetPassword(user); }}
-                      className="flex items-center justify-center gap-1 py-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold transition-all border border-amber-500/20"
-                    >
-                      <Key className="w-3 h-3" /> Reset Pass
-                    </button>
-                    <button 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        if (deleteConfirmStep === 0) {
-                          setDeleteConfirmStep(1);
-                          setTimeout(() => setDeleteConfirmStep(0), 3000);
-                        } else {
-                          onDelete(user.id);
-                          setDeleteConfirmStep(0);
-                        }
-                      }}
-                      className={`flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${
-                        deleteConfirmStep === 1 
-                          ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/50 animate-pulse'
-                          : 'bg-blue-500/10 text-[#00b4d8] hover:bg-blue-500/20 border-blue-500/20'
-                      }`}
-                    >
-                      <Trash2 className="w-3 h-3" /> 
-                      {deleteConfirmStep === 1 ? 'Are you sure?' : 'Remove'}
-                    </button>
-                    {user.role?.toLowerCase() !== 'mentor' && (
+                    {/* Row: Reset Pass + Remove */}
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onResetPassword(user); }}
+                        className="flex items-center justify-center gap-1 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-[9px] font-bold transition-all border border-amber-500/20"
+                      >
+                        <Key className="w-3 h-3" /> Reset Pass
+                      </button>
                       <button 
                         onClick={(e) => { 
-                          e.stopPropagation();
-                          if (user.isPassout) {
-                            onMarkPassout(user.id, true);
+                          e.stopPropagation(); 
+                          if (deleteConfirmStep === 0) {
+                            setDeleteConfirmStep(1);
+                            setTimeout(() => setDeleteConfirmStep(0), 3000);
                           } else {
-                            if (passoutConfirmStep === 0) {
-                              setPassoutConfirmStep(1);
-                              setTimeout(() => setPassoutConfirmStep(0), 3000);
-                            }
-                            else if (passoutConfirmStep === 1) {
-                              setPassoutConfirmStep(2);
-                              setTimeout(() => setPassoutConfirmStep(0), 3000);
-                            }
-                            else {
-                              onMarkPassout(user.id, false);
-                              setPassoutConfirmStep(0);
-                            }
+                            onDelete(user.id);
+                            setDeleteConfirmStep(0);
                           }
                         }}
-                        className={`col-span-2 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all border ${
-                          user.isPassout 
-                            ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20' 
-                            : passoutConfirmStep === 2
-                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/50 animate-pulse'
-                            : passoutConfirmStep === 1
-                            ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-orange-500/50'
-                            : 'bg-[#00b4d8]/10 text-[#00b4d8] hover:bg-[#00b4d8]/20 border-[#00b4d8]/20'
+                        className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-bold transition-all border ${
+                          deleteConfirmStep === 1 
+                            ? 'bg-red-500/20 text-red-400 border-red-500/50 animate-pulse'
+                            : 'bg-white/5 text-white/50 hover:bg-red-500/10 hover:text-red-400 border-white/10'
                         }`}
                       >
-                        <GraduationCap className={`w-3 h-3 ${passoutConfirmStep > 0 && !user.isPassout ? 'animate-bounce' : ''}`} />
-                        {user.isPassout 
-                          ? 'Revert to Active' 
-                          : passoutConfirmStep === 2 
-                          ? 'Final Confirm (Remove from Teams)' 
-                          : passoutConfirmStep === 1 
-                          ? 'Are you sure?' 
-                          : 'Mark as Passout'}
+                        <Trash2 className="w-3 h-3" /> 
+                        {deleteConfirmStep === 1 ? 'Confirm?' : 'Remove'}
                       </button>
-                    )}
+                    </div>
+                    {/* Mark as Passout — full width */}
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation();
+                        if (user.isPassout) {
+                          onMarkPassout(user.id, true);
+                        } else {
+                          if (passoutConfirmStep === 0) {
+                            setPassoutConfirmStep(1);
+                            setTimeout(() => setPassoutConfirmStep(0), 3000);
+                          } else if (passoutConfirmStep === 1) {
+                            setPassoutConfirmStep(2);
+                            setTimeout(() => setPassoutConfirmStep(0), 3000);
+                          } else {
+                            onMarkPassout(user.id, false);
+                            setPassoutConfirmStep(0);
+                          }
+                        }
+                      }}
+                      className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-bold transition-all border ${
+                        user.isPassout 
+                          ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20' 
+                          : passoutConfirmStep === 2
+                          ? 'bg-red-500/10 text-red-400 border-red-500/50 animate-pulse'
+                          : passoutConfirmStep === 1
+                          ? 'bg-orange-500/10 text-orange-400 border-orange-500/50'
+                          : 'bg-white/5 text-white/40 hover:text-white hover:bg-white/10 border-white/10'
+                      }`}
+                    >
+                      <GraduationCap className={`w-3 h-3 ${passoutConfirmStep > 0 && !user.isPassout ? 'animate-bounce' : ''}`} />
+                      {user.isPassout ? 'Revert to Active' : passoutConfirmStep === 2 ? 'Final Confirm!' : passoutConfirmStep === 1 ? 'Are you sure?' : 'Mark as Passout'}
+                    </button>
                   </>
                 )}
               </div>
             ) : (
               <div 
                 onClick={(e) => { e.stopPropagation(); onFlip(); }}
-                className="mt-auto text-[10px] font-bold text-white/30 text-center flex items-center justify-center gap-1 shrink-0 cursor-pointer hover:text-white/70 transition-colors"
+                className="mt-auto text-[9px] font-bold text-white/30 text-center flex items-center justify-center gap-1 shrink-0 cursor-pointer hover:text-white/70 transition-colors pt-2"
               >
                 <X className="w-3 h-3" /> Tap here to close
               </div>
@@ -859,7 +853,7 @@ export default function TeamView() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
+              className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent relative overflow-hidden shrink-0">
                  <div className="flex items-center justify-between relative z-10">
@@ -878,7 +872,7 @@ export default function TeamView() {
                  </div>
               </div>
 
-              <div className="p-6 overflow-y-auto custom-scrollbar">
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                 <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-4">
                   {role !== 'admin' && (
                     <div className="space-y-1 p-4 bg-white/5 border border-white/5 rounded-2xl mb-4">

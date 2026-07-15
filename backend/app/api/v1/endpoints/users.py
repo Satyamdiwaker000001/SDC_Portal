@@ -214,19 +214,82 @@ def delete_user(
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     from sqlalchemy.exc import IntegrityError
+    from ....models.models import TeamMember, Task, Notification, Interaction, Interview, Team, Project, ProjectDocument, Notice, Announcement, Application
     user = db.get(User, id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
     try:
+        # 1. Delete notifications targeting this user
+        notifications = db.exec(select(Notification).where(Notification.user_id == id)).all()
+        for n in notifications:
+            db.delete(n)
+
+        # 2. Delete team memberships
+        team_memberships = db.exec(select(TeamMember).where(TeamMember.user_id == id)).all()
+        for tm in team_memberships:
+            db.delete(tm)
+        
+        # 3. Delete tasks assigned to or created by this user
+        tasks = db.exec(select(Task).where((Task.assigned_to == id) | (Task.created_by == id) | (Task.verified_by == id))).all()
+        for task in tasks:
+            db.delete(task)
+            
+        # 4. Delete interactions (comments/reviews) made by this user
+        interactions = db.exec(select(Interaction).where(Interaction.user_id == id)).all()
+        for inter in interactions:
+            db.delete(inter)
+
+        # 5. Delete interviews conducted by this user
+        interviews = db.exec(select(Interview).where(Interview.interviewer_id == id)).all()
+        for iv in interviews:
+            db.delete(iv)
+            
+        # 6. Reassign teams created by this user to current admin
+        teams = db.exec(select(Team).where(Team.created_by == id)).all()
+        for t in teams:
+            t.created_by = current_admin.id
+            db.add(t)
+            
+        # 7. Reassign projects created by this user to current admin
+        projects = db.exec(select(Project).where(Project.created_by == id)).all()
+        for p in projects:
+            p.created_by = current_admin.id
+            db.add(p)
+
+        # 8. Reassign uploaded documents by this user
+        documents = db.exec(select(ProjectDocument).where(ProjectDocument.uploaded_by == id)).all()
+        for doc in documents:
+            doc.uploaded_by = None
+            db.add(doc)
+
+        # 9. Reassign notices published by this user to current admin
+        notices = db.exec(select(Notice).where(Notice.published_by == id)).all()
+        for notice in notices:
+            notice.published_by = current_admin.id
+            db.add(notice)
+
+        # 10. Reassign announcements published by this user to current admin
+        announcements = db.exec(select(Announcement).where(Announcement.published_by == id)).all()
+        for ann in announcements:
+            ann.published_by = current_admin.id
+            db.add(ann)
+
+        # 11. Clear application reviews by this user
+        applications = db.exec(select(Application).where(Application.reviewed_by == id)).all()
+        for app in applications:
+            app.reviewed_by = None
+            db.add(app)
+
+        db.flush()
         db.delete(user)
         db.commit()
         return {"message": "User deleted successfully"}
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
         raise HTTPException(
             status_code=400, 
-            detail="Cannot delete user: They are linked to existing projects, tasks, or teams. Please deactivate or mark them as Alumni instead."
+            detail=f"Cannot delete user due to deep foreign key constraints: {str(e)}"
         )
 
 

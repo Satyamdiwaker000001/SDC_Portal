@@ -262,34 +262,43 @@ def delete_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
         
-    # Delete associated phases, documents, and tasks to prevent foreign key errors
-    from ....models.models import Task
-    tasks = db.exec(select(Task).where(Task.project_id == id)).all()
-    for task in tasks:
-        db.delete(task)
+    try:
+        from ....models.models import Task, ProjectPhase, ProjectDocument
         
-    phases = db.exec(select(ProjectPhase).where(ProjectPhase.project_id == id)).all()
-    for phase in phases:
-        db.delete(phase)
+        # Delete tasks
+        tasks = db.exec(select(Task).where(Task.project_id == id)).all()
+        for task in tasks:
+            db.delete(task)
+            
+        # Delete phases
+        phases = db.exec(select(ProjectPhase).where(ProjectPhase.project_id == id)).all()
+        for phase in phases:
+            db.delete(phase)
+            
+        # Delete documents
+        docs = db.exec(select(ProjectDocument).where(ProjectDocument.project_id == id)).all()
+        for doc in docs:
+            db.delete(doc)
+            
+        db.delete(project)
         
-    docs = db.exec(select(ProjectDocument).where(ProjectDocument.project_id == id)).all()
-    for doc in docs:
-        db.delete(doc)
+        db.add(AuditLog(
+            id=str(uuid.uuid4()),
+            event_type="PROJECT_CREATED",
+            description=f"Project '{id}' deleted by admin.",
+            performed_by=current_admin.id,
+            user_role="admin",
+            related_module="project",
+            related_entity_id=id,
+        ))
         
-    db.delete(project)
-    
-    db.add(AuditLog(
-        id=str(uuid.uuid4()),
-        event_type="PROJECT_CREATED",
-        description=f"Project '{id}' deleted by admin.",
-        performed_by=current_admin.id,
-        user_role="admin",
-        related_module="project",
-        related_entity_id=id,
-    ))
-    
-    db.commit()
-    return {"status": "SUCCESS", "message": "Project and its components deleted successfully"}
+        db.commit()
+        return {"status": "SUCCESS", "message": "Project and its components deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Failed to delete project: {str(e)}")
 
 # --- SDLC PHASES ENDPOINTS ---
 
