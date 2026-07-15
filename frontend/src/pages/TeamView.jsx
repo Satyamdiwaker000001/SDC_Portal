@@ -894,13 +894,8 @@ export default function TeamView() {
                  </div>
               </div>
 
-<<<<<<< HEAD
-              <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-                <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-4">
-=======
               <div className="px-5 py-4 overflow-y-auto custom-scrollbar max-h-[calc(92vh-220px)] min-h-0">
                 <form id="edit-user-form" onSubmit={handleEditUser} className="space-y-3">
->>>>>>> ec645ca248d1e7222d24b746dd06d8d5431cb4fa
                   {role !== 'admin' && (
                     <div className="space-y-1 p-4 bg-white/5 border border-white/5 rounded-2xl mb-4">
                       <p className="text-[10px] font-bold text-[#00b4d8] uppercase tracking-widest">Operator Profile</p>
