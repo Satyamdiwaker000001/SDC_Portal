@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -58,6 +58,9 @@ export default function DashboardLayout() {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(-1);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -105,15 +108,22 @@ export default function DashboardLayout() {
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
+  useEffect(() => {
+    if (!showLogoutConfirm) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowLogoutConfirm(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showLogoutConfirm]);
+
   const closeAll = () => {
     setShowSearchDropdown(false);
     setShowSearchMobile(false);
-    setSearchQuery('');
-  };
-
-  const handleSearchNavigate = (path) => {
-    navigate(path);
-    closeAll();
   };
 
   const SearchDropdown = () => (
@@ -121,7 +131,7 @@ export default function DashboardLayout() {
       {showSearchDropdown && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-          className="absolute top-full mt-2 left-0 right-0 bg-[#020617]/98 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 max-h-80 overflow-y-auto custom-scrollbar"
+          className="absolute top-full mt-2 left-0 right-0 bg-[#020617]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 z-50 max-h-80 overflow-y-auto custom-scrollbar"
         >
           {isSearching ? (
             <div className="p-4 text-center text-xs text-white/50 font-medium flex items-center justify-center gap-2">
@@ -132,66 +142,37 @@ export default function DashboardLayout() {
             <div className="p-2">
               {searchResults.projects.length > 0 && (
                 <div className="mb-2">
-                  <span className="text-[9px] uppercase font-black text-[#00b4d8]/80 px-3 mb-1 block tracking-widest">📁 Projects</span>
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Projects</span>
                   {searchResults.projects.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => handleSearchNavigate('/dashboard/projects')}
-                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group flex items-center gap-3"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-[#00b4d8]/10 border border-[#00b4d8]/20 flex items-center justify-center shrink-0">
-                        <span className="text-[8px] text-[#00b4d8] font-black">P</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-[#00b4d8] transition-colors">{p.name}</p>
-                        <p className="text-[9px] text-white/30 uppercase tracking-widest">{p.type || 'Project'} · {p.status}</p>
-                      </div>
-                    </button>
+                    <div key={p.id} className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                      <p className="text-sm font-bold text-white truncate">{p.name}</p>
+                    </div>
                   ))}
                 </div>
               )}
               {searchResults.users.length > 0 && (
                 <div className="mb-2">
-                  <span className="text-[9px] uppercase font-black text-[#00b4d8]/80 px-3 mb-1 block tracking-widest">👤 Personnel</span>
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Personnel</span>
                   {searchResults.users.map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => handleSearchNavigate('/dashboard/team')}
-                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group flex items-center gap-3"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/30 flex items-center justify-center shrink-0 text-[10px] font-black text-white">
-                        {(u.name || 'U').charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-[#00b4d8] transition-colors">{u.name}</p>
-                        <p className="text-[9px] text-white/30 truncate">{u.email} · {u.role}</p>
-                      </div>
-                    </button>
+                    <div key={u.id} className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                      <p className="text-sm font-bold text-white truncate">{u.name}</p>
+                      <p className="text-[10px] text-white/40 truncate">{u.email}</p>
+                    </div>
                   ))}
                 </div>
               )}
               {searchResults.notices.length > 0 && (
                 <div className="mb-2">
-                  <span className="text-[9px] uppercase font-black text-[#00b4d8]/80 px-3 mb-1 block tracking-widest">📢 Notices</span>
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Notices</span>
                   {searchResults.notices.map(n => (
-                    <button
-                      key={n.id}
-                      onClick={() => handleSearchNavigate('/dashboard/notices')}
-                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group flex items-center gap-3"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                        <span className="text-[8px] text-amber-400 font-black">N</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-[#00b4d8] transition-colors">{n.title}</p>
-                        <p className="text-[9px] text-white/30 uppercase tracking-widest">Notice · {n.type || 'General'}</p>
-                      </div>
-                    </button>
+                    <div key={n.id} className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                      <p className="text-sm font-bold text-white truncate">{n.title}</p>
+                    </div>
                   ))}
                 </div>
               )}
               {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.notices.length === 0 && (
-                <div className="p-4 text-center text-xs text-white/50 font-medium">No records found for "{searchQuery}"</div>
+                <div className="p-4 text-center text-xs text-white/50 font-medium">No records found.</div>
               )}
             </div>
           )}
@@ -241,8 +222,9 @@ export default function DashboardLayout() {
       {/* Logout at bottom for mobile convenience */}
       <div className="px-3 pb-5 shrink-0 border-t border-white/5 pt-4">
         <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 border border-transparent transition-all"
+          onClick={handleSidebarLogoutClick}
+          disabled={isLoggingOut}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 border border-transparent transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <LogOut className="w-5 h-5 shrink-0" />
           <span className="text-xs font-bold uppercase tracking-widest">Logout</span>
@@ -344,6 +326,7 @@ export default function DashboardLayout() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
+                  onKeyDown={handleSearchInputKeyDown}
                   className="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all w-56 xl:w-64 text-white placeholder:text-white/30"
                 />
               </div>
@@ -381,15 +364,6 @@ export default function DashboardLayout() {
               )}
             </div>
 
-            {/* Logout Button */}
-            <button 
-              onClick={logout} 
-              title="Logout / Disconnect Session"
-              className="hidden sm:flex w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 items-center justify-center text-white/50 hover:text-rose-400 transition-all backdrop-blur-md cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-
           </div>
         </header>
 
@@ -411,6 +385,7 @@ export default function DashboardLayout() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
+                  onKeyDown={handleSearchInputKeyDown}
                   autoFocus
                   className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all text-white placeholder:text-white/30"
                 />
@@ -427,12 +402,67 @@ export default function DashboardLayout() {
 
       </div>
 
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0a1020]/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-[0.2em] text-white">Confirm Logout</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    Are you sure you want to log out of your account?
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition-all hover:bg-white/10 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  disabled={isLoggingOut}
+                  className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style dangerouslySetInnerHTML={{
         __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,180,216,0.5); }
+        .search-highlight {
+          box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.35), 0 0 24px rgba(0, 180, 216, 0.18);
+          border-color: rgba(0, 180, 216, 0.6) !important;
+          transform: translateY(-1px);
+        }
       `}} />
     </div>
   );

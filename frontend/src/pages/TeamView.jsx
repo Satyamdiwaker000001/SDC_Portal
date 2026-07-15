@@ -75,8 +75,10 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group mx-auto"
+      className="profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group"
       style={{ perspective: '1200px' }}
+      data-user-id={user.id}
+      data-searchable="user"
     >
       <div
         className="w-full h-full relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-3xl"
@@ -609,7 +611,7 @@ export default function TeamView() {
               <p className="text-xs mt-2 opacity-50">Add a Mentor or Developer to populate the registry.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-items-center gap-x-10 gap-y-10">
               {users.filter(u => (u.role || '').toLowerCase() !== 'admin').map((user) => (
                 <ProfileCard 
                   key={user.id} 
