@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -54,7 +54,7 @@ export default function DashboardLayout() {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [] });
+  const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [], pages: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
@@ -76,7 +76,7 @@ export default function DashboardLayout() {
   // Global Search logic
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
-      setSearchResults({ users: [], projects: [], notices: [] });
+      setSearchResults({ users: [], projects: [], notices: [], pages: [] });
       setShowSearchDropdown(false);
       return;
     }
@@ -95,7 +95,12 @@ export default function DashboardLayout() {
         setSearchResults({
           users: allUsers.filter(u => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)).slice(0,3),
           projects: allProjects.filter(p => p.name?.toLowerCase().includes(q)).slice(0,3),
-          notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0,3)
+          notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0,3),
+          pages: navItems.filter(item => {
+            const label = item.label?.toLowerCase() || '';
+            const path = item.path?.toLowerCase() || '';
+            return label.includes(q) || path.includes(q);
+          }).slice(0, 6)
         });
       } catch (err) {
         console.error('Search failed', err);
@@ -126,6 +131,30 @@ export default function DashboardLayout() {
     setShowSearchMobile(false);
   };
 
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
+  };
+
+  const handleSearchResultClick = (typeOrPath) => {
+    const routeMap = {
+      projects: '/dashboard/projects',
+      personnel: '/dashboard/team',
+      notices: '/dashboard/notices'
+    };
+
+    const route = typeof typeOrPath === 'string' && routeMap[typeOrPath]
+      ? routeMap[typeOrPath]
+      : typeOrPath || '/dashboard';
+    navigate(route);
+    closeAll();
+  };
+
   const SearchDropdown = () => (
     <AnimatePresence>
       {showSearchDropdown && (
@@ -140,11 +169,35 @@ export default function DashboardLayout() {
             </div>
           ) : (
             <div className="p-2">
+              {searchResults.pages.length > 0 && (
+                <div className="mb-2">
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Pages</span>
+                  {searchResults.pages.map(page => (
+                    <div
+                      key={page.path}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick(page.path);
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <p className="text-sm font-bold text-white truncate">{page.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               {searchResults.projects.length > 0 && (
                 <div className="mb-2">
                   <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Projects</span>
                   {searchResults.projects.map(p => (
-                    <div key={p.id} className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                    <div
+                      key={p.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick('projects');
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
                       <p className="text-sm font-bold text-white truncate">{p.name}</p>
                     </div>
                   ))}
@@ -154,7 +207,14 @@ export default function DashboardLayout() {
                 <div className="mb-2">
                   <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Personnel</span>
                   {searchResults.users.map(u => (
-                    <div key={u.id} className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                    <div
+                      key={u.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick('personnel');
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
                       <p className="text-sm font-bold text-white truncate">{u.name}</p>
                       <p className="text-[10px] text-white/40 truncate">{u.email}</p>
                     </div>
@@ -165,13 +225,20 @@ export default function DashboardLayout() {
                 <div className="mb-2">
                   <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Notices</span>
                   {searchResults.notices.map(n => (
-                    <div key={n.id} className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                    <div
+                      key={n.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick('notices');
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
                       <p className="text-sm font-bold text-white truncate">{n.title}</p>
                     </div>
                   ))}
                 </div>
               )}
-              {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.notices.length === 0 && (
+              {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.pages.length === 0 && searchResults.notices.length === 0 && (
                 <div className="p-4 text-center text-xs text-white/50 font-medium">No records found.</div>
               )}
             </div>
@@ -222,7 +289,7 @@ export default function DashboardLayout() {
       {/* Logout at bottom for mobile convenience */}
       <div className="px-3 pb-5 shrink-0 border-t border-white/5 pt-4">
         <button
-          onClick={handleSidebarLogoutClick}
+          onClick={() => setShowLogoutConfirm(true)}
           disabled={isLoggingOut}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 border border-transparent transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
@@ -326,7 +393,7 @@ export default function DashboardLayout() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
-                  onKeyDown={handleSearchInputKeyDown}
+                  //onKeyDown={handleSearchInputKeyDown}
                   className="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all w-56 xl:w-64 text-white placeholder:text-white/30"
                 />
               </div>
@@ -385,7 +452,7 @@ export default function DashboardLayout() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
-                  onKeyDown={handleSearchInputKeyDown}
+                  //onKeyDown={handleSearchInputKeyDown}
                   autoFocus
                   className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all text-white placeholder:text-white/30"
                 />
