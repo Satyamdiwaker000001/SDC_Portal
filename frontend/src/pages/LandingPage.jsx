@@ -6,7 +6,8 @@ import head1 from '../assets/heads/Dr. Rahul Rastogi.jpg';
 import head2 from '../assets/heads/Mr. Prateek Agrawal.jpeg';
 import founderAyush from '../assets/founders/Ayush.jpg';
 import founderTushar from '../assets/founders/Tushar.jpg';
-import { projectsAPI, applicationsAPI, settingsAPI, usersAPI } from '../api/services';
+import { projectsAPI, applicationsAPI, settingsAPI } from '../api/services';
+import client from '../api/client';
 
 
 // Reusable animation variants
@@ -241,11 +242,11 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        const [projData, settingsData, settingsTargetData, usersData] = await Promise.all([
+        const [projData, settingsData, settingsTargetData, statsData] = await Promise.all([
           projectsAPI.getAll().catch(() => []),
           settingsAPI.get('is_recruitment_live').catch(() => null),
           settingsAPI.get('recruitment_open_for').catch(() => null),
-          usersAPI.getAll().catch(() => [])
+          client.get('/users/public/stats').catch(() => null)
         ]);
         
         // Only show projects that have a live hosted URL
@@ -259,14 +260,12 @@ export default function LandingPage() {
         }
         setRecruitmentTarget(targetValue);
         
-        const allDevs = usersData.filter(u => (u.role || '').toLowerCase() === 'developer' && u.is_active);
-        const activeMembers = usersData.filter(u => (u.membership_status || '').toLowerCase() === 'active' && u.is_active && (u.role || '').toLowerCase() !== 'admin');
-        setTotalMembers(activeMembers.length);
-        
-        setDbMentors(activeMembers.filter(u => (u.role || '').toLowerCase() === 'mentor'));
-        setDbDevelopers(allDevs); // all devs (for backward compat)
-        setActiveDevelopers(allDevs.filter(d => (d.membership_status || '').toLowerCase() === 'active'));
-        setAlumniDevelopers(allDevs.filter(d => (d.membership_status || '').toLowerCase() === 'alumni'));
+        const stats = statsData?.data || {};
+        setTotalMembers(stats.members || 0);
+        setDbMentors([]);
+        setDbDevelopers([]);
+        setActiveDevelopers([]);
+        setAlumniDevelopers([]);
       } catch (err) {
         console.error("Failed to fetch initial data", err);
       }

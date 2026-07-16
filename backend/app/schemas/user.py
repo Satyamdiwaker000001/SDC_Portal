@@ -36,3 +36,5 @@ class UserOut(UserBase):
     updated_at: Optional[datetime] = None
     
     model_config = ConfigDict(from_attributes=True)
+
+

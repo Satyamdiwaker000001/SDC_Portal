@@ -10,7 +10,7 @@ import cloudinary.uploader
 
 from ....api import deps
 from ....core import security
-from ....models.models import User, AuditLog
+from ....models.models import User, AuditLog, Project, Team
 from ....core.config import settings
 from ....schemas.user import UserCreate, UserUpdate, UserOut
 from datetime import datetime
@@ -78,6 +78,30 @@ async def upload_avatar(
         db.commit()
 
     return {"url": secure_url}
+
+
+@router.get("/public/stats")
+def public_user_stats(
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Public stats endpoint for the landing page."""
+    active_members = db.exec(
+        select(User)
+        .where(User.is_active == True)
+        .where(User.membership_status == "active")
+        .where(User.role != "admin")
+    ).all()
+
+    mentors = [user for user in active_members if (user.role or "").lower() == "mentor"]
+    projects = db.exec(select(Project)).all()
+    teams = db.exec(select(Team)).all()
+
+    return {
+        "members": len(active_members),
+        "mentors": len(mentors),
+        "projects": len(projects),
+        "teams": len(teams),
+    }
 
 
 @router.get("/", response_model=List[UserOut])
