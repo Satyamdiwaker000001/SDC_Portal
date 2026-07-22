@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Megaphone, X, AlertTriangle, Bell, Clock, Radio,
@@ -9,12 +10,12 @@ import { announcementsAPI, noticesAPI, teamsAPI } from '../api/services';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'Just now';
-  return new Date(dateString).toLocaleDateString('en-GB', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 };
 
@@ -47,7 +48,7 @@ const PRIORITY_CONFIG = {
 
 function PushPin({ color, isPinned, onClick }) {
   return (
-    <button 
+    <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className={`absolute top-4 right-4 z-20 cursor-pointer transition-all p-1.5 rounded-full hover:bg-white/10 ${!isPinned ? 'opacity-30 hover:opacity-100 text-white' : `opacity-100 ${color}`}`}
       title={isPinned ? 'Unpin' : 'Pin'}
@@ -57,20 +58,25 @@ function PushPin({ color, isPinned, onClick }) {
   );
 }
 
-function NoticeCard({ notice, onTogglePin, onDelete, onOpen, currentRole }) {
+function NoticeCard({ notice, onTogglePin, onDelete, onOpen, currentRole, isHighlighted }) {
   const cfg = PRIORITY_CONFIG[notice.priority] || PRIORITY_CONFIG.Normal;
 
   return (
     <motion.div
       layout
+      id={`notice-card-${notice.id}`}
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: -20 }}
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-      className="relative cursor-pointer w-full"
+      className={`relative cursor-pointer w-full rounded-3xl transition-all duration-500 ${
+        isHighlighted
+          ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.02]'
+          : ''
+      }`}
       onClick={() => onOpen(notice)}
     >
-      <div 
+      <div
         className={`w-full h-64 rounded-3xl flex flex-col overflow-hidden relative bg-[#1c222b] border ${cfg.borderColor} shadow-[0_10px_30px_rgba(0,0,0,0.3)] hover:border-opacity-100 transition-all group`}
       >
         <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] -mr-10 -mt-10 pointer-events-none transition-all ${cfg.bgColor}`}></div>
@@ -103,15 +109,15 @@ function NoticeCard({ notice, onTogglePin, onDelete, onOpen, currentRole }) {
           <p className="text-xs text-white/50 leading-relaxed line-clamp-3 font-medium">
             {notice.body}
           </p>
-          
+
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
             <div className="flex items-center gap-2">
-               {notice.is_global ? (
-                 <Globe className="w-3.5 h-3.5 text-white/30" title="Global Broadcast" />
-               ) : (
-                 <Users className="w-3.5 h-3.5 text-white/30" title="Team Specific" />
-               )}
-               <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{formatDate(notice.timestamp)}</span>
+              {notice.is_global ? (
+                <Globe className="w-3.5 h-3.5 text-white/30" title="Global Broadcast" />
+              ) : (
+                <Users className="w-3.5 h-3.5 text-white/30" title="Team Specific" />
+              )}
+              <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{formatDate(notice.timestamp)}</span>
             </div>
             <span className={`text-[10px] font-black uppercase tracking-widest ${cfg.textColor} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1`}>Read <span className="text-lg leading-none">&rsaquo;</span></span>
           </div>
@@ -160,7 +166,7 @@ function NoticeDetailModal({ notice, onClose, onTogglePin }) {
                   {notice.title}
                 </h2>
               </div>
-              
+
               <div className="flex items-center gap-3 shrink-0 relative z-10">
                 {onTogglePin && (
                   <button
@@ -227,8 +233,8 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
   const toggleTeam = (id) => {
     setNewNotice(prev => ({
       ...prev,
-      team_ids: prev.team_ids.includes(id) 
-        ? prev.team_ids.filter(t => t !== id) 
+      team_ids: prev.team_ids.includes(id)
+        ? prev.team_ids.filter(t => t !== id)
         : [...prev.team_ids, id]
     }));
   };
@@ -244,7 +250,7 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
             className="absolute inset-0 bg-black/60 backdrop-blur-md"
             onClick={onClose}
           />
-          
+
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -253,12 +259,12 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
           >
             <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/20 flex items-center justify-center border border-[#00b4d8]/30">
-                   <Megaphone className="w-5 h-5 text-[#00b4d8]" />
-                 </div>
-                 <h2 className="text-lg font-black text-white tracking-widest uppercase">
-                   {activeTab === 'notices' ? 'Broadcast Notice' : 'Post Announcement'}
-                 </h2>
+                <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/20 flex items-center justify-center border border-[#00b4d8]/30">
+                  <Megaphone className="w-5 h-5 text-[#00b4d8]" />
+                </div>
+                <h2 className="text-lg font-black text-white tracking-widest uppercase">
+                  {activeTab === 'notices' ? 'Broadcast Notice' : 'Post Announcement'}
+                </h2>
               </div>
               <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
                 <X className="w-4 h-4" />
@@ -294,7 +300,7 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Audience</label>
                     <select
-                      value={newNotice.is_global ? "global" : "team"} 
+                      value={newNotice.is_global ? "global" : "team"}
                       onChange={e => setNewNotice({ ...newNotice, is_global: e.target.value === 'global' })}
                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
                     >
@@ -327,7 +333,7 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm resize-none custom-scrollbar placeholder:text-white/30"
                   />
                 </div>
-                
+
                 <div className="flex justify-end pt-4 border-t border-white/10">
                   <button type="button" onClick={onClose} className="px-5 py-2.5 mr-3 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-wider">
                     Cancel
@@ -349,6 +355,7 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
 
 export default function NoticesView() {
   const { role, user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('notices'); // 'notices' or 'announcements'
   const [notices, setNotices] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -357,9 +364,10 @@ export default function NoticesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [openNotice, setOpenNotice] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [highlightedNoticeId, setHighlightedNoticeId] = useState(null);
 
-  useEffect(() => { 
-    fetchData(); 
+  useEffect(() => {
+    fetchData();
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -375,9 +383,9 @@ export default function NoticesView() {
           if (!a.pinned && b.pinned) return 1;
           return new Date(b.timestamp) - new Date(a.timestamp);
         });
-        
+
         const memberships = await Promise.all(
-          tData.map(t => 
+          tData.map(t =>
             teamsAPI.getMembers(t.id)
               .then(members => ({ teamId: t.id, members }))
               .catch(() => ({ teamId: t.id, members: [] }))
@@ -392,9 +400,9 @@ export default function NoticesView() {
           teamsAPI.getAll().catch(() => [])
         ]);
         const sorted = aData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
+
         const memberships = await Promise.all(
-          tData.map(t => 
+          tData.map(t =>
             teamsAPI.getMembers(t.id)
               .then(members => ({ teamId: t.id, members }))
               .catch(() => ({ teamId: t.id, members: [] }))
@@ -415,7 +423,7 @@ export default function NoticesView() {
     try {
       const newPinnedState = !notice.pinned;
       await noticesAPI.update(notice.id, { is_pinned: newPinnedState });
-      
+
       setNotices(prev => {
         const updated = prev.map(n => n.id === notice.id ? { ...n, pinned: newPinnedState } : n);
         return updated.sort((a, b) => {
@@ -435,9 +443,9 @@ export default function NoticesView() {
 
   const handleCreateBroadcast = async (newData) => {
     if (activeTab === 'notices') {
-      const created = await noticesAPI.create({ 
-        ...newData, 
-        team_ids: newData.is_global ? [] : newData.team_ids 
+      const created = await noticesAPI.create({
+        ...newData,
+        team_ids: newData.is_global ? [] : newData.team_ids
       });
       setNotices(prev => [{ ...created, pinned: false }, ...prev].sort((a, b) => {
         if (a.pinned && !b.pinned) return -1;
@@ -445,9 +453,9 @@ export default function NoticesView() {
         return new Date(b.timestamp) - new Date(a.timestamp);
       }));
     } else {
-      const created = await announcementsAPI.create({ 
-        ...newData, 
-        team_ids: newData.is_global ? [] : newData.team_ids 
+      const created = await announcementsAPI.create({
+        ...newData,
+        team_ids: newData.is_global ? [] : newData.team_ids
       });
       setAnnouncements(prev => [created, ...prev]);
     }
@@ -477,16 +485,41 @@ export default function NoticesView() {
   const currentList = React.useMemo(() => {
     let list = activeTab === 'notices' ? notices : announcements;
     if (role !== 'admin') {
-      list = list.filter(item => 
-        item.is_global || 
+      list = list.filter(item =>
+        item.is_global ||
         (item.team_ids && item.team_ids.some(tid => myTeamIds.includes(tid)))
       );
     }
     return list;
   }, [activeTab, notices, announcements, role, myTeamIds]);
 
+  const targetNoticeId = searchParams.get('id');
+
+  // Deep-link handling: scroll, highlight, and auto-open matching notice
+  useEffect(() => {
+    if (!isLoading && targetNoticeId && Array.isArray(currentList) && currentList.length > 0) {
+      const target = currentList.find(item => item && String(item.id) === String(targetNoticeId));
+      if (target) {
+        setOpenNotice(target);
+        setHighlightedNoticeId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedNoticeId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`notice-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetNoticeId, currentList, searchParams]);
+
   return (
-    <motion.div 
+    <motion.div
       className="space-y-8 relative z-10 pb-10"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -502,18 +535,18 @@ export default function NoticesView() {
             Broadcast Center
           </h1>
           <p className="text-sm text-white/40 mt-1 font-medium tracking-wide">
-            {activeTab === 'notices' 
-              ? 'Official system-wide updates and notices from SDC Administration.' 
+            {activeTab === 'notices'
+              ? 'Official system-wide updates and notices from SDC Administration.'
               : 'Operational and team-specific communications from Mentors and Admin.'}
           </p>
         </div>
-        
+
         {showCreateButton && (
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#00b4d8] to-blue-600 text-white text-sm font-black shadow-[0_0_20px_rgba(0,180,216,0.2)] hover:shadow-[0_0_30px_rgba(0,180,216,0.4)] transition-all hover:-translate-y-0.5 border border-white/10 uppercase tracking-widest"
           >
-            <Plus className="w-5 h-5" /> 
+            <Plus className="w-5 h-5" />
             {activeTab === 'notices' ? 'Broadcast Notice' : 'Post Announcement'}
           </button>
         )}
@@ -550,12 +583,13 @@ export default function NoticesView() {
                   onDelete={handleDeleteBroadcast}
                   onOpen={setOpenNotice}
                   currentRole={role}
+                  isHighlighted={String(item.id) === String(highlightedNoticeId)}
                 />
               ))}
             </AnimatePresence>
           </div>
         )}
-        
+
         {!isLoading && currentList.length === 0 && (
           <div className="py-20 flex flex-col items-center justify-center text-white/40">
             <Megaphone className="w-12 h-12 mb-4 opacity-20" />

@@ -64,14 +64,15 @@ const getNotificationRoute = (notif) => {
   const title = (notif.title || '').toLowerCase();
   const message = (notif.message || '').toLowerCase();
 
+  const entityId = notif.related_entity_id || notif.entity_id;
+
   // Notices
   if (
     entityType === 'notice' ||
     eventType.includes('NOTICE') ||
-    title.includes('notice') ||
-    message.includes('notice')
+    (!entityId && (title.includes('notice') || message.includes('notice')))
   ) {
-    return '/dashboard/notices';
+    return entityId ? `/dashboard/notices?id=${entityId}` : '/dashboard/notices';
   }
 
   // Projects
