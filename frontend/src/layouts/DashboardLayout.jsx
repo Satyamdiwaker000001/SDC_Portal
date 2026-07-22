@@ -79,10 +79,9 @@ const getNotificationRoute = (notif) => {
   if (
     entityType === 'project' ||
     eventType.includes('PROJECT') ||
-    title.includes('project') ||
-    message.includes('project')
+    (!entityId && (title.includes('project') || message.includes('project')))
   ) {
-    return '/dashboard/projects';
+    return entityId ? `/dashboard/projects?id=${entityId}` : '/dashboard/projects';
   }
 
   // Teams
