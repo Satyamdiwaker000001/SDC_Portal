@@ -311,3 +311,14 @@ export const auditAPI = {
     return data;
   }
 };
+
+export const notificationsAPI = {
+  getAll: async () => {
+    const { data } = await client.get('/notifications');
+    return data;
+  },
+  getUnreadCount: async () => {
+    const { data } = await client.get('/notifications/unread-count');
+    return data;
+  }
+};

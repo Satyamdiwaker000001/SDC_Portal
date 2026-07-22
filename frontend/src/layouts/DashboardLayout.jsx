@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../contexts/AuthContext';
 import sdcLogo from '../assets/sdc_logo.png';
-import { usersAPI, projectsAPI, announcementsAPI } from '../api/services';
+import { usersAPI, projectsAPI, announcementsAPI, notificationsAPI } from '../api/services';
 
 const navItems = [
   { path: '/dashboard', label: 'Command Center', icon: LayoutDashboard, roles: ['admin', 'developer', 'mentor'] },
@@ -47,6 +47,93 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
+const formatNotificationDate = (dateStr) => {
+  if (!dateStr) return '';
+  const utcStr = typeof dateStr === 'string' && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(dateStr)
+    ? `${dateStr}Z`
+    : dateStr;
+  return new Date(utcStr).toLocaleString();
+};
+
+const getNotificationRoute = (notif) => {
+  if (!notif) return '/dashboard';
+  if (notif.target_url) return notif.target_url;
+
+  const entityType = (notif.related_entity_type || notif.entity_type || notif.type || '').toLowerCase();
+  const eventType = (notif.event_type || '').toUpperCase();
+  const title = (notif.title || '').toLowerCase();
+  const message = (notif.message || '').toLowerCase();
+
+  // Notices
+  if (
+    entityType === 'notice' ||
+    eventType.includes('NOTICE') ||
+    title.includes('notice') ||
+    message.includes('notice')
+  ) {
+    return '/dashboard/notices';
+  }
+
+  // Projects
+  if (
+    entityType === 'project' ||
+    eventType.includes('PROJECT') ||
+    title.includes('project') ||
+    message.includes('project')
+  ) {
+    return '/dashboard/projects';
+  }
+
+  // Teams
+  if (
+    entityType === 'team' ||
+    eventType.includes('TEAM') ||
+    title.includes('team') ||
+    message.includes('team')
+  ) {
+    return '/dashboard/teams';
+  }
+
+  // Personnel / Members / User
+  if (
+    entityType === 'user' ||
+    eventType === 'USER_CREATED' ||
+    eventType === 'WELCOME' ||
+    title.includes('member') ||
+    title.includes('welcome') ||
+    message.includes('joined sdc') ||
+    message.includes('member')
+  ) {
+    return '/dashboard/team';
+  }
+
+  // Recruitment / Application
+  if (
+    entityType === 'application' ||
+    entityType === 'recruitment' ||
+    eventType.includes('APPLICATION') ||
+    eventType.includes('RECRUITMENT') ||
+    title.includes('application') ||
+    title.includes('recruitment') ||
+    message.includes('application')
+  ) {
+    return '/dashboard/recruitment';
+  }
+
+  // Tasks
+  if (
+    entityType === 'task' ||
+    eventType.includes('TASK') ||
+    title.includes('task') ||
+    message.includes('task') ||
+    message.includes('assigned')
+  ) {
+    return '/dashboard';
+  }
+
+  return '/dashboard';
+};
+
 export default function DashboardLayout() {
   const { user, role, logout } = useAuth();
   const location = useLocation();
@@ -62,6 +149,13 @@ export default function DashboardLayout() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Notification state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const notifRef = useRef(null);
+
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileSidebarOpen(false);
@@ -70,8 +164,8 @@ export default function DashboardLayout() {
   const filteblueNav = navItems.filter(item => item.roles.includes(role));
 
   const currentApp = navItems.find(item => item.path === location.pathname)?.label ||
-                     navItems.find(item => item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))?.label ||
-                     'Dashboard';
+    navItems.find(item => item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))?.label ||
+    'Dashboard';
 
   // Global Search logic
   useEffect(() => {
@@ -80,22 +174,22 @@ export default function DashboardLayout() {
       setShowSearchDropdown(false);
       return;
     }
-    
+
     const fetchResults = async () => {
       setIsSearching(true);
       setShowSearchDropdown(true);
       try {
         const [allUsers, allProjects, allNotices] = await Promise.all([
-          usersAPI.getAll().catch(()=>[]),
-          projectsAPI.getAll().catch(()=>[]),
-          announcementsAPI.getAll().catch(()=>[])
+          usersAPI.getAll().catch(() => []),
+          projectsAPI.getAll().catch(() => []),
+          announcementsAPI.getAll().catch(() => [])
         ]);
-        
+
         const q = searchQuery.toLowerCase();
         setSearchResults({
-          users: allUsers.filter(u => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)).slice(0,3),
-          projects: allProjects.filter(p => p.name?.toLowerCase().includes(q)).slice(0,3),
-          notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0,3),
+          users: allUsers.filter(u => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)).slice(0, 3),
+          projects: allProjects.filter(p => p.name?.toLowerCase().includes(q)).slice(0, 3),
+          notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0, 3),
           pages: navItems.filter(item => {
             const label = item.label?.toLowerCase() || '';
             const path = item.path?.toLowerCase() || '';
@@ -108,7 +202,7 @@ export default function DashboardLayout() {
         setIsSearching(false);
       }
     };
-    
+
     const timeout = setTimeout(fetchResults, 400);
     return () => clearTimeout(timeout);
   }, [searchQuery]);
@@ -129,7 +223,40 @@ export default function DashboardLayout() {
   const closeAll = () => {
     setShowSearchDropdown(false);
     setShowSearchMobile(false);
+    setShowNotifDropdown(false);
   };
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      setNotifLoading(true);
+      try {
+        const [data, countData] = await Promise.all([
+          notificationsAPI.getAll().catch(() => []),
+          notificationsAPI.getUnreadCount().catch(() => ({ count: 0 }))
+        ]);
+        setNotifications(Array.isArray(data) ? data : []);
+        setUnreadCount(countData?.count ?? 0);
+      } catch (err) {
+        console.error('Failed to fetch notifications', err);
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    if (!showNotifDropdown) return;
+    const handleOutsideClick = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showNotifDropdown]);
 
   const confirmLogout = async () => {
     setIsLoggingOut(true);
@@ -158,7 +285,7 @@ export default function DashboardLayout() {
   const SearchDropdown = () => (
     <AnimatePresence>
       {showSearchDropdown && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
           className="absolute top-full mt-2 left-0 right-0 bg-[#020617]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 z-50 max-h-80 overflow-y-auto custom-scrollbar"
         >
@@ -301,7 +428,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div 
+    <div
       className="flex h-screen w-full bg-[#020617] text-white selection:bg-[#00b4d8] selection:text-[#020617] font-sans relative overflow-hidden"
       onClick={closeAll}
     >
@@ -387,8 +514,8 @@ export default function DashboardLayout() {
             <div className="relative hidden lg:block" onClick={e => e.stopPropagation()}>
               <div className="relative flex items-center">
                 <Search className="absolute left-4 w-4 h-4 text-white/40" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Global Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -408,13 +535,93 @@ export default function DashboardLayout() {
               <Search className="w-4 h-4" />
             </button>
 
-            <button className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/5 hover:bg-[#00b4d8]/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-[#00b4d8] transition-all backdrop-blur-md relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-2 h-2 bg-[#00b4d8] rounded-full border-2 border-[#020617]"></span>
-            </button>
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef} onClick={e => e.stopPropagation()}>
+              <button
+                id="notification-bell-btn"
+                onClick={() => setShowNotifDropdown(v => !v)}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/5 hover:bg-[#00b4d8]/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-[#00b4d8] transition-all backdrop-blur-md relative"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-[#00b4d8] rounded-full border-2 border-[#020617] flex items-center justify-center text-[9px] font-black text-[#020617] px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifDropdown && (
+                  <motion.div
+                    id="notification-dropdown"
+                    initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full right-0 mt-3 w-80 bg-[#0a1020]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                      <span className="text-xs font-black uppercase tracking-widest text-white">Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold text-[#00b4d8] bg-[#00b4d8]/10 px-2 py-0.5 rounded-full">
+                          {unreadCount} unread
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Body */}
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar">
+                      {notifLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-8 text-xs text-white/40">
+                          <div className="w-3 h-3 border border-white/20 border-t-[#00b4d8] rounded-full animate-spin" />
+                          Loading...
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 gap-2">
+                          <Bell className="w-7 h-7 text-white/10" />
+                          <p className="text-xs text-white/30 font-medium">No notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={() => {
+                              const route = getNotificationRoute(notif);
+                              navigate(route);
+                              setShowNotifDropdown(false);
+                            }}
+                            className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
+                              !notif.is_read ? 'bg-[#00b4d8]/5' : ''
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!notif.is_read && (
+                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#00b4d8] shrink-0" />
+                              )}
+                              <div className={!notif.is_read ? '' : 'ml-3.5'}>
+                                <p className="text-xs font-bold text-white truncate">{notif.title}</p>
+                                {notif.message && (
+                                  <p className="text-[11px] text-white/50 mt-0.5 line-clamp-2">{notif.message}</p>
+                                )}
+                                {notif.created_at && (
+                                  <p className="text-[10px] text-white/25 mt-1">
+                                    {formatNotificationDate(notif.created_at)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Profile Avatar */}
-            <div 
+            <div
               title={`${user?.name || 'Operator'} (${role} Access)`}
               className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/50 flex items-center justify-center overflow-hidden backdrop-blur-md shrink-0"
             >
@@ -446,8 +653,8 @@ export default function DashboardLayout() {
             >
               <div className="py-3 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

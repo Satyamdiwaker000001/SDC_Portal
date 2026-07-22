@@ -10,12 +10,42 @@ import cloudinary.uploader
 
 from ....api import deps
 from ....core import security
-from ....models.models import User, AuditLog, Project, Team
+from ....models.models import User, AuditLog, Project, Team, Notification
 from ....core.config import settings
 from ....schemas.user import UserCreate, UserUpdate, UserOut
 from datetime import datetime
 
 router = APIRouter()
+
+
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+    if existing:
+        return
+
+    db.add(Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title=title,
+        message=message,
+        event_type=event_type or "SYSTEM",
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+    ))
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -147,6 +177,27 @@ def create_user(
         updated_at=datetime.utcnow(),
     )
     db.add(user)
+
+    for other_user in db.exec(select(User).where(User.id != user.id)).all():
+        _create_notification_if_missing(
+            db,
+            user_id=other_user.id,
+            title="New member joined SDC",
+            message=f"New member joined SDC: {user.name}",
+            event_type="USER_CREATED",
+            related_entity_type="user",
+            related_entity_id=user.id,
+        )
+
+    _create_notification_if_missing(
+        db,
+        user_id=user.id,
+        title="Welcome to SDC",
+        message=f"Welcome to SDC, {user.name}!",
+        event_type="WELCOME",
+        related_entity_type="user",
+        related_entity_id=user.id,
+    )
 
     db.add(AuditLog(
         id=str(uuid.uuid4()),

@@ -9,10 +9,40 @@ import shutil
 from datetime import datetime, date
 
 from ....api import deps
-from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog
+from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog, Notification
 from ....core.config import settings
 
 router = APIRouter()
+
+
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+    if existing:
+        return
+
+    db.add(Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title=title,
+        message=message,
+        event_type=event_type or "SYSTEM",
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+    ))
 
 class ProjectCreate(BaseModel):
     name: str
@@ -126,6 +156,17 @@ def create_project(
             updated_at=datetime.utcnow()
         )
         db.add(p_doc)
+
+    for target_user in db.exec(select(User)).all():
+        _create_notification_if_missing(
+            db,
+            user_id=target_user.id,
+            title="New project created",
+            message=f"New project created: {project.name}",
+            event_type="PROJECT_CREATED",
+            related_entity_type="project",
+            related_entity_id=project.id,
+        )
         
     # Audit log (SRS 3.16)
     db.add(AuditLog(

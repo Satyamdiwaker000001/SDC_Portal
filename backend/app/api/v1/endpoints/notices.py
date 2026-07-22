@@ -6,9 +6,39 @@ from datetime import datetime
 import uuid
 
 from ....api import deps
-from ....models.models import Notice, User, AuditLog
+from ....models.models import Notice, User, AuditLog, Notification
 
 router = APIRouter()
+
+
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+    if existing:
+        return
+
+    db.add(Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title=title,
+        message=message,
+        event_type=event_type or "SYSTEM",
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+    ))
 
 
 # --------------------------------------------------------------------------- #
@@ -95,6 +125,17 @@ def create_notice(
         is_pinned=notice_in.is_pinned or False,
     )
     db.add(notice)
+
+    for target_user in db.exec(select(User)).all():
+        _create_notification_if_missing(
+            db,
+            user_id=target_user.id,
+            title="New notice published",
+            message=f"New notice published: {notice.title}",
+            event_type="NOTICE_PUBLISHED",
+            related_entity_type="notice",
+            related_entity_id=notice.id,
+        )
 
     # Audit log (SRS 3.16)
     db.add(AuditLog(
