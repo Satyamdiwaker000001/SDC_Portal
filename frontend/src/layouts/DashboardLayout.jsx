@@ -579,32 +579,31 @@ export default function DashboardLayout() {
                         notifications.map((notif) => (
                           <div
                             key={notif.id}
-                           onClick={async () => {
-                        const route = getNotificationRoute(notif);
+                            onClick={async () => {
+                              const route = getNotificationRoute(notif);
 
-                        if (!notif.is_read) {
-                          // Update UI immediately
-                          setNotifications(prev =>
-                            prev.map(n =>
-                              n.id === notif.id ? { ...n, is_read: true } : n
-                            )
-                          );
+                              if (!notif.is_read) {
+                                // Update UI immediately
+                                setNotifications(prev =>
+                                  prev.map(n =>
+                                    n.id === notif.id ? { ...n, is_read: true } : n
+                                  )
+                                );
 
-                          setUnreadCount(prev => Math.max(0, prev - 1));
+                                setUnreadCount(prev => Math.max(0, prev - 1));
 
-                          try {
-                            await notificationsAPI.markAsRead(notif.id);
-                          } catch (err) {
-                            console.error("Failed to mark notification as read", err);
-                          }
-                        }
+                                try {
+                                  await notificationsAPI.markAsRead(notif.id);
+                                } catch (err) {
+                                  console.error("Failed to mark notification as read", err);
+                                }
+                              }
 
-                        navigate(route);
-                        setShowNotifDropdown(false);
-                      }}
-                            className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
-                              !notif.is_read ? 'bg-[#00b4d8]/5' : ''
-                            }`}
+                              navigate(route);
+                              setShowNotifDropdown(false);
+                            }}
+                            className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${!notif.is_read ? 'bg-[#00b4d8]/5' : ''
+                              }`}
                           >
                             <div className="flex items-start gap-2">
                               {!notif.is_read && (
@@ -656,24 +655,33 @@ export default function DashboardLayout() {
         <AnimatePresence>
           {showSearchMobile && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden overflow-hidden bg-[#0a1020] border-b border-white/10 px-4 relative"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden bg-[#0a1020] border-b border-white/10 relative z-30"
               onClick={e => e.stopPropagation()}
             >
-              <div className="py-3 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
-                  //onKeyDown={handleSearchInputKeyDown}
-                  autoFocus
-                  className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all text-white placeholder:text-white/30"
-                />
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: 'auto' }}
+                exit={{ height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 py-3 relative">
+                  <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
+                    //onKeyDown={handleSearchInputKeyDown}
+                    autoFocus
+                    className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all text-[#00b4d8] placeholder:text-white/30"
+                  />
+                </div>
+              </motion.div>
+              <div className="px-4 relative z-50">
                 <SearchDropdown />
               </div>
             </motion.div>
