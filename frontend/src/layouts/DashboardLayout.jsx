@@ -88,23 +88,18 @@ const getNotificationRoute = (notif) => {
   if (
     entityType === 'team' ||
     eventType.includes('TEAM') ||
-    title.includes('team') ||
-    message.includes('team')
+    (!entityId && (title.includes('team') || message.includes('team')))
   ) {
-    return '/dashboard/teams';
+    return entityId ? `/dashboard/teams?id=${entityId}` : '/dashboard/teams';
   }
 
   // Personnel / Members / User
   if (
     entityType === 'user' ||
     eventType === 'USER_CREATED' ||
-    eventType === 'WELCOME' ||
-    title.includes('member') ||
-    title.includes('welcome') ||
-    message.includes('joined sdc') ||
-    message.includes('member')
+    (!entityId && (eventType === 'WELCOME' || title.includes('member') || title.includes('welcome') || message.includes('joined sdc') || message.includes('member')))
   ) {
-    return '/dashboard/team';
+    return entityId ? `/dashboard/team?id=${entityId}` : '/dashboard/team';
   }
 
   // Recruitment / Application
@@ -113,11 +108,9 @@ const getNotificationRoute = (notif) => {
     entityType === 'recruitment' ||
     eventType.includes('APPLICATION') ||
     eventType.includes('RECRUITMENT') ||
-    title.includes('application') ||
-    title.includes('recruitment') ||
-    message.includes('application')
+    (!entityId && (title.includes('application') || title.includes('recruitment') || message.includes('application')))
   ) {
-    return '/dashboard/recruitment';
+    return entityId ? `/dashboard/recruitment?id=${entityId}` : '/dashboard/recruitment';
   }
 
   // Tasks
@@ -586,11 +579,29 @@ export default function DashboardLayout() {
                         notifications.map((notif) => (
                           <div
                             key={notif.id}
-                            onClick={() => {
-                              const route = getNotificationRoute(notif);
-                              navigate(route);
-                              setShowNotifDropdown(false);
-                            }}
+                           onClick={async () => {
+                        const route = getNotificationRoute(notif);
+
+                        if (!notif.is_read) {
+                          // Update UI immediately
+                          setNotifications(prev =>
+                            prev.map(n =>
+                              n.id === notif.id ? { ...n, is_read: true } : n
+                            )
+                          );
+
+                          setUnreadCount(prev => Math.max(0, prev - 1));
+
+                          try {
+                            await notificationsAPI.markAsRead(notif.id);
+                          } catch (err) {
+                            console.error("Failed to mark notification as read", err);
+                          }
+                        }
+
+                        navigate(route);
+                        setShowNotifDropdown(false);
+                      }}
                             className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
                               !notif.is_read ? 'bg-[#00b4d8]/5' : ''
                             }`}

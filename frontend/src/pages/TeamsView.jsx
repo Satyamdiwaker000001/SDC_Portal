@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Network, Plus, Users, Shield, Star, Code, X, Search, UserPlus, Edit2, Trash2, FolderKanban, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,12 +7,14 @@ import { teamsAPI, usersAPI, projectsAPI } from '../api/services';
 
 export default function TeamsView() {
   const { role, user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [teams, setTeams] = useState([]);
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedTeamId, setHighlightedTeamId] = useState(null);
 
   // New Team Form State
   const [newTeam, setNewTeam] = useState({ name: '', leaderId: '', memberIds: [], projectId: '' });
@@ -74,6 +77,30 @@ export default function TeamsView() {
       if (team.id && !teamMembers[team.id]) fetchTeamMembers(team.id);
     });
   }, [teams]);
+
+  const targetTeamId = searchParams.get('id');
+
+  // Deep-link handling: scroll and highlight matching team card
+  useEffect(() => {
+    if (!isLoading && targetTeamId && Array.isArray(teams) && teams.length > 0) {
+      const target = teams.find(t => t && String(t.id) === String(targetTeamId));
+      if (target) {
+        setHighlightedTeamId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedTeamId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`team-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetTeamId, teams, searchParams]);
 
   // Unassigned projects: no team_id set
   const unassignedProjects = useMemo(() => {
@@ -342,6 +369,7 @@ export default function TeamsView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTeams.map(team => {
+            const isHighlighted = String(team.id) === String(highlightedTeamId);
             const members = teamMembers[team.id] || [];
             const leaderMember = members.find(m => m.designation === 'lead');
             const leader = leaderMember ? getLeaderDetails(leaderMember.user_id) : null;
@@ -356,9 +384,14 @@ export default function TeamsView() {
             return (
               <motion.div
                 key={team.id}
+                id={`team-card-${team.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-[#1c222b] border border-white/8 rounded-3xl overflow-hidden group hover:border-[#00b4d8]/40 transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col"
+                className={`bg-[#1c222b] border border-white/8 rounded-3xl overflow-hidden group hover:border-[#00b4d8]/40 transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col ${
+                  isHighlighted
+                    ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.03]'
+                    : ''
+                }`}
               >
                 <div className="p-5 border-b border-white/5 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-[#00b4d8]/8 rounded-full blur-[40px] -mr-10 -mt-10 pointer-events-none group-hover:bg-[#00b4d8]/15 transition-all"></div>

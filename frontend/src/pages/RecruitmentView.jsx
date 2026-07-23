@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { applicationsAPI, settingsAPI } from '../api/services';
 import { Check, X, Briefcase, ShieldAlert, Phone, Mail, FileText, Search, Power, Download, Trash } from 'lucide-react';
@@ -19,12 +20,14 @@ const formatDate = (dateString) => {
 };
 
 export default function RecruitmentView() {
+  const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [isLive, setIsLive] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [highlightedAppId, setHighlightedAppId] = useState(null);
 
   const fetchLiveStatus = async () => {
     try {
@@ -75,6 +78,30 @@ export default function RecruitmentView() {
     fetchApps();
     fetchLiveStatus();
   }, []);
+
+  const targetAppId = searchParams.get('id');
+
+  // Deep-link handling: scroll and highlight matching candidate application
+  useEffect(() => {
+    if (!isLoading && targetAppId && Array.isArray(applications) && applications.length > 0) {
+      const target = applications.find(a => a && String(a.id) === String(targetAppId));
+      if (target) {
+        setHighlightedAppId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedAppId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`app-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetAppId, applications, searchParams]);
 
   const handleUpdateStatus = async (id, status) => {
     try {
@@ -245,14 +272,21 @@ export default function RecruitmentView() {
              </div>
           ) : (
             <AnimatePresence>
-              {filteredApps.map((app, i) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05, ease: "easeOut" }}
-                  key={app.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center bg-white/[0.02] hover:bg-white/[0.04] transition-all border border-white/5 hover:border-white/10 rounded-2xl group"
-                >
+              {filteredApps.map((app, i) => {
+                const isHighlighted = String(app.id) === String(highlightedAppId);
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, ease: "easeOut" }}
+                    key={app.id}
+                    id={`app-card-${app.id}`}
+                    className={`grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center bg-white/[0.02] hover:bg-white/[0.04] transition-all border border-white/5 hover:border-white/10 rounded-2xl group ${
+                      isHighlighted
+                        ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.01]'
+                        : ''
+                    }`}
+                  >
                   {/* Candidate Identity */}
                   <div className="col-span-3 flex items-center gap-4 pr-4">
                     <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/10 border border-[#00b4d8]/30 flex items-center justify-center flex-shrink-0 text-[#00b4d8] font-black uppercase text-lg">
@@ -343,8 +377,9 @@ export default function RecruitmentView() {
                     </button>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
+              );
+            })}
+          </AnimatePresence>
           )}
         </div>
       </div>

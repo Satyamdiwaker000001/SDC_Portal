@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera, Key } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
@@ -47,7 +48,7 @@ const calculateAcademicYear = (user) => {
   return "Passout (Alumni)";
 };
 
-const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId, onResetPassword }) => {
+const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId, onResetPassword, isHighlighted = false }) => {
   const [passoutConfirmStep, setPassoutConfirmStep] = React.useState(0);
   const [deleteConfirmStep, setDeleteConfirmStep] = React.useState(0);
   const isAdmin = (currentUserRole || '').toLowerCase() === 'admin';
@@ -75,7 +76,12 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group"
+      id={`user-card-${user.id}`}
+      className={`profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group transition-all duration-500 rounded-3xl ${
+        isHighlighted
+          ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.03]'
+          : ''
+      }`}
       style={{ perspective: '1200px' }}
       data-user-id={user.id}
       data-searchable="user"
@@ -301,11 +307,13 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
 export default function TeamView() {
   const { role, user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [flippedCardId, setFlippedCardId] = useState(null);
+  const [highlightedUserId, setHighlightedUserId] = useState(null);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'developer', joiningYear: new Date().getFullYear(), joiningClass: '1st Year' });
   const [modalStatus, setModalStatus] = useState('');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -360,6 +368,30 @@ export default function TeamView() {
     };
     fetchData();
   }, []);
+
+  const targetUserId = searchParams.get('id');
+
+  // Deep-link handling: scroll, highlight matching user card (no auto-flip)
+  useEffect(() => {
+    if (!isLoading && targetUserId && Array.isArray(users) && users.length > 0) {
+      const target = users.find(u => u && String(u.id) === String(targetUserId));
+      if (target) {
+        setHighlightedUserId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedUserId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`user-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetUserId, users, searchParams]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -637,6 +669,7 @@ export default function TeamView() {
                      setResetPasswordUser(u);
                      setNewPassword('');
                   }}
+                  isHighlighted={String(user.id) === String(highlightedUserId)}
                 />
               ))}
             </div>

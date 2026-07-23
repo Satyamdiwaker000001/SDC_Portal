@@ -317,8 +317,14 @@ export const notificationsAPI = {
     const { data } = await client.get('/notifications');
     return data;
   },
+
   getUnreadCount: async () => {
     const { data } = await client.get('/notifications/unread-count');
+    return data;
+  },
+
+  markAsRead: async (id) => {
+    const { data } = await client.patch(`/notifications/${id}/read`);
     return data;
   }
 };
