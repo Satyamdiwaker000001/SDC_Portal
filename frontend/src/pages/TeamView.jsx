@@ -1060,7 +1060,7 @@ export default function TeamView() {
                          </button>
                        </div>
                        <div className="flex-1 min-w-0">
-                         <p className="text-[11px] text-white/50 mb-2">Upload a photo or paste a URL below</p>
+                         <p className="text-[11px] text-white/50 mb-2">Upload a photo</p>
                          <button
                            type="button"
                            onClick={() => avatarInputRef.current?.click()}
@@ -1088,7 +1088,7 @@ export default function TeamView() {
                              setAvatarPreview(res.url);
                              setEditUserData(prev => ({ ...prev, profile_image: res.url }));
                            } catch (err) {
-                             alert('Image upload failed. Try a URL instead.');
+                             alert('Image upload failed.');
                            } finally {
                              setAvatarUploading(false);
                              e.target.value = '';
@@ -1096,18 +1096,6 @@ export default function TeamView() {
                          }}
                        />
                      </div>
-
-                     {/* URL Fallback input */}
-                     <input 
-                       type="url"
-                       placeholder="Or paste image URL here..."
-                       value={editUserData.profile_image || ''}
-                       onChange={e => {
-                         setEditUserData({...editUserData, profile_image: e.target.value});
-                         setAvatarPreview(e.target.value || null);
-                       }}
-                       className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-xs placeholder:text-white/20"
-                     />
                   </div>
                 </form>
               </div>
