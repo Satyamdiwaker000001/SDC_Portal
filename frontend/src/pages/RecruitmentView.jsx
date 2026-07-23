@@ -163,10 +163,10 @@ export default function RecruitmentView() {
   };
 
   return (
-    <div className="h-full flex flex-col font-sans text-white pb-6 relative z-10 overflow-hidden">
+    <div className="space-y-6 font-sans text-white pb-6 relative z-10">
       
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
              <div className="w-6 h-6 rounded-md bg-[#00b4d8]/10 flex items-center justify-center border border-[#00b4d8]/30">
@@ -227,7 +227,7 @@ export default function RecruitmentView() {
       </div>
 
       {/* Stats Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
         <div className="bg-[#1c222b] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-lg">
            <div>
              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Total Applications</p>
@@ -255,7 +255,7 @@ export default function RecruitmentView() {
       </div>
 
       {/* Applications List */}
-      <div className="flex-1 bg-[#1c222b] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
+      <div className="bg-[#1c222b] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
         
         {/* Table Header — hidden on mobile, shown on md+ */}
         <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 border-b border-white/5 text-[10px] font-black text-white/30 uppercase tracking-widest bg-black/20">
@@ -265,7 +265,8 @@ export default function RecruitmentView() {
           <div className="col-span-4 text-right">Status & Action</div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+        <div className="p-4 space-y-3">
+
           {isLoading ? (
             <div className="text-center py-12 text-white/40 text-xs font-mono">Syncing candidates database...</div>
           ) : filteredApps.length === 0 ? (

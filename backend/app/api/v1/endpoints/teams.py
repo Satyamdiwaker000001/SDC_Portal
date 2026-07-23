@@ -4,9 +4,41 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 import uuid
 from ....api import deps
-from ....models.models import Team, TeamMember, User
+from ....models.models import Team, TeamMember, User, Notification
 
 router = APIRouter()
+
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+
+    if existing:
+        return
+
+    db.add(
+        Notification(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            title=title,
+            message=message,
+            event_type=event_type or "SYSTEM",
+            related_entity_type=related_entity_type,
+            related_entity_id=related_entity_id,
+        )
+    )
 
 class TeamCreate(BaseModel):
     name: str
@@ -73,6 +105,27 @@ def create_team(
             )
             db.add(member)
             
+    # Notify: current admin + assigned team leader + assigned members
+    notif_recipients = {current_admin.id}
+
+    if team_in.leaderId:
+        notif_recipients.add(team_in.leaderId)
+
+    if team_in.memberIds:
+        for mid in team_in.memberIds:
+            notif_recipients.add(mid)
+
+    for recipient_id in notif_recipients:
+        _create_notification_if_missing(
+            db,
+            user_id=recipient_id,
+            title="New team assembled",
+            message=f"New team assembled: {team.name}",
+            event_type="TEAM_CREATED",
+            related_entity_type="team",
+            related_entity_id=team.id,
+        )
+
     db.commit()
     return team
 

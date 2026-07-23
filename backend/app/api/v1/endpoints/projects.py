@@ -157,10 +157,29 @@ def create_project(
         )
         db.add(p_doc)
 
-    for target_user in db.exec(select(User)).all():
+        recipients = set()
+
+    # Notify all admins
+    admins = db.exec(
+        select(User).where(User.role == "admin")
+    ).all()
+
+    for admin in admins:
+        recipients.add(admin.id)
+
+    # Notify assigned team members only
+    if project.team_id:
+        team_members = db.exec(
+            select(TeamMember).where(TeamMember.team_id == project.team_id)
+        ).all()
+
+        for member in team_members:
+            recipients.add(member.user_id)
+
+    for user_id in recipients:
         _create_notification_if_missing(
             db,
-            user_id=target_user.id,
+            user_id=user_id,
             title="New project created",
             message=f"New project created: {project.name}",
             event_type="PROJECT_CREATED",
