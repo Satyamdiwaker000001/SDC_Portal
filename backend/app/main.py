@@ -81,6 +81,33 @@ def unread_notification_count(
         .where(Notification.is_read == False)
     ).all()
     return {"count": len(count)}
+    
+    print("========== PATCH ROUTE LOADED ==========")
+
+@app.patch("/notifications/{notification_id}/read")
+@app.patch(f"{settings.API_V1_STR}/notifications/{{notification_id}}/read")
+def mark_notification_read(
+    notification_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    notif = db.exec(
+        select(Notification)
+        .where(Notification.id == notification_id)
+        .where(Notification.user_id == current_user.id)
+    ).first()
+
+    if not notif:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    if not notif.is_read:
+        notif.is_read = True
+        db.add(notif)
+        db.commit()
+        db.refresh(notif)
+
+    return notif
 
 # --- ROUTER_REGISTRATION ---
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
