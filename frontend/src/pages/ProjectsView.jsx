@@ -1271,7 +1271,7 @@ export default function ProjectsView() {
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl bg-[#020617] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-white"
+              className="relative w-full max-w-md bg-[#020617] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-white"
             >
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-sky-900/20 to-transparent flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
