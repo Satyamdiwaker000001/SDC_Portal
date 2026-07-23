@@ -54,7 +54,7 @@ const STATUS_COLORS = {
 // ==========================================
 // FOLDER COMPONENT (THE MAIN UI STAR)
 // ==========================================
-function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProject, role, isInline = false, onClose, onSelect, isHighlighted = false }) {
+function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProject, onRefreshData, role, isInline = false, onClose, onSelect, isHighlighted = false }) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeFile, setActiveFile] = useState('report'); // report | sdlc | documents | team | feedback
@@ -262,7 +262,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
       setShowAddTaskModal(false);
       fetchTasks();
       fetchPhases(); // refresh progresses
-      fetchGlobalData(); // refresh project overall progress
+      onRefreshData?.(); // refresh project overall progress
     } catch (err) {
       alert("Failed to create task inside phase");
     } finally {
@@ -1227,6 +1227,7 @@ export default function ProjectsView() {
             allUsers={allUsers}
             onUpdateProject={handleUpdateProject}
             onDeleteProject={setDeletingProject}
+            onRefreshData={fetchGlobalData}
             role={role}
             isInline={true}
             onClose={() => setSelectedProjectId(null)}
@@ -1248,6 +1249,7 @@ export default function ProjectsView() {
                   allUsers={allUsers}
                   onUpdateProject={handleUpdateProject}
                   onDeleteProject={setDeletingProject}
+                  onRefreshData={fetchGlobalData}
                   role={role}
                   onSelect={setSelectedProjectId}
                   isHighlighted={String(project.id) === String(highlightedProjectId)}
@@ -1395,12 +1397,6 @@ export default function ProjectsView() {
         )}
       </AnimatePresence>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 216, 0.4); }
-      `}} />
     </div>
   );
 }

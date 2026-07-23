@@ -3,56 +3,37 @@ import threading
 from datetime import datetime
 from sqlmodel import Session, select
 from ..db.session import engine
-from ..models.models import Member, HallOfEchoes, User
+from ..models.models import User
 
 def sync_clock_loop():
     """
-    Background engine that checks for operative retirements every minute.
-    If Server_Time >= User_Retire_Date:
-    1. Status -> Retired
-    2. Access -> Revoked (User record deleted)
-    3. Archive -> Hall of Echoes
+    Background engine that checks for user deactivation based on passout year.
+    If the current year >= User.passout_year and passout_year > 0:
+    1. membership_status -> alumni
+    2. is_active -> False (revoke access)
     """
     print("[SYNC_CLOCK] Engine Initialized.")
     while True:
         try:
             with Session(engine) as db:
-                current_date = datetime.utcnow().date()
-                # Only check ACTIVE members
-                statement = select(Member).where(Member.status == "ACTIVE")
-                members = db.exec(statement).all()
+                current_year = datetime.utcnow().year
+                # Only check active developers with a passout year set
+                statement = select(User).where(
+                    User.role == "developer",
+                    User.is_active == True,
+                    User.passout_year > 0
+                )
+                users = db.exec(statement).all()
                 
-                for member in members:
-                    if member.retirementDate:
-                        try:
-                            r_date = datetime.strptime(member.retirementDate, "%Y-%m-%d").date()
-                            if current_date >= r_date:
-                                # 1. Archive to Hall of Echoes
-                                echo = HallOfEchoes(
-                                    id=member.id,
-                                    name=member.name,
-                                    email=member.email,
-                                    spec=member.spec,
-                                    joinDate=member.joinDate,
-                                    retirementDate=member.retirementDate,
-                                    techStack=member.techStack
-                                )
-                                db.add(echo)
-                                
-                                # 2. Mark as RETIRED in active registry
-                                member.status = "RETIRED"
-                                db.add(member)
-                                
-                                # 3. Revoke Access (Delete login credentials)
-                                user = db.get(User, member.id)
-                                if user:
-                                    db.delete(user)
-                                
-                                db.commit()
-                                print(f"[SYNC_CLOCK] Mission Expired for {member.name} ({member.id}). Archived to Hall of Echoes.")
-                        except ValueError:
-                            # Log invalid date format but continue
-                            continue
+                for user in users:
+                    if current_year >= user.passout_year:
+                        # 1. Mark as alumni
+                        user.membership_status = "alumni"
+                        user.is_active = False
+                        db.add(user)
+                        print(f"[SYNC_CLOCK] User {user.name} ({user.id}) marked as alumni (passout year {user.passout_year}).")
+                
+                db.commit()
         except Exception as e:
             print(f"[SYNC_CLOCK] Critical Engine Error: {e}")
         

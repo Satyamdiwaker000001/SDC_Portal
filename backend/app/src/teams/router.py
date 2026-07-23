@@ -4,17 +4,13 @@ from sqlmodel import Session, select
 from typing import Any, List, Optional
 
 from ...api import deps
-from ...models.models import Team, Member, TeamMemberLink, User
+from ...models.models import Team, Member, TeamMemberLink, User, TeamMember
 
 router = APIRouter()
 
 class TeamCreate(BaseModel):
     id: str
     name: str
-    leaderId: str
-
-class TeamLeaderUpdate(BaseModel):
-    leaderId: str
 
 class MemberAddRequest(BaseModel):
     userId: str
@@ -33,21 +29,13 @@ def create_team(
         raise HTTPException(status_code=400, detail="Team ID already exists")
     
     # Check if leader exists
-    leader = db.get(Member, team_in.leaderId)
-    if not leader:
-        raise HTTPException(status_code=404, detail="Leader member profile not found")
+    leader = db.get(Member, team_in.id)
 
     team = Team(
         id=team_in.id,
         name=team_in.name,
-        leaderId=team_in.leaderId,
     )
     db.add(team)
-    
-    # Auto link leader as member of team
-    import uuid
-    link = TeamMemberLink(id=str(uuid.uuid4()), team_id=team.id, user_id=team.leaderId)
-    db.add(link)
     
     db.commit()
     db.refresh(team)
@@ -149,7 +137,7 @@ def remove_member(
 @router.patch("/admin/teams/{teamId}/leader")
 def promote_team_leader(
     teamId: str,
-    update: TeamLeaderUpdate,
+    update: MemberAddRequest,
     db: Session = Depends(deps.get_db),
     current_admin: User = Depends(deps.get_current_active_admin),
 ) -> Any:
@@ -160,19 +148,28 @@ def promote_team_leader(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
         
-    member = db.get(Member, update.leaderId)
+    member = db.get(Member, update.userId)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
         
-    team.leaderId = update.leaderId
-    db.add(team)
+    # Set existing leader to member
+    existing_lead = db.exec(select(TeamMember).where(
+        TeamMember.team_id == teamId,
+        TeamMember.designation == "lead"
+    )).first()
+    if existing_lead:
+        existing_lead.designation = "member"
+        db.add(existing_lead)
     
-    # Ensure leader is also a member of the team
-    link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.user_id == update.leaderId)).first()
+    # Ensure user is a member of the team, then promote to lead
+    link = db.exec(select(TeamMemberLink).where(TeamMemberLink.team_id == teamId, TeamMemberLink.user_id == update.userId)).first()
     if not link:
         import uuid
-        new_link = TeamMemberLink(id=str(uuid.uuid4()), team_id=teamId, user_id=update.leaderId)
+        new_link = TeamMemberLink(id=str(uuid.uuid4()), team_id=teamId, user_id=update.userId, designation="lead")
         db.add(new_link)
+    else:
+        link.designation = "lead"
+        db.add(link)
         
     db.commit()
     db.refresh(team)

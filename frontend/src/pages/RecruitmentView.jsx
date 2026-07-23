@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { applicationsAPI, settingsAPI } from '../api/services';
+import { useAuth } from '../contexts/AuthContext';
 import { Check, X, Briefcase, ShieldAlert, Phone, Mail, FileText, Search, Power, Download, Trash } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -20,6 +21,7 @@ const formatDate = (dateString) => {
 };
 
 export default function RecruitmentView() {
+  const { role } = useAuth();
   const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,6 +104,8 @@ export default function RecruitmentView() {
       }
     }
   }, [isLoading, targetAppId, applications, searchParams]);
+
+  if (role !== 'admin') return <Navigate to="/dashboard" replace />;
 
   const handleUpdateStatus = async (id, status) => {
     try {
@@ -384,12 +388,6 @@ export default function RecruitmentView() {
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 216, 0.5); }
-      `}} />
     </div>
   );
 }
