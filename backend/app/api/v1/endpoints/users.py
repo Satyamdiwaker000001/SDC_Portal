@@ -178,10 +178,12 @@ def create_user(
     )
     db.add(user)
 
-    for other_user in db.exec(select(User).where(User.id != user.id)).all():
+    for admin_user in db.exec(
+    select(User).where(User.role == "admin").where(User.id != user.id)
+).all():
         _create_notification_if_missing(
             db,
-            user_id=other_user.id,
+            user_id=admin_user.id,
             title="New member joined SDC",
             message=f"New member joined SDC: {user.name}",
             event_type="USER_CREATED",

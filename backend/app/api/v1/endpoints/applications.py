@@ -6,10 +6,41 @@ import uuid
 from datetime import datetime
 
 from ....api import deps
-from ....models.models import Application, User, AuditLog
+from ....models.models import Application, User, AuditLog, Notification
 
 router = APIRouter()
 
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+
+    if existing:
+        return
+
+    db.add(
+        Notification(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            title=title,
+            message=message,
+            event_type=event_type or "SYSTEM",
+            related_entity_type=related_entity_type,
+            related_entity_id=related_entity_id,
+        )
+    )
 
 # --------------------------------------------------------------------------- #
 #  Schemas                                                                     #
@@ -112,6 +143,23 @@ def create_application(
     db.add(application)
     db.commit()
     db.refresh(application)
+
+    admins = db.exec(
+        select(User).where(User.role == "admin")
+    ).all()
+
+    for admin in admins:
+        _create_notification_if_missing(
+            db,
+            user_id=admin.id,
+            title="New recruitment application",
+            message=f"{application.name} submitted a recruitment application.",
+            event_type="APPLICATION_CREATED",
+            related_entity_type="application",
+            related_entity_id=application.id,
+        )
+
+    db.commit()
     return application
 
 
