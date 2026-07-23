@@ -134,6 +134,34 @@ def public_user_stats(
     }
 
 
+@router.get("/public/roster")
+def public_roster(
+    role: Optional[str] = None,
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Public roster for the landing page. Exposes only safe fields — no email or sensitive data."""
+    statement = (
+        select(User)
+        .where(User.is_active.is_(True))
+        .where(User.role != "admin")
+    )
+    if role:
+        statement = statement.where(User.role == role)
+    users = db.exec(statement).all()
+    return [
+        {
+            "id": u.id,
+            "name": u.name,
+            "role": u.role,
+            "profile_image": u.profile_image,
+            "linkedin_url": u.linkedin_url,
+            "github_url": u.github_url,
+            "membership_status": u.membership_status,
+        }
+        for u in users
+    ]
+
+
 @router.get("/", response_model=List[UserOut])
 def read_users(
     db: Session = Depends(deps.get_db),
