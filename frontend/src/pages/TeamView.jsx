@@ -680,7 +680,7 @@ export default function TeamView() {
       {/* Premium Add Member Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -692,7 +692,7 @@ export default function TeamView() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
+              className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] md:max-h-[90vh] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/10 rounded-[1.5rem] md:rounded-[2rem] p-5 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden my-auto"
             >
               {/* Decorative Background Elements */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#00b4d8]/8 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2"></div>
@@ -701,19 +701,19 @@ export default function TeamView() {
               <button 
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-[#00b4d8] hover:bg-[#00b4d8]/10 hover:border-[#00b4d8]/20 transition-colors border border-white/5 cursor-pointer"
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-[#00b4d8] hover:bg-[#00b4d8]/10 hover:border-[#00b4d8]/20 transition-colors border border-white/5 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
               
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col flex-1 overflow-y-auto custom-scrollbar pr-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2.5 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30">
-                    <UserPlus className="w-6 h-6 text-[#00b4d8]" />
+                  <div className="p-2.5 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30 shrink-0">
+                    <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-[#00b4d8]" />
                   </div>
-                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">Add New Member</h2>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">Add New Member</h2>
                 </div>
-                <p className="text-sm text-white/40 mb-8 ml-14">Register a new profile and assign system access levels.</p>
+                <p className="text-xs sm:text-sm text-white/40 mb-6 md:mb-8 ml-0 sm:ml-12 md:ml-14">Register a new profile and assign system access levels.</p>
                 
                 <form onSubmit={handleCreateUser} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -808,6 +808,7 @@ export default function TeamView() {
           </div>
         )}
       </AnimatePresence>
+
       {/* Bulk Upload Modal */}
       <AnimatePresence>
         {isBulkModalOpen && (
