@@ -255,7 +255,7 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-xl bg-[#0f172a] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 flex flex-col overflow-hidden z-10"
+            className="relative w-full max-w-sm bg-[#0f172a] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 flex flex-col overflow-hidden z-10"
           >
             <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
