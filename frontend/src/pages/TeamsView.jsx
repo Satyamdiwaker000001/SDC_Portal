@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Network, Plus, Users, Shield, Star, Code, X, Search, UserPlus, Edit2, Trash2, FolderKanban, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -41,6 +41,7 @@ export default function TeamsView() {
 
   // Team members cache
   const [teamMembers, setTeamMembers] = useState({});
+  const teamMembersRef = useRef({});
 
   useEffect(() => {
     fetchData();
@@ -54,7 +55,7 @@ export default function TeamsView() {
         projectsAPI.getAll().catch(() => [])
       ]);
       setTeams(tData || []);
-      setUsers(uData || []);
+      setUsers((uData || []).map(usr => ({ ...usr, isPassout: usr.membership_status === 'alumni' })));
       setProjects(pData || []);
     } catch (err) {
       setTeams([]); setUsers([]); setProjects([]);
@@ -66,15 +67,23 @@ export default function TeamsView() {
   const fetchTeamMembers = async (teamId) => {
     try {
       const membersData = await teamsAPI.getMembers(teamId);
-      setTeamMembers(prev => ({ ...prev, [teamId]: membersData || [] }));
+      setTeamMembers(prev => {
+        const next = { ...prev, [teamId]: membersData || [] };
+        teamMembersRef.current = next;
+        return next;
+      });
     } catch (err) {
-      setTeamMembers(prev => ({ ...prev, [teamId]: [] }));
+      setTeamMembers(prev => {
+        const next = { ...prev, [teamId]: [] };
+        teamMembersRef.current = next;
+        return next;
+      });
     }
   };
 
   useEffect(() => {
     teams.forEach(team => {
-      if (team.id && !teamMembers[team.id]) fetchTeamMembers(team.id);
+      if (team.id && !teamMembersRef.current[team.id]) fetchTeamMembers(team.id);
     });
   }, [teams]);
 
@@ -503,7 +512,7 @@ export default function TeamsView() {
 
                   <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-auto shrink-0">
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                      <Users className="w-3 h-3" /> {(members.length || 0) + (leader ? 1 : 0)} Total
+                      <Users className="w-3 h-3" /> {members.length || 0} Total
                     </div>
                     {role === 'admin' && (
                       <button
@@ -1043,7 +1052,6 @@ export default function TeamsView() {
         )}
       </AnimatePresence>
 
-      <style>{`.custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(0,180,216,0.4)}`}</style>
     </div>
   );
 }

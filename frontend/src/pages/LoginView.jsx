@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock, Mail, Command, Terminal, User, Eye, EyeOff } from 'lucide-react';
 import Barcode from 'react-barcode';
 import sdcLogo from '../assets/sdc_logo.png';
@@ -31,6 +31,12 @@ export default function LoginView() {
 
   // (Removed Card slide-out z-index toggle)
 
+  useEffect(() => {
+    return () => clearTimeout(navigateTimerRef.current);
+  }, []);
+
+  const navigateTimerRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -41,7 +47,7 @@ export default function LoginView() {
       // Valid credentials! Flip the card.
       setIsFlipped(true);
       // Wait for 3 seconds before navigating to dashboard
-      setTimeout(() => {
+      navigateTimerRef.current = setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
     } catch (err) {
@@ -224,7 +230,7 @@ export default function LoginView() {
                       <Mail className="h-4 w-4 text-white/30 group-focus-within/input:text-[#00e5ff] transition-colors duration-300" />
                     </div>
                     <input
-                      type="text"
+                      type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -304,19 +310,19 @@ export default function LoginView() {
                  {/* Profile Photo */}
                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#0a101f] p-1 mb-8 shadow-[0_15px_25px_rgba(0,0,0,0.6)] bg-gradient-to-br from-[#00e5ff] to-[#0066ff]">
                    <div className="w-full h-full rounded-full overflow-hidden bg-[#020617] relative flex items-center justify-center">
-                     {user?.role === 'admin' ? (
-                       <span className="text-4xl font-black text-white/80">AD</span>
-                     ) : user?.profile_image_url ? (
-                        <img src={user.profile_image_url} alt="Profile" className="w-full h-full object-cover grayscale contrast-125" />
-                     ) : (
-                        <span className="text-4xl font-black text-white/80">{user?.full_name ? user.full_name.substring(0, 2).toUpperCase() : <User className="w-12 h-12 text-white/50" />}</span>
-                     )}
+                      {user?.role === 'admin' ? (
+                        <span className="text-4xl font-black text-white/80">AD</span>
+                      ) : user?.profile_image ? (
+                         <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover grayscale contrast-125" />
+                      ) : (
+                        <span className="text-4xl font-black text-white/80">{user?.name ? user.name.substring(0, 2).toUpperCase() : <User className="w-12 h-12 text-white/50" />}</span>
+                      )}
                    </div>
                  </div>
 
                  {/* Name & Role */}
                  <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80 uppercase tracking-widest mb-1 drop-shadow-md text-center px-4 leading-tight">
-                   {user?.role === 'admin' ? 'Admin' : (user?.full_name || user?.email?.split('@')[0] || 'Authorized')}
+                    {user?.role === 'admin' ? 'Admin' : (user?.name || user?.email?.split('@')[0] || 'Authorized')}
                  </h3>
                  <p className="text-[#00e5ff] text-[11px] font-bold uppercase tracking-[0.25em] drop-shadow-[0_0_8px_rgba(0,229,255,0.4)]">
                    {user?.role || 'Developer'}

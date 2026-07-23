@@ -83,7 +83,7 @@ def unread_notification_count(
         .where(Notification.is_read == False)
     ).all()
     return {"count": len(count)}
-
+    
     print("========== PATCH ROUTE LOADED ==========")
 
 @app.patch("/notifications/{notification_id}/read")

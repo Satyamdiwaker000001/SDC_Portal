@@ -535,7 +535,7 @@ export default function TeamView() {
       setBulkStatus({ type: 'success', msg: response.message || `Successfully uploaded.` });
       // Refresh user list
       const u = await usersAPI.getAll().catch(() => []);
-      setUsers(u && u.length > 0 ? u : []);
+      setUsers(u && u.length > 0 ? u.map(usr => ({ ...usr, isPassout: usr.membership_status === 'alumni' })) : []);
       setTimeout(() => {
         setIsBulkModalOpen(false);
         setBulkStatus(null);

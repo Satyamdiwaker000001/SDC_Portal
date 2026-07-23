@@ -33,7 +33,6 @@ const AdminDashboard = ({ user }) => {
     pendingApprovals: 0,
     newApplications: 0
   });
-  const [selectedProject, setSelectedProject] = useState('All');
 
   useEffect(() => {
     const fetchAllData = async () => {

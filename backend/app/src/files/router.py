@@ -46,7 +46,7 @@ async def upload_file(
         original_name=file.filename,
         stored_name=stored_name,
         mime_type=file.content_type or "application/octet-stream",
-        size=size
+        size_bytes=size
     )
     db.add(db_file)
     db.commit()

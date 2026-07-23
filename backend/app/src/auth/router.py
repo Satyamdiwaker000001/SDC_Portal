@@ -32,7 +32,7 @@ def login(request_data: LoginRequest, db: Session = Depends(deps.get_db)) -> Any
             (User.id == request_data.user_id) | (User.email == request_data.user_id)
         )
     ).first()
-    if not user or user.disabled or not security.verify_password(request_data.password, user.hashed_password):
+    if not user or not user.is_active or not security.verify_password(request_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect user ID or password")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -55,7 +55,7 @@ def swagger_login(db: Session = Depends(deps.get_db), form_data: OAuth2PasswordR
             (User.id == form_data.username) | (User.email == form_data.username)
         )
     ).first()
-    if not user or user.disabled or not security.verify_password(form_data.password, user.hashed_password):
+    if not user or not user.is_active or not security.verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect user ID or password")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

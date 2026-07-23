@@ -208,6 +208,15 @@ const ProjectCard = ({ title, desc, image, tags, link }) => (
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -312,7 +321,67 @@ export default function LandingPage() {
     }
   };
   return (
-    <div className="bg-[#020617] w-full min-h-screen overflow-x-hidden font-sans text-white selection:bg-[#0066ff] selection:text-white">
+    <AnimatePresence mode="wait">
+      {showSplash ? (
+        <motion.div
+          key="splash"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, y: -20, transition: { duration: 0.6, ease: [0.43, 0.13, 0.23, 0.96] } }}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#020617] overflow-hidden"
+        >
+          {/* Glowing backgrounds */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] md:w-[500px] md:h-[500px] bg-[#0066ff]/10 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] md:w-[300px] md:h-[300px] bg-[#00b4d8]/10 rounded-full blur-[60px] pointer-events-none animate-pulse"></div>
+
+          {/* Logo Container */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ 
+              scale: 1, 
+              opacity: 1,
+              transition: { 
+                delay: 0.1, 
+                duration: 0.8, 
+                ease: [0.34, 1.56, 0.64, 1] 
+              } 
+            }}
+            className="relative max-w-[280px] md:max-w-[420px] px-6 select-none"
+          >
+            <img 
+              src="/rbmi_clean.png" 
+              alt="RBMI Logo" 
+              className="w-full h-auto object-contain drop-shadow-[0_10px_25px_rgba(0,102,255,0.25)]"
+            />
+          </motion.div>
+
+          {/* Premium Progress Bar */}
+          <div className="w-[180px] md:w-[240px] h-[3px] bg-white/10 rounded-full mt-10 overflow-hidden relative">
+            <motion.div
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 1.8, ease: "easeInOut" }}
+              className="absolute h-full left-0 top-0 bg-gradient-to-r from-[#00b4d8] to-blue-600 rounded-full shadow-[0_0_10px_rgba(0,180,216,0.5)]"
+            />
+          </div>
+          
+          {/* Minimal Subtext */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 0.4, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] uppercase text-white/60 mt-4 select-none font-mono"
+          >
+            Initializing Portal
+          </motion.div>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="content"
+          initial={{ opacity: 0, scale: 0.99 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="bg-[#020617] w-full min-h-screen overflow-x-hidden font-sans text-white selection:bg-[#0066ff] selection:text-white"
+        >
 
       {/* ===== NAVBAR ===== */}
       <nav className={`fixed w-full z-50 transition-all duration-500 flex flex-col items-center ${scrolled ? 'top-3' : 'top-4'}`}>
@@ -1127,6 +1196,8 @@ export default function LandingPage() {
         </div>
       </footer>
 
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

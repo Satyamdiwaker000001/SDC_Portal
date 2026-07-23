@@ -262,7 +262,7 @@ def update_application_status(
     elif new_status == "REJECTED":
         db.add(AuditLog(
             id=str(uuid.uuid4()),
-            event_type="RECRUITMENT_APPROVED",
+            event_type="RECRUITMENT_REJECTED",
             description=f"Application for '{app.name}' rejected by admin.",
             performed_by=current_admin.id,
             user_role="admin",
