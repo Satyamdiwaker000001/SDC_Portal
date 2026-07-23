@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../contexts/AuthContext';
 import sdcLogo from '../assets/sdc_logo.png';
-import { usersAPI, projectsAPI, announcementsAPI, notificationsAPI } from '../api/services';
+import { usersAPI, projectsAPI, announcementsAPI, notificationsAPI, teamsAPI, applicationsAPI } from '../api/services';
 
 const navItems = [
   { path: '/dashboard', label: 'Command Center', icon: LayoutDashboard, roles: ['admin', 'developer', 'mentor'] },
@@ -134,7 +134,7 @@ export default function DashboardLayout() {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [], pages: [] });
+  const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [], teams: [], applications: [], pages: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
@@ -163,7 +163,7 @@ export default function DashboardLayout() {
   // Global Search logic
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
-      setSearchResults({ users: [], projects: [], notices: [], pages: [] });
+      setSearchResults({ users: [], projects: [], notices: [], teams: [], applications: [], pages: [] });
       setShowSearchDropdown(false);
       return;
     }
@@ -172,10 +172,12 @@ export default function DashboardLayout() {
       setIsSearching(true);
       setShowSearchDropdown(true);
       try {
-        const [allUsers, allProjects, allNotices] = await Promise.all([
+        const [allUsers, allProjects, allNotices, allTeams, allApps] = await Promise.all([
           usersAPI.getAll().catch(() => []),
           projectsAPI.getAll().catch(() => []),
-          announcementsAPI.getAll().catch(() => [])
+          announcementsAPI.getAll().catch(() => []),
+          teamsAPI.getAll().catch(() => []),
+          applicationsAPI.getAll().catch(() => [])
         ]);
 
         const q = searchQuery.toLowerCase();
@@ -183,6 +185,8 @@ export default function DashboardLayout() {
           users: allUsers.filter(u => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)).slice(0, 3),
           projects: allProjects.filter(p => p.name?.toLowerCase().includes(q)).slice(0, 3),
           notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0, 3),
+          teams: allTeams.filter(t => t.name?.toLowerCase().includes(q)).slice(0, 3),
+          applications: allApps.filter(a => a.name?.toLowerCase().includes(q) || a.email?.toLowerCase().includes(q)).slice(0, 3),
           pages: navItems.filter(item => {
             const label = item.label?.toLowerCase() || '';
             const path = item.path?.toLowerCase() || '';
@@ -265,7 +269,9 @@ export default function DashboardLayout() {
     const routeMap = {
       projects: '/dashboard/projects',
       personnel: '/dashboard/team',
-      notices: '/dashboard/notices'
+      notices: '/dashboard/notices',
+      teams: '/dashboard/teams',
+      recruitment: '/dashboard/recruitment'
     };
 
     const route = typeof typeOrPath === 'string' && routeMap[typeOrPath]
@@ -314,7 +320,7 @@ export default function DashboardLayout() {
                       key={p.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleSearchResultClick('projects');
+                        handleSearchResultClick(`/dashboard/projects?id=${p.id}`);
                       }}
                       className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
@@ -331,12 +337,47 @@ export default function DashboardLayout() {
                       key={u.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleSearchResultClick('personnel');
+                        handleSearchResultClick(`/dashboard/team?id=${u.id}`);
                       }}
                       className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
                       <p className="text-sm font-bold text-white truncate">{u.name}</p>
                       <p className="text-[10px] text-white/40 truncate">{u.email}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {searchResults.teams.length > 0 && (
+                <div className="mb-2">
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Teams</span>
+                  {searchResults.teams.map(t => (
+                    <div
+                      key={t.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick(`/dashboard/teams?id=${t.id}`);
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <p className="text-sm font-bold text-white truncate">{t.name}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {searchResults.applications.length > 0 && (
+                <div className="mb-2">
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Recruitment</span>
+                  {searchResults.applications.map(a => (
+                    <div
+                      key={a.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick(`/dashboard/recruitment?id=${a.id}`);
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                      <p className="text-[10px] text-white/40 truncate">{a.email}</p>
                     </div>
                   ))}
                 </div>
@@ -349,7 +390,7 @@ export default function DashboardLayout() {
                       key={n.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleSearchResultClick('notices');
+                        handleSearchResultClick(`/dashboard/notices?id=${n.id}`);
                       }}
                       className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
@@ -358,7 +399,7 @@ export default function DashboardLayout() {
                   ))}
                 </div>
               )}
-              {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.pages.length === 0 && searchResults.notices.length === 0 && (
+              {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.teams.length === 0 && searchResults.applications.length === 0 && searchResults.pages.length === 0 && searchResults.notices.length === 0 && (
                 <div className="p-4 text-center text-xs text-white/50 font-medium">No records found.</div>
               )}
             </div>
