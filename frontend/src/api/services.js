@@ -57,6 +57,11 @@ export const usersAPI = {
     );
     return data;
   },
+  getPublicRoster: async (role) => {
+    const url = role ? `/users/public/roster?role=${role}` : '/users/public/roster';
+    const { data } = await client.get(url);
+    return data;
+  },
 };
 
 export const teamsAPI = {

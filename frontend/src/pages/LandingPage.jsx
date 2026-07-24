@@ -6,7 +6,7 @@ import head1 from '../assets/heads/Dr. Rahul Rastogi.jpg';
 import head2 from '../assets/heads/Mr. Prateek Agrawal.jpeg';
 import founderAyush from '../assets/founders/Ayush.jpg';
 import founderTushar from '../assets/founders/Tushar.jpg';
-import { projectsAPI, applicationsAPI, settingsAPI } from '../api/services';
+import { projectsAPI, applicationsAPI, settingsAPI, usersAPI } from '../api/services';
 import client from '../api/client';
 
 
@@ -221,6 +221,7 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedProjects, setCompletedProjects] = useState([]);
+  const [founders, setFounders] = useState([]);
   const [dbDevelopers, setDbDevelopers] = useState([]);
   const [activeDevelopers, setActiveDevelopers] = useState([]);
   const [alumniDevelopers, setAlumniDevelopers] = useState([]);
@@ -251,11 +252,15 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        const [projData, settingsData, settingsTargetData, statsData] = await Promise.all([
+        const [projData, settingsData, settingsTargetData, statsData, developerData, mentorData, founderData, allUsersData] = await Promise.all([
           projectsAPI.getAll().catch(() => []),
           settingsAPI.get('is_recruitment_live').catch(() => null),
           settingsAPI.get('recruitment_open_for').catch(() => null),
-          client.get('/users/public/stats').catch(() => null)
+          client.get('/users/public/stats').catch(() => null),
+          usersAPI.getPublicRoster('developer').catch(() => []),
+          usersAPI.getPublicRoster('mentor').catch(() => []),
+          usersAPI.getPublicRoster('founder').catch(() => []),
+          usersAPI.getPublicRoster().catch(() => []),
         ]);
         
         // Only show projects that have a live hosted URL
@@ -271,10 +276,14 @@ export default function LandingPage() {
         
         const stats = statsData?.data || {};
         setTotalMembers(stats.members || 0);
-        setDbMentors([]);
-        setDbDevelopers([]);
-        setActiveDevelopers([]);
-        setAlumniDevelopers([]);
+
+        // Active developers only (role=developer, membership_status=active)
+        setActiveDevelopers(developerData.filter(u => u.membership_status === 'active'));
+        setDbDevelopers(developerData);
+        setDbMentors(mentorData);
+        setFounders(founderData);
+        // Alumni = any role, membership_status === 'alumni'
+        setAlumniDevelopers(allUsersData.filter(u => u.membership_status === 'alumni'));
       } catch (err) {
         console.error("Failed to fetch initial data", err);
       }
@@ -312,7 +321,7 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const navLinks = ['About', 'Founders', 'Projects', 'Mentors'];
+  const navLinks = ['About', 'Founders', 'Alumni', 'Mentors', 'Projects'];
 
   const handleNavClick = (link) => {
     const el = document.getElementById(link.toLowerCase());
@@ -739,11 +748,22 @@ export default function LandingPage() {
           </div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="flex flex-wrap justify-center gap-8 w-full">
-            <ProfileCard name="Er. Ayush Shrivastava" role="Founder" image={founderAyush} linkedin="https://www.linkedin.com/in/ayush-shrivastava-218299239/" />
-            <ProfileCard name="Er. Nandini Saxena" role="Founder" image="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80" linkedin="https://www.linkedin.com/in/nandini-saxena-a8000031a/" />
-            <ProfileCard name="Er. Shivang Chauhan" role="Founder" image="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80" linkedin="https://www.linkedin.com/in/shivangch-csdev/" />
-            <ProfileCard name="Er. Prashant Singh" role="Founder" image="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80" linkedin="https://www.linkedin.com/in/prashant-singh-69b88a302/" />
-            <ProfileCard name="Er. Tushar" role="Founder" image={founderTushar} linkedin="https://www.linkedin.com/in/tushar-772477232/" />
+            {founders.length > 0 ? (
+              founders.map(founder => (
+                <ProfileCard
+                  key={founder.id}
+                  name={founder.name}
+                  role="Founder"
+                  image={founder.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                  linkedin={founder.linkedin_url || "#"}
+                  github={founder.github_url || "#"}
+                />
+              ))
+            ) : (
+              <div className="text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
+                No founders registered in roster yet.
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -765,7 +785,7 @@ export default function LandingPage() {
                   <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Active Developers</span>
                 </div>
                 <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-                  {activeDevelopers.slice(0, 6).map(dev => (
+                  {activeDevelopers.map(dev => (
                     <ProfileCard
                       key={dev.id}
                       name={dev.name}
@@ -789,7 +809,7 @@ export default function LandingPage() {
                   <span className="text-sm font-bold text-cyan-400/70 uppercase tracking-widest">Passout Developers (Alumni)</span>
                 </div>
                 <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-                  {alumniDevelopers.slice(0, 6).map(dev => (
+                  {alumniDevelopers.map(dev => (
                     <ProfileCard
                       key={dev.id}
                       name={dev.name}
@@ -833,7 +853,7 @@ export default function LandingPage() {
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full place-items-center">
             {dbMentors.length > 0 ? (
-              dbMentors.slice(0, 8).map(mentor => (
+              dbMentors.map(mentor => (
                 <ProfileCard
                   key={mentor.id}
                   name={mentor.name}
@@ -851,7 +871,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 6. Projects */}
+      {/* 6. Alumni */}
+      <section id="alumni" className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
+        <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
+          <div className="text-center mb-20 flex flex-col items-center">
+            <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">The Legacy</span>
+            <h2 className="text-5xl font-medium tracking-tight text-center">Alumni</h2>
+          </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
+            {alumniDevelopers.length > 0 ? (
+              alumniDevelopers.map(dev => (
+                <ProfileCard
+                  key={dev.id}
+                  name={dev.name}
+                  role="SDC Alumni"
+                  image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                  linkedin={dev.linkedin_url || "#"}
+                  github={dev.github_url || "#"}
+                />
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
+                No alumni registered yet.
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 7. Projects */}
       <section id="projects" className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
         <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
           <div className="text-center mb-20 flex flex-col items-center">

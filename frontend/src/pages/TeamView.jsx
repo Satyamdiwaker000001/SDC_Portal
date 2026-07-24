@@ -763,10 +763,11 @@ export default function TeamView() {
                           <div className="relative">
                             <select required value={newUser.role} onChange={e => {
                               const nextRole = e.target.value;
-                              setNewUser({...newUser, role: nextRole, joiningClass: nextRole === 'mentor' ? '' : '1st Year'});
+                              setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
                             }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                               <option value="developer" className="bg-[#0a0a0a]">Developer</option>
                               <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                              <option value="founder" className="bg-[#0a0a0a]">Founder</option>
                             </select>
                             <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -780,10 +781,11 @@ export default function TeamView() {
                         <div className="relative">
                           <select required value={newUser.role} onChange={e => {
                             const nextRole = e.target.value;
-                            setNewUser({...newUser, role: nextRole, joiningClass: nextRole === 'mentor' ? '' : '1st Year'});
+                            setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
                           }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                             <option value="developer" className="bg-[#0a0a0a]">Developer</option>
                             <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                            <option value="founder" className="bg-[#0a0a0a]">Founder</option>
                           </select>
                           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -962,6 +964,7 @@ export default function TeamView() {
                          >
                            <option value="developer" className="bg-[#0f172a]">Developer</option>
                            <option value="mentor" className="bg-[#0f172a]">Mentor</option>
+                           <option value="founder" className="bg-[#0f172a]">Founder</option>
                          </select>
                       </div>
 
