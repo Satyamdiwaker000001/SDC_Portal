@@ -47,6 +47,7 @@ class User(SQLModel, table=True):
     branch: str
     admission_year: int
     passout_year: int
+    sdc_joining_year: Optional[int] = Field(default=None)
     membership_status: str = Field(default="active")  # 'active' | 'alumni'  (SRS 3.15)
     tech_stack: List[str] = Field(default=[], sa_column=Column(JSON))
     profile_image: Optional[str] = None        # URL (legacy; use files table for new uploads)

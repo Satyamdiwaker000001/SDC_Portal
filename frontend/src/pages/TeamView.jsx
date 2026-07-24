@@ -20,27 +20,27 @@ const itemVariants = {
 
 // Modern Profile Card Component
 const calculateAcademicYear = (user) => {
-  if (user.isPassout) return "Passout (Alumni)";
+  if (user.isPassout || user.membership_status === 'alumni') return "Passout (Alumni)";
+  if ((user.role || '').toLowerCase() === 'founder') return "Founder";
+  if ((user.role || '').toLowerCase() === 'mentor') return "Mentor";
   
-  const joiningYear = user.admission_year;
-  const joiningClass = '1st Year';
+  const admissionYear = user.admission_year;
+  const passoutYear = user.passout_year;
   
-  if (!joiningYear) return 'N/A';
-  
-  let baseOffset = 0;
-  if (joiningClass === '2nd Year') baseOffset = 1;
-  else if (joiningClass === '3rd Year') baseOffset = 2;
-  else if (joiningClass === 'Final Year') baseOffset = 3;
+  if (!admissionYear || admissionYear <= 0) return 'N/A';
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  // Month is 0-indexed: 7 is August.
   const isAfterAug1 = now.getMonth() > 7 || (now.getMonth() === 7 && now.getDate() >= 1);
-  const currentAcademicCycle = isAfterAug1 ? currentYear : currentYear - 1;
+  const currentCycle = isAfterAug1 ? currentYear : currentYear - 1;
   
-  const yearsPassed = (currentAcademicCycle - joiningYear) + baseOffset;
+  if (passoutYear && passoutYear > 0 && currentCycle >= passoutYear) {
+    return "Passout (Alumni)";
+  }
+
+  const yearsPassed = currentCycle - admissionYear;
   
-  if (yearsPassed < 0) return "Pre-Joining";
+  if (yearsPassed < 0) return "1st Year";
   if (yearsPassed === 0) return "1st Year";
   if (yearsPassed === 1) return "2nd Year";
   if (yearsPassed === 2) return "3rd Year";
@@ -58,6 +58,7 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
     switch (userRole?.toLowerCase()) {
       case 'admin': return { text: 'Admin', icon: Shield };
       case 'mentor': return { text: 'Mentor', icon: Star };
+      case 'founder': return { text: 'Founder', icon: Award };
       default: return { text: 'Developer', icon: Code };
     }
   };
@@ -192,9 +193,16 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
               </div>
 
               <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Joined SDC</span>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Admission / Joined</span>
                 <span className="text-[10px] font-bold text-white">{user.admission_year && user.admission_year > 0 ? user.admission_year : 'N/A'}</span>
               </div>
+
+              {user.passout_year && user.passout_year > 0 && (
+                <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                  <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Passout Year</span>
+                  <span className="text-[10px] font-bold text-white">{user.passout_year}</span>
+                </div>
+              )}
 
               <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
                 <span className="text-[9px] uppercase tracking-wider text-white/40 font-bold">Status</span>
@@ -314,7 +322,18 @@ export default function TeamView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [flippedCardId, setFlippedCardId] = useState(null);
   const [highlightedUserId, setHighlightedUserId] = useState(null);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'developer', joiningYear: new Date().getFullYear(), joiningClass: '1st Year' });
+  const [newUser, setNewUser] = useState({ 
+    name: '', 
+    email: '', 
+    password: '', 
+    role: 'developer', 
+    admissionYear: new Date().getFullYear() - 1, 
+    passoutYear: new Date().getFullYear() + 3, 
+    sdcJoiningYear: new Date().getFullYear(),
+    branch: '', 
+    joiningClass: '1st Year' 
+  });
+  const [activeCategory, setActiveCategory] = useState('all'); // 'all' | 'founders' | 'developers' | 'mentors' | 'alumni'
   const [modalStatus, setModalStatus] = useState('');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkFile, setBulkFile] = useState(null);
@@ -337,7 +356,7 @@ export default function TeamView() {
 
   const editFormHasChanges = useMemo(() => {
     if (!initialEditUserData || !editUserData) return false;
-    const fields = ['name', 'role', 'branch', 'admission_year', 'passout_year', 'tech_stack', 'github_url', 'linkedin_url', 'profile_image'];
+    const fields = ['name', 'role', 'branch', 'admission_year', 'passout_year', 'sdc_joining_year', 'tech_stack', 'github_url', 'linkedin_url', 'profile_image'];
     return fields.some(field => normalizeEditValue(editUserData[field]) !== normalizeEditValue(initialEditUserData[field]));
   }, [editUserData, initialEditUserData]);
 
@@ -368,6 +387,40 @@ export default function TeamView() {
     };
     fetchData();
   }, []);
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setModalStatus('Adding member...');
+    try {
+      const payload = {
+        name: newUser.name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        admission_year: parseInt(newUser.admissionYear) || 0,
+        passout_year: parseInt(newUser.passoutYear) || 0,
+        sdc_joining_year: parseInt(newUser.sdcJoiningYear) || new Date().getFullYear(),
+        branch: newUser.branch?.trim() || "N/A"
+      };
+      const createdUser = await usersAPI.create(payload);
+      setUsers([{ ...createdUser, isPassout: createdUser.membership_status === 'alumni' }, ...users]);
+      setModalStatus('');
+      setIsModalOpen(false);
+      setNewUser({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        role: 'developer', 
+        admissionYear: new Date().getFullYear() - 1, 
+        passoutYear: new Date().getFullYear() + 3, 
+        sdcJoiningYear: new Date().getFullYear(),
+        branch: '', 
+        joiningClass: '1st Year' 
+      });
+    } catch (e) {
+      setModalStatus('Error creating user.');
+    }
+  };
 
   const targetUserId = searchParams.get('id');
 
@@ -442,6 +495,7 @@ export default function TeamView() {
         branch: editUserData.branch || "N/A",
         admission_year: parseInt(editUserData.admission_year) || 0,
         passout_year: parseInt(editUserData.passout_year) || 0,
+        sdc_joining_year: parseInt(editUserData.sdc_joining_year) || 0,
         tech_stack: typeof editUserData.tech_stack === 'string'
           ? editUserData.tech_stack.split(',').map(s => s.trim()).filter(Boolean)
           : (Array.isArray(editUserData.tech_stack) ? editUserData.tech_stack : [])
@@ -499,27 +553,7 @@ export default function TeamView() {
     }
   };
 
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    setModalStatus('Adding member...');
-    try {
-      const payload = {
-        name: newUser.name,
-        email: newUser.email,
-        password: newUser.password,
-        role: newUser.role,
-        admission_year: parseInt(newUser.joiningYear) || 0,
-        branch: "N/A"
-      };
-      const createdUser = await usersAPI.create(payload);
-      setUsers([createdUser, ...users]);
-      setModalStatus('');
-      setIsModalOpen(false);
-      setNewUser({ name: '', email: '', password: '', role: 'developer', joiningYear: new Date().getFullYear(), joiningClass: '1st Year' });
-    } catch (e) {
-      setModalStatus('Error creating user.');
-    }
-  };
+
 
   const handleBulkUpload = async (e) => {
     e.preventDefault();
@@ -609,71 +643,159 @@ export default function TeamView() {
           <div className="mt-10 pt-8 border-t border-white/5">
             <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-6">
               <Shield className="w-4 h-4 text-white/40" />
-              <h3 className="text-xs font-bold text-white/60 uppercase tracking-widest">Team Composition</h3>
+              <h3 className="text-xs font-bold text-white/60 uppercase tracking-widest">Team Roster Categories</h3>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              {/* Mentor Stat */}
-              <div className="bg-[#1c222b] p-4 rounded-2xl border border-sky-500/20 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                <span className="text-3xl font-black text-sky-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'mentor' && u.membership_status === 'active').length}</span>
-                <span className="text-[10px] font-bold text-sky-400/60 uppercase tracking-widest">Mentors</span>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Founder Stat */}
+              <div 
+                onClick={() => setActiveCategory(activeCategory === 'founders' ? 'all' : 'founders')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                  activeCategory === 'founders'
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                    : 'bg-[#1c222b] border-amber-500/20 hover:border-amber-400/40 text-amber-400'
+                }`}
+              >
+                <span className="text-2xl font-black mb-0.5">{users.filter(u => (u.role || '').toLowerCase() === 'founder').length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Award className="w-3 h-3" /> Founders
+                </span>
               </div>
 
               {/* Developer Stat */}
-              <div className="bg-[#1c222b] p-4 rounded-2xl border border-blue-500/20 flex flex-col items-center justify-center text-center shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                <span className="text-3xl font-black text-blue-400 mb-1">{users.filter(u => (u.role || '').toLowerCase() === 'developer' && u.membership_status === 'active').length}</span>
-                <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Developers</span>
+              <div 
+                onClick={() => setActiveCategory(activeCategory === 'developers' ? 'all' : 'developers')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                  activeCategory === 'developers'
+                    ? 'bg-blue-500/20 border-blue-400 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]'
+                    : 'bg-[#1c222b] border-blue-500/20 hover:border-blue-400/40 text-blue-400'
+                }`}
+              >
+                <span className="text-2xl font-black mb-0.5">{users.filter(u => (u.role || '').toLowerCase() === 'developer' && u.membership_status === 'active').length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Code className="w-3 h-3" /> Active Devs
+                </span>
               </div>
-            </div>
-            
-            {/* Alumni Stat */}
-            <div className="mt-4 bg-[#1c222b] p-3.5 rounded-xl border border-cyan-500/20 flex items-center justify-between shadow-[0_0_10px_rgba(249,115,22,0.05)]">
-               <span className="text-[10px] font-bold text-cyan-400/60 uppercase tracking-widest flex items-center gap-1.5"><GraduationCap className="w-4 h-4" /> Alumni Network</span>
-               <span className="text-xl font-black text-cyan-400">{users.filter(u => u.membership_status === 'alumni').length}</span>
+
+              {/* Mentor Stat */}
+              <div 
+                onClick={() => setActiveCategory(activeCategory === 'mentors' ? 'all' : 'mentors')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                  activeCategory === 'mentors'
+                    ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.2)]'
+                    : 'bg-[#1c222b] border-sky-500/20 hover:border-sky-400/40 text-sky-400'
+                }`}
+              >
+                <span className="text-2xl font-black mb-0.5">{users.filter(u => (u.role || '').toLowerCase() === 'mentor' && u.membership_status === 'active').length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Star className="w-3 h-3" /> Mentors
+                </span>
+              </div>
+
+              {/* Alumni Stat */}
+              <div 
+                onClick={() => setActiveCategory(activeCategory === 'alumni' ? 'all' : 'alumni')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                  activeCategory === 'alumni'
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
+                    : 'bg-[#1c222b] border-cyan-500/20 hover:border-cyan-400/40 text-cyan-400'
+                }`}
+              >
+                <span className="text-2xl font-black mb-0.5">{users.filter(u => u.membership_status === 'alumni').length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                  <GraduationCap className="w-3 h-3" /> Alumni
+                </span>
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Members Grid */}
-        <div className="xl:col-span-3">
-          {users.filter(u => (u.role || '').toLowerCase() !== 'admin').length === 0 ? (
-            <div className="h-full min-h-[380px] border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-white/40">
-              <Users className="w-12 h-12 mb-4 opacity-20" />
-              <p className="text-sm font-bold tracking-widest uppercase">No Members Found</p>
-              <p className="text-xs mt-2 opacity-50">Add a Mentor or Developer to populate the registry.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-items-center gap-x-10 gap-y-10">
-              {users.filter(u => (u.role || '').toLowerCase() !== 'admin').map((user) => (
-                <ProfileCard 
-                  key={user.id} 
-                  user={user} 
-                  isFlipped={flippedCardId === user.id}
-                  onFlip={() => setFlippedCardId(flippedCardId === user.id ? null : user.id)}
-                  onDelete={handleDeleteUser}
-                  onMarkPassout={handleMarkPassout}
-                  onEdit={(u) => {
-                     const editData = {
-                       ...u,
-                       role: (u.role || 'developer').toLowerCase(),
-                       tech_stack: Array.isArray(u.tech_stack) ? u.tech_stack.join(', ') : (u.tech_stack || '')
-                     };
-                     setEditUserData(editData);
-                     setInitialEditUserData(editData);
-                     setAvatarPreview(u.profile_image || null);
-                     setEditModalOpen(true);
-                   }}
-                  currentUserRole={role}
-                  currentUserId={currentUser?.id}
-                  onResetPassword={(u) => {
-                     setResetPasswordUser(u);
-                     setNewPassword('');
-                  }}
-                  isHighlighted={String(user.id) === String(highlightedUserId)}
-                />
-              ))}
-            </div>
-          )}
+        {/* Members Grid & Filter Tabs */}
+        <div className="xl:col-span-3 space-y-6">
+
+          {/* Filter Pills Bar */}
+          <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#1c222b] border border-white/10 rounded-2xl">
+            {[
+              { id: 'all', label: 'All Members', count: users.filter(u => (u.role || '').toLowerCase() !== 'admin').length },
+              { id: 'founders', label: 'Founders', count: users.filter(u => (u.role || '').toLowerCase() === 'founder').length },
+              { id: 'developers', label: 'Active Developers', count: users.filter(u => (u.role || '').toLowerCase() === 'developer' && u.membership_status === 'active').length },
+              { id: 'mentors', label: 'Mentors', count: users.filter(u => (u.role || '').toLowerCase() === 'mentor' && u.membership_status === 'active').length },
+              { id: 'alumni', label: 'Alumni Network', count: users.filter(u => u.membership_status === 'alumni').length }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCategory(tab.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wider flex items-center gap-2 cursor-pointer ${
+                  activeCategory === tab.id
+                    ? 'bg-[#00b4d8] text-[#020617] shadow-[0_0_15px_rgba(0,180,216,0.4)] font-black'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${activeCategory === tab.id ? 'bg-[#020617]/20 text-[#020617]' : 'bg-white/10 text-white/70'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Filtered Users Display */}
+          {(() => {
+            const displayedUsers = users.filter(u => {
+              const uRole = (u.role || '').toLowerCase();
+              if (uRole === 'admin') return false;
+              if (activeCategory === 'founders') return uRole === 'founder';
+              if (activeCategory === 'developers') return uRole === 'developer' && u.membership_status === 'active';
+              if (activeCategory === 'mentors') return uRole === 'mentor' && u.membership_status === 'active';
+              if (activeCategory === 'alumni') return u.membership_status === 'alumni';
+              return true;
+            });
+
+            if (displayedUsers.length === 0) {
+              return (
+                <div className="h-full min-h-[380px] border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-white/40 p-8">
+                  <Users className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="text-sm font-bold tracking-widest uppercase">No Members Found</p>
+                  <p className="text-xs mt-2 opacity-50 text-center">
+                    No members match the selected category "{activeCategory}". Click "All Members" or add a new member.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-items-center gap-x-10 gap-y-10">
+                {displayedUsers.map((user) => (
+                  <ProfileCard 
+                    key={user.id} 
+                    user={user} 
+                    isFlipped={flippedCardId === user.id}
+                    onFlip={() => setFlippedCardId(flippedCardId === user.id ? null : user.id)}
+                    onDelete={handleDeleteUser}
+                    onMarkPassout={handleMarkPassout}
+                    onEdit={(u) => {
+                       const editData = {
+                         ...u,
+                         role: (u.role || 'developer').toLowerCase(),
+                         tech_stack: Array.isArray(u.tech_stack) ? u.tech_stack.join(', ') : (u.tech_stack || '')
+                       };
+                       setEditUserData(editData);
+                       setInitialEditUserData(editData);
+                       setAvatarPreview(u.profile_image || null);
+                       setEditModalOpen(true);
+                     }}
+                    currentUserRole={role}
+                    currentUserId={currentUser?.id}
+                    onResetPassword={(u) => {
+                       setResetPasswordUser(u);
+                       setNewPassword('');
+                    }}
+                    isHighlighted={String(user.id) === String(highlightedUserId)}
+                  />
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -730,71 +852,47 @@ export default function TeamView() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Temporary Password</label>
-                      <input required type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="Enter temporary password" />
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Admission Year</label>
+                      <input required type="number" min="1990" max="2100" value={newUser.admissionYear} onChange={e => setNewUser({...newUser, admissionYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2023" />
                     </div>
-                    
+
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Joining Year</label>
-                      <input required type="number" min="1990" max="2100" value={newUser.joiningYear} onChange={e => setNewUser({...newUser, joiningYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2024" />
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Passout Year</label>
+                      <input type="number" min="1990" max="2100" value={newUser.passoutYear || ''} onChange={e => setNewUser({...newUser, passoutYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2027" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">SDC Joining Year</label>
+                      <input required type="number" min="1990" max="2100" value={newUser.sdcJoiningYear} onChange={e => setNewUser({...newUser, sdcJoiningYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2025" />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Branch / Division</label>
+                      <input type="text" value={newUser.branch || ''} onChange={e => setNewUser({...newUser, branch: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. CSE, IT" />
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {newUser.role === 'developer' ? (
-                      <>
-                        <div className="space-y-1.5">
-                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Joined As (Class)</label>
-                          <div className="relative">
-                            <select required={newUser.role === 'developer'} value={newUser.joiningClass} onChange={e => setNewUser({...newUser, joiningClass: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
-                              <option value="1st Year" className="bg-[#0a0a0a]">1st Year</option>
-                              <option value="2nd Year" className="bg-[#0a0a0a]">2nd Year</option>
-                              <option value="3rd Year" className="bg-[#0a0a0a]">3rd Year</option>
-                              <option value="Final Year" className="bg-[#0a0a0a]">Final Year</option>
-                            </select>
-                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
-                          <div className="relative">
-                            <select required value={newUser.role} onChange={e => {
-                              const nextRole = e.target.value;
-                              setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
-                            }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
-                              <option value="developer" className="bg-[#0a0a0a]">Developer</option>
-                              <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
-                              <option value="founder" className="bg-[#0a0a0a]">Founder</option>
-                            </select>
-                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
-                        <div className="relative">
-                          <select required value={newUser.role} onChange={e => {
-                            const nextRole = e.target.value;
-                            setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
-                          }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
-                            <option value="developer" className="bg-[#0a0a0a]">Developer</option>
-                            <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
-                            <option value="founder" className="bg-[#0a0a0a]">Founder</option>
-                          </select>
-                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                          </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Role / Access Level</label>
+                      <div className="relative">
+                        <select required value={newUser.role} onChange={e => {
+                          const nextRole = e.target.value;
+                          setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
+                        }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
+                          <option value="developer" className="bg-[#0a0a0a]">Developer</option>
+                          <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                          <option value="founder" className="bg-[#0a0a0a]">Founder</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                  
+
                   {modalStatus && (
                     <div className="text-xs text-[#00b4d8] font-medium text-center bg-[#00b4d8]/10 py-2 rounded-lg border border-[#00b4d8]/20">
                       {modalStatus}
@@ -979,26 +1077,38 @@ export default function TeamView() {
                          />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission Year</label>
-                           <input 
-                             type="number"
-                             value={editUserData.admission_year || ''}
-                             onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
-                             className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                           />
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout Year</label>
-                           <input 
-                             type="number"
-                             value={editUserData.passout_year || ''}
-                             onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
-                             className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                           />
-                        </div>
-                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission</label>
+                            <input 
+                              type="number"
+                              placeholder="2023"
+                              value={editUserData.admission_year || ''}
+                              onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
+                              className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout</label>
+                            <input 
+                              type="number"
+                              placeholder="2027"
+                              value={editUserData.passout_year || ''}
+                              onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
+                              className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Joined SDC</label>
+                            <input 
+                              type="number"
+                              placeholder="2025"
+                              value={editUserData.sdc_joining_year || ''}
+                              onChange={e => setEditUserData({...editUserData, sdc_joining_year: e.target.value})}
+                              className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                            />
+                         </div>
+                       </div>
 
                       <div className="space-y-2">
                          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Tech Stack (comma-separated)</label>

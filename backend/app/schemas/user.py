@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     branch: Optional[str] = "N/A"
     admission_year: Optional[int] = 0
     passout_year: Optional[int] = 0
+    sdc_joining_year: Optional[int] = None
     membership_status: Optional[str] = "active"
     tech_stack: Optional[List[str]] = []
     github_url: Optional[str] = None

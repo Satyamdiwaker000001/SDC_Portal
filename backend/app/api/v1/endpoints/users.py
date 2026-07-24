@@ -123,15 +123,30 @@ def public_user_stats(
     ).all()
 
     mentors = [user for user in active_members if (user.role or "").lower() == "mentor"]
+    developers = [user for user in active_members if (user.role or "").lower() == "developer"]
+    founders = db.exec(
+        select(User)
+        .where(User.is_active == True)
+        .where(User.role == "founder")
+    ).all()
+    alumni = db.exec(
+        select(User)
+        .where(User.is_active == True)
+        .where(User.membership_status == "alumni")
+    ).all()
     projects = db.exec(select(Project)).all()
     teams = db.exec(select(Team)).all()
 
     return {
         "members": len(active_members),
         "mentors": len(mentors),
+        "founders": len(founders),
+        "developers": len(developers),
+        "alumni": len(alumni),
         "projects": len(projects),
         "teams": len(teams),
     }
+
 
 
 @router.get("/public/roster")
@@ -198,6 +213,7 @@ def create_user(
         branch=user_in.branch or "N/A",
         admission_year=user_in.admission_year or 0,
         passout_year=user_in.passout_year or 0,
+        sdc_joining_year=user_in.sdc_joining_year or datetime.utcnow().year,
         profile_image=user_in.image,
         membership_status="active",         # SRS 3.15
         is_active=True,
