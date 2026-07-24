@@ -164,7 +164,7 @@ const SearchDropdown = ({ showSearchDropdown, isSearching, searchResults, handle
                     key={p.id}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleSearchResultClick('projects');
+                      handleSearchResultClick('projects', p.id);
                     }}
                     className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                   >
@@ -181,7 +181,7 @@ const SearchDropdown = ({ showSearchDropdown, isSearching, searchResults, handle
                     key={u.id}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleSearchResultClick('personnel');
+                      handleSearchResultClick('personnel', u.id);
                     }}
                     className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                   >
@@ -199,7 +199,7 @@ const SearchDropdown = ({ showSearchDropdown, isSearching, searchResults, handle
                     key={n.id}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleSearchResultClick('notices');
+                      handleSearchResultClick('notices', n.id);
                     }}
                     className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                   >
@@ -408,7 +408,7 @@ export default function DashboardLayout() {
     }
   };
 
-  const handleSearchResultClick = (typeOrPath) => {
+  const handleSearchResultClick = (typeOrPath, item) => {
     const routeMap = {
       projects: '/dashboard/projects',
       personnel: '/dashboard/team',
@@ -417,9 +417,15 @@ export default function DashboardLayout() {
       recruitment: '/dashboard/recruitment'
     };
 
-    const route = typeof typeOrPath === 'string' && routeMap[typeOrPath]
+    let route = typeof typeOrPath === 'string' && routeMap[typeOrPath]
       ? routeMap[typeOrPath]
       : typeOrPath || '/dashboard';
+
+    const itemId = item?.id || (typeof item === 'string' || typeof item === 'number' ? item : null);
+    if (itemId) {
+      route += `?id=${itemId}`;
+    }
+
     navigate(route);
     closeAll();
   };
@@ -463,7 +469,7 @@ export default function DashboardLayout() {
                       key={p.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleSearchResultClick('projects');
+                        handleSearchResultClick('projects', p.id);
                       }}
                       className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
@@ -480,7 +486,7 @@ export default function DashboardLayout() {
                       key={u.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleSearchResultClick('personnel');
+                        handleSearchResultClick('personnel', u.id);
                       }}
                       className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
@@ -498,7 +504,7 @@ export default function DashboardLayout() {
                       key={n.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleSearchResultClick('notices');
+                        handleSearchResultClick('notices', n.id);
                       }}
                       className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
