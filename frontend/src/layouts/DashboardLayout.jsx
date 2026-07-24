@@ -727,11 +727,30 @@ export default function DashboardLayout() {
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                      <span className="text-xs font-black uppercase tracking-widest text-white">Notifications</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-widest text-white">Notifications</span>
+                        {unreadCount > 0 && (
+                          <span className="text-[10px] font-bold text-[#00b4d8] bg-[#00b4d8]/10 px-2 py-0.5 rounded-full">
+                            {unreadCount} unread
+                          </span>
+                        )}
+                      </div>
                       {unreadCount > 0 && (
-                        <span className="text-[10px] font-bold text-[#00b4d8] bg-[#00b4d8]/10 px-2 py-0.5 rounded-full">
-                          {unreadCount} unread
-                        </span>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                            setUnreadCount(0);
+                            try {
+                              await notificationsAPI.markAllAsRead();
+                            } catch (err) {
+                              console.error("Failed to mark all notifications as read", err);
+                            }
+                          }}
+                          className="text-[10px] font-bold text-[#00b4d8] hover:text-[#00b4d8]/80 hover:underline transition-all cursor-pointer"
+                        >
+                          Mark all read
+                        </button>
                       )}
                     </div>
 

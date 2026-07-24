@@ -338,5 +338,10 @@ export const notificationsAPI = {
   markAsRead: async (id) => {
     const { data } = await client.patch(`/notifications/${id}/read`);
     return data;
+  },
+
+  markAllAsRead: async () => {
+    const { data } = await client.patch('/notifications/read-all');
+    return data;
   }
 };

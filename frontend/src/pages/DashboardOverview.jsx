@@ -198,8 +198,10 @@ const DeveloperDashboard = ({ user }) => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const allTasks = await tasksAPI.getAll(null, user.id);
-      setTasks(allTasks);
+      const uid = String(user.id).trim().toLowerCase();
+      const allTasks = await tasksAPI.getAll().catch(() => []);
+      const myTasks = allTasks.filter(t => t && t.assigned_to && String(t.assigned_to).trim().toLowerCase() === uid);
+      setTasks(myTasks);
     } catch (e) {
       console.error("Failed to load developer tasks", e);
     } finally {
@@ -434,11 +436,12 @@ const MentorDashboard = ({ user }) => {
         projectsAPI.getAll().catch(() => [])
       ]);
       
-      // Filter teams where this user is assigned as mentor
+      // Filter teams where this user is assigned as mentor or lead
+      const uid = String(user.id).trim().toLowerCase();
       const mentoredTeams = [];
       for (const t of allTeams) {
         const members = await teamsAPI.getMembers(t.id).catch(() => []);
-        const hasMentor = members.some(m => m.user_id === user.id && m.designation === 'mentor');
+        const hasMentor = members.some(m => m && m.user_id && String(m.user_id).trim().toLowerCase() === uid && (m.designation === 'mentor' || m.designation === 'lead'));
         if (hasMentor) {
           mentoredTeams.push(t);
         }

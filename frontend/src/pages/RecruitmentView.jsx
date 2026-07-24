@@ -8,9 +8,8 @@ import { Check, X, Briefcase, ShieldAlert, Phone, Mail, FileText, Search, Power,
 const STATUS_COLORS = {
   'PENDING':    'bg-amber-500/10 text-amber-400 border-amber-500/25',
   'SHORTLISTED':'bg-[#00b4d8]/10 text-[#00b4d8] border-[#00b4d8]/25',
-  'SCHEDULED':  'bg-blue-400/10 text-blue-400 border-blue-400/25',
-  'APPROVED':   'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
   'ACCEPTED':   'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
+  'APPROVED':   'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
   'REJECTED':   'bg-red-500/10 text-red-400 border-red-500/25'
 };
 
@@ -158,8 +157,8 @@ export default function RecruitmentView() {
   const stats = {
     total: applications.length,
     pending: applications.filter(a => a.status === 'PENDING').length,
-    shortlisted: applications.filter(a => a.status === 'SHORTLISTED' || a.status === 'SCHEDULED').length,
-    approved: applications.filter(a => a.status === 'APPROVED' || a.status === 'ACCEPTED').length,
+    shortlisted: applications.filter(a => a.status === 'SHORTLISTED').length,
+    accepted: applications.filter(a => a.status === 'APPROVED' || a.status === 'ACCEPTED').length,
   };
 
   return (
@@ -219,8 +218,7 @@ export default function RecruitmentView() {
             <option value="ALL">All Statuses</option>
             <option value="PENDING">Pending</option>
             <option value="SHORTLISTED">Shortlisted</option>
-            <option value="SCHEDULED">Scheduled</option>
-            <option value="APPROVED">Approved / Accepted</option>
+            <option value="ACCEPTED">Accepted</option>
             <option value="REJECTED">Rejected</option>
           </select>
         </div>
@@ -359,8 +357,6 @@ export default function RecruitmentView() {
                     >
                       <option value="PENDING"    className="bg-[#1c222b] text-white normal-case">⏳ Pending</option>
                       <option value="SHORTLISTED" className="bg-[#1c222b] text-white normal-case">⭐ Shortlist</option>
-                      <option value="SCHEDULED"  className="bg-[#1c222b] text-white normal-case">📅 Schedule</option>
-                      <option value="APPROVED"   className="bg-[#1c222b] text-white normal-case">✅ Approve</option>
                       <option value="ACCEPTED"   className="bg-[#1c222b] text-white normal-case">✅ Accept</option>
                       <option value="REJECTED"   className="bg-[#1c222b] text-white normal-case">❌ Reject</option>
                     </select>

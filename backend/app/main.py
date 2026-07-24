@@ -83,11 +83,26 @@ def unread_notification_count(
         .where(Notification.is_read == False)
     ).all()
     return {"count": len(count)}
-    
-    print("========== PATCH ROUTE LOADED ==========")
+
+@app.patch("/notifications/read-all")
+@app.patch(f"{settings.API_V1_STR}/notifications/read-all")
+def mark_all_notifications_read(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    unread = db.exec(
+        select(Notification)
+        .where(Notification.user_id == current_user.id)
+        .where(Notification.is_read == False)
+    ).all()
+    for n in unread:
+        n.is_read = True
+        db.add(n)
+    db.commit()
+    return {"status": "SUCCESS", "message": f"Marked {len(unread)} notifications as read"}
 
 @app.patch("/notifications/{notification_id}/read")
-@app.patch(f"{settings.API_V1_STR}/notifications/{{notification_id}}/read")
+@app.patch(f"{settings.API_V1_STR}/notifications/{notification_id}/read")
 def mark_notification_read(
     notification_id: str,
     db: Session = Depends(deps.get_db),
