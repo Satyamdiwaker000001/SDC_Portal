@@ -88,7 +88,7 @@ class DocumentOut(BaseModel):
     project_id: str
     document_type: str
     file_id: Optional[str]
-    uploaded_at: datetime
+    uploaded_at: Optional[datetime] = None
     updated_at: datetime
     file_url: Optional[str] = None
     file_name: Optional[str] = None
