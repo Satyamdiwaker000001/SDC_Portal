@@ -450,15 +450,15 @@ def verify_task(
     if not project or not project.team_id:
         raise HTTPException(status_code=400, detail="Project team not found")
 
-    # Only the assigned Mentor (or Admin) can verify
+    # Only the assigned Mentor (or Admin / Mentor role) can verify
     mentor_member = db.exec(
         select(TeamMember)
         .where(TeamMember.team_id == project.team_id)
         .where(TeamMember.user_id == current_user.id)
         .where(TeamMember.designation == "mentor")
     ).first()
-    if not mentor_member and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only the assigned Mentor can verify tasks")
+    if not mentor_member and current_user.role not in ("admin", "mentor"):
+        raise HTTPException(status_code=403, detail="Only assigned Mentor or Administrator can verify tasks")
 
     decision = verify_in.decision.upper()
 
