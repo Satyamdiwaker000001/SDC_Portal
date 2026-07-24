@@ -104,6 +104,16 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
+  // Live Task Submission (Developer) and Task Review (Mentor/Admin)
+  const [submitTask, setSubmitTask] = useState(null);
+  const [submissionUrls, setSubmissionUrls] = useState({ url: '', demo: '' });
+  const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+
+  const [reviewTask, setReviewTask] = useState(null);
+  const [reviewDecision, setReviewDecision] = useState('VERIFY'); // VERIFY | REJECT
+  const [reviewRemarks, setReviewRemarks] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -125,6 +135,15 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
     if (!project.team_id || !user) return false;
     const member = teamMembers.find(m => m.user_id === user.id);
     return member && member.designation === 'lead';
+  }, [teamMembers, project.team_id, user]);
+
+  // Check if current user is assigned Mentor or has mentor role
+  const isMentor = useMemo(() => {
+    if (!user) return false;
+    if (user.role === 'mentor' || user.role === 'admin') return true;
+    if (!project.team_id) return false;
+    const member = teamMembers.find(m => m.user_id === user.id);
+    return member && member.designation === 'mentor';
   }, [teamMembers, project.team_id, user]);
 
   // Load team roster
@@ -267,6 +286,75 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
       alert("Failed to create task inside phase");
     } finally {
       setIsSubmittingTask(false);
+    }
+  };
+
+  // Developer action: Start assigned task
+  const handleStartTask = async (taskId) => {
+    try {
+      await tasksAPI.updateStatus(taskId, 'IN_PROGRESS');
+      fetchTasks();
+      fetchPhases();
+      onRefreshData?.();
+    } catch (err) {
+      alert("Failed to start task");
+    }
+  };
+
+  // Developer action: Submit task output URLs for review
+  const handleSubmitTaskOutput = async (e) => {
+    e.preventDefault();
+    if (!submitTask || !submissionUrls.url) return;
+    setIsSubmittingCode(true);
+    try {
+      await tasksAPI.submit(submitTask.id, {
+        submission_url: submissionUrls.url,
+        submission_demo_url: submissionUrls.demo || null
+      });
+      setSubmitTask(null);
+      setSubmissionUrls({ url: '', demo: '' });
+      fetchTasks();
+      fetchPhases();
+      onRefreshData?.();
+    } catch (err) {
+      alert("Failed to submit task output");
+    } finally {
+      setIsSubmittingCode(false);
+    }
+  };
+
+  // Mentor & Admin action: Verify or Reject submitted task
+  const handleVerifyOrReject = async (e) => {
+    e.preventDefault();
+    if (!reviewTask) return;
+    setIsSubmittingReview(true);
+    try {
+      await tasksAPI.verify(reviewTask.id, {
+        decision: reviewDecision,
+        remarks: reviewDecision === 'REJECT' ? (reviewRemarks || 'Returned for revisions') : null
+      });
+      setReviewTask(null);
+      setReviewRemarks('');
+      fetchTasks();
+      fetchPhases();
+      onRefreshData?.();
+    } catch (err) {
+      alert("Failed to update task verification status");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // Team Leader & Admin action: Delete task
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm("Are you sure you want to delete this task? Metrics will be recalculated.")) return;
+    try {
+      await tasksAPI.delete(taskId);
+      fetchTasks();
+      fetchPhases();
+      onRefreshData?.();
+    } catch (err) {
+      alert("Failed to delete task");
     }
   };
 
@@ -521,9 +609,49 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
         {/* === 2. SDLC PHASES TIMELINE & TASKS === */}
         {activeFile === 'sdlc' && (
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-6">
-              <span className="text-xs font-black text-white/70 uppercase tracking-widest">Predefined SDLC Phases Workflow</span>
-              <span className="text-[10px] text-white/40 font-bold">SEQUENTIAL PROGRESSION</span>
+            {/* Live Progress Metrics Header Widget */}
+            <div className="bg-[#1c222b] border border-white/10 p-5 rounded-2xl space-y-4 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-[#00b4d8] animate-pulse" />
+                    <span className="text-xs font-black text-white uppercase tracking-wider">Live Project SDLC Progress</span>
+                  </div>
+                  <p className="text-[10px] text-white/50 font-medium mt-0.5">Real-time status calculated from Mentor-verified work packages</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-black text-[#00b4d8] font-mono">{project.progress}%</span>
+                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">Overall Progress</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#00b4d8] via-cyan-400 to-emerald-400 rounded-full transition-all duration-700 shadow-[0_0_12px_rgba(0,180,216,0.4)]"
+                  style={{ width: `${project.progress}%` }}
+                />
+              </div>
+
+              {/* Real-time Task Counter Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="p-2 bg-white/[0.02] border border-white/5 rounded-xl text-center">
+                  <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest block">Total Tasks</span>
+                  <span className="text-sm font-black text-white font-mono">{tasks.length}</span>
+                </div>
+                <div className="p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-center">
+                  <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest block">Verified</span>
+                  <span className="text-sm font-black text-emerald-400 font-mono">{tasks.filter(t => t.status === 'COMPLETED').length}</span>
+                </div>
+                <div className="p-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl text-center">
+                  <span className="text-[8px] font-bold text-[#00b4d8] uppercase tracking-widest block">Awaiting Review</span>
+                  <span className="text-sm font-black text-[#00b4d8] font-mono">{tasks.filter(t => t.status === 'PENDING_VERIFICATION').length}</span>
+                </div>
+                <div className="p-2 bg-amber-500/5 border border-amber-500/20 rounded-xl text-center">
+                  <span className="text-[8px] font-bold text-amber-400 uppercase tracking-widest block">In Progress</span>
+                  <span className="text-sm font-black text-amber-400 font-mono">{tasks.filter(t => t.status === 'IN_PROGRESS').length}</span>
+                </div>
+              </div>
             </div>
 
             {isLoadingPhases ? (
@@ -578,7 +706,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                   })}
                 </div>
 
-                {/* Right Panel: Selected Phase Details & Tasks */}
+                {/* Right Panel: Selected Phase Details & Interactive Tasks */}
                 <div className="md:col-span-2 space-y-4">
                   {selectedPhase ? (
                     <div className="space-y-4">
@@ -587,7 +715,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                           <h3 className="text-sm font-black text-white uppercase tracking-wide">Phase {selectedPhase.sequence}: {selectedPhase.name}</h3>
                           <p className="text-[10px] text-white/50 mt-0.5 uppercase tracking-widest font-bold">Tasks in this phase contribute to phase completion</p>
                         </div>
-                        {isTeamLeader && selectedPhase.is_unlocked && (
+                        {(isTeamLeader || role === 'admin') && selectedPhase.is_unlocked && (
                           <button 
                             onClick={() => setShowAddTaskModal(true)}
                             className="px-3.5 py-2 bg-[#00b4d8] text-black hover:bg-[#00c8f0] rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-md shadow-[#00b4d8]/20"
@@ -603,28 +731,119 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                         ) : (
                           phaseTasks.map(t => {
                             const assignee = allUsers.find(u => u.id === t.assigned_to);
+                            const isAssignee = user && user.id === t.assigned_to;
+
                             return (
-                              <div key={t.id} className="p-4 bg-white/[0.02] border border-white/10 rounded-xl shadow-sm hover:border-[#00b4d8]/30 transition-all flex justify-between items-center gap-3">
-                                <div>
-                                  <h4 className="text-xs font-black text-white uppercase leading-snug">{t.title}</h4>
-                                  <p className="text-[11px] text-white/50 line-clamp-1">{t.description}</p>
-                                  <div className="flex gap-4 pt-1.5 text-[9px] font-bold text-white/40 uppercase">
-                                    <span>Assignee: <strong className="text-white/70">{assignee ? assignee.name : 'Unassigned'}</strong></span>
-                                    {t.due_date && <span>Due: <strong className="text-white/70">{t.due_date}</strong></span>}
+                              <div key={t.id} className="p-4 bg-white/[0.02] border border-white/10 rounded-2xl shadow-sm hover:border-[#00b4d8]/30 transition-all space-y-3">
+                                <div className="flex justify-between items-start gap-3">
+                                  <div className="space-y-1 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-xs font-black text-white uppercase leading-snug">{t.title}</h4>
+                                      {t.rejection_remarks && (
+                                        <span className="px-2 py-0.5 bg-rose-500/15 border border-rose-500/30 rounded text-[8px] font-bold text-rose-400 uppercase tracking-widest flex items-center gap-1">
+                                          <AlertTriangle className="w-2.5 h-2.5" /> Returned for fixes
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-white/50 line-clamp-2">{t.description || 'No detailed instructions provided.'}</p>
+                                    <div className="flex flex-wrap gap-4 pt-1 text-[9px] font-bold text-white/40 uppercase">
+                                      <span>Assignee: <strong className="text-white/70">{assignee ? assignee.name : 'Unassigned'}</strong></span>
+                                      {t.due_date && <span>Due: <strong className="text-white/70">{t.due_date}</strong></span>}
+                                    </div>
+                                  </div>
+
+                                  {/* Status badge */}
+                                  <div className="shrink-0 flex flex-col items-end gap-1">
+                                    {t.status === 'COMPLETED' && (
+                                      <span className="px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3" /> Verified
+                                      </span>
+                                    )}
+                                    {t.status === 'PENDING_VERIFICATION' && (
+                                      <span className="px-2.5 py-1 bg-[#00b4d8]/15 border border-[#00b4d8]/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-[#00b4d8]">Pending Review</span>
+                                    )}
+                                    {t.status === 'IN_PROGRESS' && (
+                                      <span className="px-2.5 py-1 bg-amber-500/15 border border-amber-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-amber-400">In Progress</span>
+                                    )}
+                                    {t.status === 'PENDING' && (
+                                      <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-white/40">Todo</span>
+                                    )}
+
+                                    {/* Admin / TL delete task button */}
+                                    {(role === 'admin' || isTeamLeader) && (
+                                      <button 
+                                        onClick={() => handleDeleteTask(t.id)}
+                                        className="text-white/20 hover:text-rose-400 p-1 transition-colors mt-1"
+                                        title="Delete task"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="shrink-0">
-                                  {t.status === 'COMPLETED' && (
-                                    <span className="px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-emerald-400">Completed</span>
+
+                                {/* Rejection Remarks callout */}
+                                {t.rejection_remarks && (
+                                  <div className="p-2.5 bg-rose-950/20 border border-rose-500/20 rounded-xl text-[10px] text-rose-300 font-mono">
+                                    <strong className="text-rose-400 uppercase tracking-wider">Mentor Feedback:</strong> {t.rejection_remarks}
+                                  </div>
+                                )}
+
+                                {/* Submissions preview links */}
+                                {(t.submission_url || t.submission_demo_url) && (
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    {t.submission_url && (
+                                      <a href={t.submission_url} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold text-white/70 hover:text-white uppercase flex items-center gap-1">
+                                        <Github className="w-3 h-3" /> Code PR / Repo
+                                      </a>
+                                    )}
+                                    {t.submission_demo_url && (
+                                      <a href={t.submission_demo_url} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-[9px] font-bold text-emerald-400 uppercase flex items-center gap-1">
+                                        <Globe className="w-3 h-3" /> Demo Link
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Interactive Action Controls based on Role */}
+                                <div className="border-t border-white/5 pt-3 flex justify-end items-center gap-2">
+                                  {/* Developer actions */}
+                                  {(isAssignee || role === 'admin' || role === 'developer') && (
+                                    <>
+                                      {t.status === 'PENDING' && (
+                                        <button
+                                          onClick={() => handleStartTask(t.id)}
+                                          className="px-3.5 py-1.5 bg-[#00b4d8]/10 border border-[#00b4d8]/30 hover:bg-[#00b4d8] hover:text-black text-[#00b4d8] rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                                        >
+                                          Start Task
+                                        </button>
+                                      )}
+                                      {(t.status === 'IN_PROGRESS' || t.status === 'REJECTED') && (
+                                        <button
+                                          onClick={() => {
+                                            setSubmitTask(t);
+                                            setSubmissionUrls({ url: t.submission_url || '', demo: t.submission_demo_url || '' });
+                                          }}
+                                          className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black text-emerald-400 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                        >
+                                          <Upload className="w-3 h-3" /> {t.status === 'REJECTED' ? 'Resubmit Output' : 'Submit Code'}
+                                        </button>
+                                      )}
+                                    </>
                                   )}
-                                  {t.status === 'PENDING_VERIFICATION' && (
-                                    <span className="px-2.5 py-1 bg-[#00b4d8]/15 border border-[#00b4d8]/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-[#00b4d8]">Pending Review</span>
-                                  )}
-                                  {t.status === 'IN_PROGRESS' && (
-                                    <span className="px-2.5 py-1 bg-amber-500/15 border border-amber-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-amber-400">In Progress</span>
-                                  )}
-                                  {t.status === 'PENDING' && (
-                                    <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-white/40">Todo</span>
+
+                                  {/* Mentor & Admin actions */}
+                                  {(isMentor || role === 'admin') && t.status === 'PENDING_VERIFICATION' && (
+                                    <button
+                                      onClick={() => {
+                                        setReviewTask(t);
+                                        setReviewDecision('VERIFY');
+                                        setReviewRemarks('');
+                                      }}
+                                      className="px-4 py-1.5 bg-cyan-400 text-black hover:bg-cyan-300 font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md shadow-cyan-400/20 flex items-center gap-1"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" /> Review & Verify
+                                    </button>
                                   )}
                                 </div>
                               </div>
@@ -1026,6 +1245,159 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                   className="px-5 py-2 bg-[#00b4d8] hover:bg-[#00c8f0] text-black font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50"
                 >
                   {isSubmittingTask ? 'Processing...' : 'Create Task'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Developer Task Submission Modal Dialog */}
+      {submitTask && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[130]">
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-lg space-y-6 shadow-2xl text-white border border-white/10">
+            <div>
+              <span className="text-[9px] uppercase font-bold text-[#00b4d8] tracking-widest">Developer Workspace Handshake</span>
+              <h3 className="text-base font-black text-white uppercase mt-1">Submit Work Output</h3>
+              <p className="text-[11px] text-white/50">Deliver repository code link and demonstration resources for: <strong>{submitTask.title}</strong></p>
+            </div>
+            
+            <form onSubmit={handleSubmitTaskOutput} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">GitHub Repository / PR Link *</label>
+                <input 
+                  type="url" required
+                  placeholder="https://github.com/org/repo/pull/12"
+                  value={submissionUrls.url}
+                  onChange={e => setSubmissionUrls({ ...submissionUrls, url: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Hosted Demo Link (Optional)</label>
+                <input 
+                  type="url"
+                  placeholder="https://my-app.vercel.app"
+                  value={submissionUrls.demo}
+                  onChange={e => setSubmissionUrls({ ...submissionUrls, demo: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setSubmitTask(null)}
+                  className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
+                >Cancel</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmittingCode}
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50 shadow-md shadow-emerald-500/20"
+                >
+                  {isSubmittingCode ? 'Transmitting Output...' : 'Transmit Link'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Mentor & Admin Task Review & Verification Modal Dialog */}
+      {reviewTask && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[130]">
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-lg space-y-6 shadow-2xl text-white border border-white/10">
+            <div>
+              <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-widest">Mentor Verification Suite</span>
+              <h3 className="text-base font-black text-white uppercase mt-1">Review Task Submission</h3>
+              <p className="text-[11px] text-white/50">Evaluate developer submission for work package: <strong>{reviewTask.title}</strong></p>
+            </div>
+
+            {/* Display submitted links */}
+            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2">
+              <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest block">Submitted Deliverables</span>
+              {reviewTask.submission_url ? (
+                <a href={reviewTask.submission_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white transition-colors">
+                  <span className="flex items-center gap-2 truncate">
+                    <Github className="w-4 h-4 text-[#00b4d8] shrink-0" />
+                    <span className="truncate">{reviewTask.submission_url}</span>
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                </a>
+              ) : (
+                <div className="text-xs text-white/30 italic">No code link attached</div>
+              )}
+
+              {reviewTask.submission_demo_url && (
+                <a href={reviewTask.submission_demo_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 text-xs font-bold text-emerald-400 transition-colors">
+                  <span className="flex items-center gap-2 truncate">
+                    <Globe className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{reviewTask.submission_demo_url}</span>
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                </a>
+              )}
+            </div>
+
+            <form onSubmit={handleVerifyOrReject} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Verification Decision</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setReviewDecision('VERIFY')}
+                    className={`py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                      reviewDecision === 'VERIFY'
+                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/20'
+                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Approve (Verify)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReviewDecision('REJECT')}
+                    className={`py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                      reviewDecision === 'REJECT'
+                        ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/20'
+                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4" /> Return for fixes
+                  </button>
+                </div>
+              </div>
+
+              {reviewDecision === 'REJECT' && (
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-rose-400 uppercase tracking-wider block">Feedback / Rejection Remarks *</label>
+                  <textarea 
+                    rows="3" required
+                    placeholder="Specify code improvements or fixes required..."
+                    value={reviewRemarks}
+                    onChange={e => setReviewRemarks(e.target.value)}
+                    className="w-full bg-white/5 border border-rose-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-rose-400 resize-none"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setReviewTask(null)}
+                  className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
+                >Cancel</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmittingReview}
+                  className={`px-5 py-2 font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50 ${
+                    reviewDecision === 'VERIFY'
+                      ? 'bg-emerald-400 text-black hover:bg-emerald-300'
+                      : 'bg-rose-500 text-white hover:bg-rose-400'
+                  }`}
+                >
+                  {isSubmittingReview ? 'Transmitting Decision...' : reviewDecision === 'VERIFY' ? 'Confirm Verification' : 'Transmit Rejection'}
                 </button>
               </div>
             </form>

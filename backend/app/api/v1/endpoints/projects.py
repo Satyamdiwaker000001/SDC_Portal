@@ -229,6 +229,32 @@ def update_project_status(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
+    # Authorization checks: Admin, Team Leader, or assigned Mentor
+    is_tl = False
+    is_mentor = False
+    if project.team_id:
+        tl_member = db.exec(
+            select(TeamMember)
+            .where(TeamMember.team_id == project.team_id)
+            .where(TeamMember.user_id == current_user.id)
+            .where(TeamMember.designation == "lead")
+        ).first()
+        is_tl = tl_member is not None
+
+        mentor_member = db.exec(
+            select(TeamMember)
+            .where(TeamMember.team_id == project.team_id)
+            .where(TeamMember.user_id == current_user.id)
+            .where(TeamMember.designation == "mentor")
+        ).first()
+        is_mentor = mentor_member is not None
+
+    if current_user.role != "admin" and not is_tl and not is_mentor:
+        raise HTTPException(
+            status_code=403,
+            detail="Only Administrator, assigned Mentor, or Team Leader can update project status"
+        )
+
     old_status = project.status
     project.status = status.upper()
     db.add(project)
