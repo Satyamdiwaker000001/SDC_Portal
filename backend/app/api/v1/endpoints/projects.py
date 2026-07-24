@@ -339,6 +339,9 @@ def delete_project(
         docs = db.exec(select(ProjectDocument).where(ProjectDocument.project_id == id)).all()
         for doc in docs:
             db.delete(doc)
+
+        # Force SQLAlchemy to execute child deletes first
+        db.flush()
             
         db.delete(project)
         
