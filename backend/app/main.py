@@ -102,7 +102,7 @@ def mark_all_notifications_read(
     return {"status": "SUCCESS", "message": f"Marked {len(unread)} notifications as read"}
 
 @app.patch("/notifications/{notification_id}/read")
-@app.patch(f"{settings.API_V1_STR}/notifications/{notification_id}/read")
+@app.patch(f"{settings.API_V1_STR}/notifications/{{notification_id}}/read")
 def mark_notification_read(
     notification_id: str,
     db: Session = Depends(deps.get_db),
