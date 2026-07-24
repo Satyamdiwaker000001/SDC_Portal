@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Network, Plus, Users, Shield, Star, Code, X, Search, UserPlus, Edit2, Trash2, FolderKanban, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,12 +7,14 @@ import { teamsAPI, usersAPI, projectsAPI } from '../api/services';
 
 export default function TeamsView() {
   const { role, user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [teams, setTeams] = useState([]);
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedTeamId, setHighlightedTeamId] = useState(null);
 
   // New Team Form State
   const [newTeam, setNewTeam] = useState({ name: '', leaderId: '', memberIds: [], projectId: '' });
@@ -38,6 +41,7 @@ export default function TeamsView() {
 
   // Team members cache
   const [teamMembers, setTeamMembers] = useState({});
+  const teamMembersRef = useRef({});
 
   useEffect(() => {
     fetchData();
@@ -51,7 +55,7 @@ export default function TeamsView() {
         projectsAPI.getAll().catch(() => [])
       ]);
       setTeams(tData || []);
-      setUsers(uData || []);
+      setUsers((uData || []).map(usr => ({ ...usr, isPassout: usr.membership_status === 'alumni' })));
       setProjects(pData || []);
     } catch (err) {
       setTeams([]); setUsers([]); setProjects([]);
@@ -63,17 +67,49 @@ export default function TeamsView() {
   const fetchTeamMembers = async (teamId) => {
     try {
       const membersData = await teamsAPI.getMembers(teamId);
-      setTeamMembers(prev => ({ ...prev, [teamId]: membersData || [] }));
+      setTeamMembers(prev => {
+        const next = { ...prev, [teamId]: membersData || [] };
+        teamMembersRef.current = next;
+        return next;
+      });
     } catch (err) {
-      setTeamMembers(prev => ({ ...prev, [teamId]: [] }));
+      setTeamMembers(prev => {
+        const next = { ...prev, [teamId]: [] };
+        teamMembersRef.current = next;
+        return next;
+      });
     }
   };
 
   useEffect(() => {
     teams.forEach(team => {
-      if (team.id && !teamMembers[team.id]) fetchTeamMembers(team.id);
+      if (team.id && !teamMembersRef.current[team.id]) fetchTeamMembers(team.id);
     });
   }, [teams]);
+
+  const targetTeamId = searchParams.get('id');
+
+  // Deep-link handling: scroll and highlight matching team card
+  useEffect(() => {
+    if (!isLoading && targetTeamId && Array.isArray(teams) && teams.length > 0) {
+      const target = teams.find(t => t && String(t.id) === String(targetTeamId));
+      if (target) {
+        setHighlightedTeamId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedTeamId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`team-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetTeamId, teams, searchParams]);
 
   // Unassigned projects: no team_id set
   const unassignedProjects = useMemo(() => {
@@ -342,6 +378,7 @@ export default function TeamsView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTeams.map(team => {
+            const isHighlighted = String(team.id) === String(highlightedTeamId);
             const members = teamMembers[team.id] || [];
             const leaderMember = members.find(m => m.designation === 'lead');
             const leader = leaderMember ? getLeaderDetails(leaderMember.user_id) : null;
@@ -356,9 +393,14 @@ export default function TeamsView() {
             return (
               <motion.div
                 key={team.id}
+                id={`team-card-${team.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-[#1c222b] border border-white/8 rounded-3xl overflow-hidden group hover:border-[#00b4d8]/40 transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col"
+                className={`bg-[#1c222b] border border-white/8 rounded-3xl overflow-hidden group hover:border-[#00b4d8]/40 transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col ${
+                  isHighlighted
+                    ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.03]'
+                    : ''
+                }`}
               >
                 <div className="p-5 border-b border-white/5 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-[#00b4d8]/8 rounded-full blur-[40px] -mr-10 -mt-10 pointer-events-none group-hover:bg-[#00b4d8]/15 transition-all"></div>
@@ -470,7 +512,7 @@ export default function TeamsView() {
 
                   <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-auto shrink-0">
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                      <Users className="w-3 h-3" /> {(members.length || 0) + (leader ? 1 : 0)} Total
+                      <Users className="w-3 h-3" /> {members.length || 0} Total
                     </div>
                     {role === 'admin' && (
                       <button
@@ -501,7 +543,7 @@ export default function TeamsView() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl bg-[#0f172a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Header */}
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-blue-900/20 to-transparent relative overflow-hidden shrink-0">
@@ -764,7 +806,7 @@ export default function TeamsView() {
         {editingTeam && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setEditingTeam(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-xl bg-[#0f172a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-[#0f172a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent relative overflow-hidden shrink-0">
                 <div className="flex items-center justify-between relative z-10">
                   <div className="flex items-center gap-3">
@@ -1010,7 +1052,6 @@ export default function TeamsView() {
         )}
       </AnimatePresence>
 
-      <style>{`.custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(0,180,216,0.4)}`}</style>
     </div>
   );
 }

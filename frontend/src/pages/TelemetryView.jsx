@@ -546,7 +546,7 @@ export default function TelemetryView() {
                 .filter(t => {
                   if (moduleFilter === 'DONE') return t.status === 'COMPLETED' || t.status === 'DONE';
                   if (moduleFilter === 'ACTIVE') return t.status === 'IN_PROGRESS' || t.status === 'REVIEW';
-                  if (moduleFilter === 'PENDING') return t.status === 'TODO';
+                  if (moduleFilter === 'PENDING') return t.status === 'PENDING';
                   return true;
                 })
                 .filter(t => t.title.toLowerCase().includes(moduleSearch.toLowerCase()) || getUserName(t.assigned_to).toLowerCase().includes(moduleSearch.toLowerCase()))

@@ -12,8 +12,9 @@ router = APIRouter()
 class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    status: Optional[str] = "TODO"
-    assigned_to: Optional[str] = None
+    status: Optional[str] = "PENDING"
+    assigned_to: str
+    phase_id: str
     module_id: str  # Kept as alias to project_id in Pydantic to avoid breaking existing clients
 
 @router.post("/tasks", status_code=status.HTTP_201_CREATED)
@@ -29,6 +30,7 @@ def create_task(
     task = Task(
         id=str(uuid.uuid4()),
         project_id=task_in.module_id,
+        phase_id=task_in.phase_id,
         assigned_to=task_in.assigned_to,
         created_by=current_user.id,
         title=task_in.title,

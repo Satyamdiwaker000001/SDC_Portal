@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera, Key } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
@@ -47,7 +48,7 @@ const calculateAcademicYear = (user) => {
   return "Passout (Alumni)";
 };
 
-const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId, onResetPassword }) => {
+const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit, currentUserRole, currentUserId, onResetPassword, isHighlighted = false }) => {
   const [passoutConfirmStep, setPassoutConfirmStep] = React.useState(0);
   const [deleteConfirmStep, setDeleteConfirmStep] = React.useState(0);
   const isAdmin = (currentUserRole || '').toLowerCase() === 'admin';
@@ -75,8 +76,15 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
   return (
     <motion.div
       variants={itemVariants}
-      className="profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group mx-auto"
+      id={`user-card-${user.id}`}
+      className={`profile-card relative w-full max-w-[360px] min-w-[300px] h-[450px] group transition-all duration-500 rounded-3xl ${
+        isHighlighted
+          ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.03]'
+          : ''
+      }`}
       style={{ perspective: '1200px' }}
+      data-user-id={user.id}
+      data-searchable="user"
     >
       <div
         className="w-full h-full relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-3xl"
@@ -299,11 +307,13 @@ const ProfileCard = ({ user, isFlipped, onFlip, onMarkPassout, onDelete, onEdit,
 
 export default function TeamView() {
   const { role, user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [flippedCardId, setFlippedCardId] = useState(null);
+  const [highlightedUserId, setHighlightedUserId] = useState(null);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'developer', joiningYear: new Date().getFullYear(), joiningClass: '1st Year' });
   const [modalStatus, setModalStatus] = useState('');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -358,6 +368,30 @@ export default function TeamView() {
     };
     fetchData();
   }, []);
+
+  const targetUserId = searchParams.get('id');
+
+  // Deep-link handling: scroll, highlight matching user card (no auto-flip)
+  useEffect(() => {
+    if (!isLoading && targetUserId && Array.isArray(users) && users.length > 0) {
+      const target = users.find(u => u && String(u.id) === String(targetUserId));
+      if (target) {
+        setHighlightedUserId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedUserId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`user-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetUserId, users, searchParams]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -501,7 +535,7 @@ export default function TeamView() {
       setBulkStatus({ type: 'success', msg: response.message || `Successfully uploaded.` });
       // Refresh user list
       const u = await usersAPI.getAll().catch(() => []);
-      setUsers(u && u.length > 0 ? u : []);
+      setUsers(u && u.length > 0 ? u.map(usr => ({ ...usr, isPassout: usr.membership_status === 'alumni' })) : []);
       setTimeout(() => {
         setIsBulkModalOpen(false);
         setBulkStatus(null);
@@ -609,7 +643,7 @@ export default function TeamView() {
               <p className="text-xs mt-2 opacity-50">Add a Mentor or Developer to populate the registry.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-items-center gap-x-10 gap-y-10">
               {users.filter(u => (u.role || '').toLowerCase() !== 'admin').map((user) => (
                 <ProfileCard 
                   key={user.id} 
@@ -635,6 +669,7 @@ export default function TeamView() {
                      setResetPasswordUser(u);
                      setNewPassword('');
                   }}
+                  isHighlighted={String(user.id) === String(highlightedUserId)}
                 />
               ))}
             </div>
@@ -645,7 +680,7 @@ export default function TeamView() {
       {/* Premium Add Member Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -657,7 +692,7 @@ export default function TeamView() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
+              className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] md:max-h-[90vh] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/10 rounded-[1.5rem] md:rounded-[2rem] p-5 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden my-auto"
             >
               {/* Decorative Background Elements */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#00b4d8]/8 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2"></div>
@@ -666,19 +701,19 @@ export default function TeamView() {
               <button 
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-[#00b4d8] hover:bg-[#00b4d8]/10 hover:border-[#00b4d8]/20 transition-colors border border-white/5 cursor-pointer"
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-[#00b4d8] hover:bg-[#00b4d8]/10 hover:border-[#00b4d8]/20 transition-colors border border-white/5 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
               
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col flex-1 overflow-y-auto custom-scrollbar pr-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2.5 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30">
-                    <UserPlus className="w-6 h-6 text-[#00b4d8]" />
+                  <div className="p-2.5 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30 shrink-0">
+                    <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-[#00b4d8]" />
                   </div>
-                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">Add New Member</h2>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">Add New Member</h2>
                 </div>
-                <p className="text-sm text-white/40 mb-8 ml-14">Register a new profile and assign system access levels.</p>
+                <p className="text-xs sm:text-sm text-white/40 mb-6 md:mb-8 ml-0 sm:ml-12 md:ml-14">Register a new profile and assign system access levels.</p>
                 
                 <form onSubmit={handleCreateUser} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -728,10 +763,11 @@ export default function TeamView() {
                           <div className="relative">
                             <select required value={newUser.role} onChange={e => {
                               const nextRole = e.target.value;
-                              setNewUser({...newUser, role: nextRole, joiningClass: nextRole === 'mentor' ? '' : '1st Year'});
+                              setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
                             }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                               <option value="developer" className="bg-[#0a0a0a]">Developer</option>
                               <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                              <option value="founder" className="bg-[#0a0a0a]">Founder</option>
                             </select>
                             <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -745,10 +781,11 @@ export default function TeamView() {
                         <div className="relative">
                           <select required value={newUser.role} onChange={e => {
                             const nextRole = e.target.value;
-                            setNewUser({...newUser, role: nextRole, joiningClass: nextRole === 'mentor' ? '' : '1st Year'});
+                            setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
                           }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                             <option value="developer" className="bg-[#0a0a0a]">Developer</option>
                             <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
+                            <option value="founder" className="bg-[#0a0a0a]">Founder</option>
                           </select>
                           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -773,6 +810,7 @@ export default function TeamView() {
           </div>
         )}
       </AnimatePresence>
+
       {/* Bulk Upload Modal */}
       <AnimatePresence>
         {isBulkModalOpen && (
@@ -926,6 +964,7 @@ export default function TeamView() {
                          >
                            <option value="developer" className="bg-[#0f172a]">Developer</option>
                            <option value="mentor" className="bg-[#0f172a]">Mentor</option>
+                           <option value="founder" className="bg-[#0f172a]">Founder</option>
                          </select>
                       </div>
 
@@ -1024,7 +1063,7 @@ export default function TeamView() {
                          </button>
                        </div>
                        <div className="flex-1 min-w-0">
-                         <p className="text-[11px] text-white/50 mb-2">Upload a photo or paste a URL below</p>
+                         <p className="text-[11px] text-white/50 mb-2">Upload a photo</p>
                          <button
                            type="button"
                            onClick={() => avatarInputRef.current?.click()}
@@ -1052,7 +1091,7 @@ export default function TeamView() {
                              setAvatarPreview(res.url);
                              setEditUserData(prev => ({ ...prev, profile_image: res.url }));
                            } catch (err) {
-                             alert('Image upload failed. Try a URL instead.');
+                             alert('Image upload failed.');
                            } finally {
                              setAvatarUploading(false);
                              e.target.value = '';
@@ -1060,18 +1099,6 @@ export default function TeamView() {
                          }}
                        />
                      </div>
-
-                     {/* URL Fallback input */}
-                     <input 
-                       type="url"
-                       placeholder="Or paste image URL here..."
-                       value={editUserData.profile_image || ''}
-                       onChange={e => {
-                         setEditUserData({...editUserData, profile_image: e.target.value});
-                         setAvatarPreview(e.target.value || null);
-                       }}
-                       className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-xs placeholder:text-white/20"
-                     />
                   </div>
                 </form>
               </div>

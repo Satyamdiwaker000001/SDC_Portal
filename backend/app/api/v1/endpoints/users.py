@@ -10,12 +10,42 @@ import cloudinary.uploader
 
 from ....api import deps
 from ....core import security
-from ....models.models import User, AuditLog
+from ....models.models import User, AuditLog, Project, Team, Notification
 from ....core.config import settings
 from ....schemas.user import UserCreate, UserUpdate, UserOut
 from datetime import datetime
 
 router = APIRouter()
+
+
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+    if existing:
+        return
+
+    db.add(Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title=title,
+        message=message,
+        event_type=event_type or "SYSTEM",
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+    ))
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -80,6 +110,58 @@ async def upload_avatar(
     return {"url": secure_url}
 
 
+@router.get("/public/stats")
+def public_user_stats(
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Public stats endpoint for the landing page."""
+    active_members = db.exec(
+        select(User)
+        .where(User.is_active == True)
+        .where(User.membership_status == "active")
+        .where(User.role != "admin")
+    ).all()
+
+    mentors = [user for user in active_members if (user.role or "").lower() == "mentor"]
+    projects = db.exec(select(Project)).all()
+    teams = db.exec(select(Team)).all()
+
+    return {
+        "members": len(active_members),
+        "mentors": len(mentors),
+        "projects": len(projects),
+        "teams": len(teams),
+    }
+
+
+@router.get("/public/roster")
+def public_roster(
+    role: Optional[str] = None,
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Public roster for the landing page. Exposes only safe fields — no email or sensitive data."""
+    statement = (
+        select(User)
+        .where(User.is_active.is_(True))
+        .where(User.role != "admin")
+    )
+    if role:
+        statement = statement.where(User.role == role)
+    users = db.exec(statement).all()
+    return [
+        {
+            "id": u.id,
+            "name": u.name,
+            "role": u.role,
+            "profile_image": u.profile_image,
+            "linkedin_url": u.linkedin_url,
+            "github_url": u.github_url,
+            "membership_status": u.membership_status,
+        }
+        for u in users
+    ]
+
+
 @router.get("/", response_model=List[UserOut])
 def read_users(
     db: Session = Depends(deps.get_db),
@@ -123,6 +205,29 @@ def create_user(
         updated_at=datetime.utcnow(),
     )
     db.add(user)
+
+    for admin_user in db.exec(
+    select(User).where(User.role == "admin").where(User.id != user.id)
+).all():
+        _create_notification_if_missing(
+            db,
+            user_id=admin_user.id,
+            title="New member joined SDC",
+            message=f"New member joined SDC: {user.name}",
+            event_type="USER_CREATED",
+            related_entity_type="user",
+            related_entity_id=user.id,
+        )
+
+    _create_notification_if_missing(
+        db,
+        user_id=user.id,
+        title="Welcome to SDC",
+        message=f"Welcome to SDC, {user.name}!",
+        event_type="WELCOME",
+        related_entity_type="user",
+        related_entity_id=user.id,
+    )
 
     db.add(AuditLog(
         id=str(uuid.uuid4()),

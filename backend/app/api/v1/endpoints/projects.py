@@ -9,17 +9,47 @@ import shutil
 from datetime import datetime, date
 
 from ....api import deps
-from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog
+from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog, Notification
 from ....core.config import settings
 
 router = APIRouter()
+
+
+def _create_notification_if_missing(
+    db: Session,
+    *,
+    user_id: str,
+    title: str,
+    message: str,
+    event_type: Optional[str] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    existing = db.exec(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .where(Notification.title == title)
+        .where(Notification.message == message)
+    ).first()
+    if existing:
+        return
+
+    db.add(Notification(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        title=title,
+        message=message,
+        event_type=event_type or "SYSTEM",
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+    ))
 
 class ProjectCreate(BaseModel):
     name: str
     short_description: Optional[str] = None
     full_description: Optional[str] = None
     type: Optional[str] = "Web_App"
-    deadline: Optional[date] = None
+    deadline: Optional[str] = None
     academic_year: Optional[str] = "2025-26"
     team_id: Optional[str] = None
     github_repo: Optional[str] = None
@@ -33,7 +63,7 @@ class ProjectOut(BaseModel):
     full_description: Optional[str]
     status: str
     type: str
-    deadline: Optional[date]
+    deadline: Optional[str]
     academic_year: str
     team_id: Optional[str]
     github_repo: Optional[str]
@@ -126,6 +156,36 @@ def create_project(
             updated_at=datetime.utcnow()
         )
         db.add(p_doc)
+
+        recipients = set()
+
+    # Notify all admins
+    admins = db.exec(
+        select(User).where(User.role == "admin")
+    ).all()
+
+    for admin in admins:
+        recipients.add(admin.id)
+
+    # Notify assigned team members only
+    if project.team_id:
+        team_members = db.exec(
+            select(TeamMember).where(TeamMember.team_id == project.team_id)
+        ).all()
+
+        for member in team_members:
+            recipients.add(member.user_id)
+
+    for user_id in recipients:
+        _create_notification_if_missing(
+            db,
+            user_id=user_id,
+            title="New project created",
+            message=f"New project created: {project.name}",
+            event_type="PROJECT_CREATED",
+            related_entity_type="project",
+            related_entity_id=project.id,
+        )
         
     # Audit log (SRS 3.16)
     db.add(AuditLog(
@@ -177,7 +237,7 @@ def update_project_status(
     # Audit log (SRS 3.16)
     db.add(AuditLog(
         id=str(uuid.uuid4()),
-        event_type="PROJECT_CREATED",
+        event_type="PROJECT_STATUS_UPDATED",
         description=f"Project '{project.name}' status: {old_status} → {project.status}",
         performed_by=current_user.id,
         user_role=current_user.role,
@@ -194,7 +254,7 @@ class ProjectUpdate(BaseModel):
     short_description: Optional[str] = None
     full_description: Optional[str] = None
     type: Optional[str] = None
-    deadline: Optional[date] = None
+    deadline: Optional[str] = None
     academic_year: Optional[str] = None
     team_id: Optional[str] = None
     github_repo: Optional[str] = None
@@ -240,7 +300,7 @@ def update_project(
     project.updated_at = datetime.utcnow()
     db.add(AuditLog(
         id=str(uuid.uuid4()),
-        event_type="PROJECT_CREATED",
+        event_type="PROJECT_UPDATED",
         description=f"Project '{project.name}' updated.",
         performed_by=current_user.id,
         user_role=current_user.role,
@@ -284,13 +344,13 @@ def delete_project(
         
         db.add(AuditLog(
             id=str(uuid.uuid4()),
-            event_type="PROJECT_CREATED",
-            description=f"Project '{id}' deleted by admin.",
-            performed_by=current_admin.id,
-            user_role="admin",
-            related_module="project",
-            related_entity_id=id,
-        ))
+        event_type="PROJECT_DELETED",
+        description=f"Project '{id}' deleted by admin.",
+        performed_by=current_admin.id,
+        user_role="admin",
+        related_module="project",
+        related_entity_id=id,
+    ))
         
         db.commit()
         return {"status": "SUCCESS", "message": "Project and its components deleted successfully"}

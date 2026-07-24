@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { applicationsAPI, settingsAPI } from '../api/services';
+import { useAuth } from '../contexts/AuthContext';
 import { Check, X, Briefcase, ShieldAlert, Phone, Mail, FileText, Search, Power, Download, Trash } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -19,12 +21,15 @@ const formatDate = (dateString) => {
 };
 
 export default function RecruitmentView() {
+  const { role } = useAuth();
+  const [searchParams] = useSearchParams();
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [isLive, setIsLive] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [highlightedAppId, setHighlightedAppId] = useState(null);
 
   const fetchLiveStatus = async () => {
     try {
@@ -75,6 +80,32 @@ export default function RecruitmentView() {
     fetchApps();
     fetchLiveStatus();
   }, []);
+
+  const targetAppId = searchParams.get('id');
+
+  // Deep-link handling: scroll and highlight matching candidate application
+  useEffect(() => {
+    if (!isLoading && targetAppId && Array.isArray(applications) && applications.length > 0) {
+      const target = applications.find(a => a && String(a.id) === String(targetAppId));
+      if (target) {
+        setHighlightedAppId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedAppId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`app-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetAppId, applications, searchParams]);
+
+  if (role !== 'admin') return <Navigate to="/dashboard" replace />;
 
   const handleUpdateStatus = async (id, status) => {
     try {
@@ -132,10 +163,10 @@ export default function RecruitmentView() {
   };
 
   return (
-    <div className="h-full flex flex-col font-sans text-white pb-6 relative z-10 overflow-hidden">
+    <div className="space-y-6 font-sans text-white pb-6 relative z-10">
       
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
              <div className="w-6 h-6 rounded-md bg-[#00b4d8]/10 flex items-center justify-center border border-[#00b4d8]/30">
@@ -196,7 +227,7 @@ export default function RecruitmentView() {
       </div>
 
       {/* Stats Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
         <div className="bg-[#1c222b] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-lg">
            <div>
              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Total Applications</p>
@@ -224,7 +255,7 @@ export default function RecruitmentView() {
       </div>
 
       {/* Applications List */}
-      <div className="flex-1 bg-[#1c222b] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
+      <div className="bg-[#1c222b] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
         
         {/* Table Header — hidden on mobile, shown on md+ */}
         <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 border-b border-white/5 text-[10px] font-black text-white/30 uppercase tracking-widest bg-black/20">
@@ -234,7 +265,8 @@ export default function RecruitmentView() {
           <div className="col-span-4 text-right">Status & Action</div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+        <div className="p-4 space-y-3">
+
           {isLoading ? (
             <div className="text-center py-12 text-white/40 text-xs font-mono">Syncing candidates database...</div>
           ) : filteredApps.length === 0 ? (
@@ -245,14 +277,21 @@ export default function RecruitmentView() {
              </div>
           ) : (
             <AnimatePresence>
-              {filteredApps.map((app, i) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05, ease: "easeOut" }}
-                  key={app.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center bg-white/[0.02] hover:bg-white/[0.04] transition-all border border-white/5 hover:border-white/10 rounded-2xl group"
-                >
+              {filteredApps.map((app, i) => {
+                const isHighlighted = String(app.id) === String(highlightedAppId);
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, ease: "easeOut" }}
+                    key={app.id}
+                    id={`app-card-${app.id}`}
+                    className={`grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-4 md:px-6 py-4 items-start md:items-center bg-white/[0.02] hover:bg-white/[0.04] transition-all border border-white/5 hover:border-white/10 rounded-2xl group ${
+                      isHighlighted
+                        ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.01]'
+                        : ''
+                    }`}
+                  >
                   {/* Candidate Identity */}
                   <div className="col-span-3 flex items-center gap-4 pr-4">
                     <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/10 border border-[#00b4d8]/30 flex items-center justify-center flex-shrink-0 text-[#00b4d8] font-black uppercase text-lg">
@@ -343,18 +382,13 @@ export default function RecruitmentView() {
                     </button>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
+              );
+            })}
+          </AnimatePresence>
           )}
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 216, 0.5); }
-      `}} />
     </div>
   );
 }

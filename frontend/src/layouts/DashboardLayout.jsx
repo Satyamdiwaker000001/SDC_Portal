@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderKanban,
-  CheckSquare,
   Users,
   Briefcase,
   Bell,
   Search,
-  Settings,
   TerminalSquare,
   LogOut,
   Hexagon,
@@ -23,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../contexts/AuthContext';
 import sdcLogo from '../assets/sdc_logo.png';
-import { usersAPI, projectsAPI, announcementsAPI } from '../api/services';
+import { usersAPI, projectsAPI, announcementsAPI, notificationsAPI, teamsAPI, applicationsAPI } from '../api/services';
 
 const navItems = [
   { path: '/dashboard', label: 'Command Center', icon: LayoutDashboard, roles: ['admin', 'developer', 'mentor'] },
@@ -47,6 +45,231 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
+const formatNotificationDate = (dateStr) => {
+  if (!dateStr) return '';
+  const utcStr = typeof dateStr === 'string' && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(dateStr)
+    ? `${dateStr}Z`
+    : dateStr;
+  return new Date(utcStr).toLocaleString();
+};
+
+const getNotificationRoute = (notif) => {
+  if (!notif) return '/dashboard';
+  if (notif.target_url) return notif.target_url;
+
+  const entityType = (notif.related_entity_type || notif.entity_type || notif.type || '').toLowerCase();
+  const eventType = (notif.event_type || '').toUpperCase();
+  const title = (notif.title || '').toLowerCase();
+  const message = (notif.message || '').toLowerCase();
+
+  const entityId = notif.related_entity_id || notif.entity_id;
+
+  // Notices
+  if (
+    entityType === 'notice' ||
+    eventType.includes('NOTICE') ||
+    (!entityId && (title.includes('notice') || message.includes('notice')))
+  ) {
+    return entityId ? `/dashboard/notices?id=${entityId}` : '/dashboard/notices';
+  }
+
+  // Projects
+  if (
+    entityType === 'project' ||
+    eventType.includes('PROJECT') ||
+    (!entityId && (title.includes('project') || message.includes('project')))
+  ) {
+    return entityId ? `/dashboard/projects?id=${entityId}` : '/dashboard/projects';
+  }
+
+  // Teams
+  if (
+    entityType === 'team' ||
+    eventType.includes('TEAM') ||
+    (!entityId && (title.includes('team') || message.includes('team')))
+  ) {
+    return entityId ? `/dashboard/teams?id=${entityId}` : '/dashboard/teams';
+  }
+
+  // Personnel / Members / User
+  if (
+    entityType === 'user' ||
+    eventType === 'USER_CREATED' ||
+    (!entityId && (eventType === 'WELCOME' || title.includes('member') || title.includes('welcome') || message.includes('joined sdc') || message.includes('member')))
+  ) {
+    return entityId ? `/dashboard/team?id=${entityId}` : '/dashboard/team';
+  }
+
+  // Recruitment / Application
+  if (
+    entityType === 'application' ||
+    entityType === 'recruitment' ||
+    eventType.includes('APPLICATION') ||
+    eventType.includes('RECRUITMENT') ||
+    (!entityId && (title.includes('application') || title.includes('recruitment') || message.includes('application')))
+  ) {
+    return entityId ? `/dashboard/recruitment?id=${entityId}` : '/dashboard/recruitment';
+  }
+
+  // Tasks
+  if (
+    entityType === 'task' ||
+    eventType.includes('TASK') ||
+    title.includes('task') ||
+    message.includes('task') ||
+    message.includes('assigned')
+  ) {
+    return '/dashboard';
+  }
+
+  return '/dashboard';
+};
+
+const SearchDropdown = ({ showSearchDropdown, isSearching, searchResults, handleSearchResultClick }) => (
+  <AnimatePresence>
+    {showSearchDropdown && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+        className="absolute top-full mt-2 left-0 right-0 bg-[#020617]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 z-50 max-h-80 overflow-y-auto custom-scrollbar"
+      >
+        {isSearching ? (
+          <div className="p-4 text-center text-xs text-white/50 font-medium flex items-center justify-center gap-2">
+            <div className="w-3 h-3 border border-white/30 border-t-[#00b4d8] rounded-full animate-spin" />
+            Scanning Network...
+          </div>
+        ) : (
+          <div className="p-2">
+            {searchResults.pages.length > 0 && (
+              <div className="mb-2">
+                <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Pages</span>
+                {searchResults.pages.map(page => (
+                  <div
+                    key={page.path}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleSearchResultClick(page.path);
+                    }}
+                    className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <p className="text-sm font-bold text-white truncate">{page.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchResults.projects.length > 0 && (
+              <div className="mb-2">
+                <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Projects</span>
+                {searchResults.projects.map(p => (
+                  <div
+                    key={p.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleSearchResultClick('projects');
+                    }}
+                    className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <p className="text-sm font-bold text-white truncate">{p.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchResults.users.length > 0 && (
+              <div className="mb-2">
+                <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Personnel</span>
+                {searchResults.users.map(u => (
+                  <div
+                    key={u.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleSearchResultClick('personnel');
+                    }}
+                    className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <p className="text-sm font-bold text-white truncate">{u.name}</p>
+                    <p className="text-[10px] text-white/40 truncate">{u.email}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchResults.notices.length > 0 && (
+              <div className="mb-2">
+                <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Notices</span>
+                {searchResults.notices.map(n => (
+                  <div
+                    key={n.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleSearchResultClick('notices');
+                    }}
+                    className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <p className="text-sm font-bold text-white truncate">{n.title}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.pages.length === 0 && searchResults.notices.length === 0 && (
+              <div className="p-4 text-center text-xs text-white/50 font-medium">No records found.</div>
+            )}
+          </div>
+        )}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+const SidebarContent = ({ onNavClick, filteblueNav, showLogoutConfirm, setShowLogoutConfirm, isLoggingOut }) => (
+  <>
+    {/* Logo Section */}
+    <div className="h-24 flex items-center justify-center px-6 border-b border-white/5 relative overflow-hidden shrink-0">
+      <div className="relative flex items-center justify-center shrink-0 z-10 w-full cursor-pointer transition-transform hover:scale-105 duration-300">
+        <img src={sdcLogo} alt="SDC Logo" className="h-12 w-auto object-contain relative z-10" />
+      </div>
+    </div>
+
+    {/* Navigation Menu */}
+    <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+      {filteblueNav.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === '/dashboard'}
+          onClick={onNavClick}
+          className={({ isActive }) => `relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden group ${isActive ? 'bg-[#00b4d8]/10 border border-[#00b4d8]/30 shadow-[0_0_20px_rgba(0,180,216,0.15)] text-white' : 'border border-transparent text-white/50 hover:bg-white/5 hover:text-white hover:border-white/10'}`}
+        >
+          {({ isActive }) => (
+            <>
+              <item.icon className={`w-5 h-5 relative z-10 transition-transform duration-300 shrink-0 ${isActive ? 'text-[#00b4d8] scale-110 drop-shadow-[0_0_8px_rgba(0,180,216,0.8)]' : 'group-hover:scale-110'}`} />
+              <span className="text-xs font-bold uppercase tracking-[0.15em] relative z-10 truncate">{item.label}</span>
+
+              {/* Active Indicator Line */}
+              {isActive && (
+                <motion.div
+                  layoutId="sidebarActiveLine"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#00b4d8] rounded-r-full shadow-[0_0_10px_#00b4d8]"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+            </>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+
+    {/* Logout at bottom for mobile convenience */}
+    <div className="px-3 pb-5 shrink-0 border-t border-white/5 pt-4">
+      <button
+        onClick={() => setShowLogoutConfirm(true)}
+        disabled={isLoggingOut}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 border border-transparent transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <LogOut className="w-5 h-5 shrink-0" />
+        <span className="text-xs font-bold uppercase tracking-widest">Logout</span>
+      </button>
+    </div>
+  </>
+);
+
 export default function DashboardLayout() {
   const { user, role, logout } = useAuth();
   const location = useLocation();
@@ -54,10 +277,20 @@ export default function DashboardLayout() {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [] });
+  const [searchResults, setSearchResults] = useState({ users: [], projects: [], notices: [], teams: [], applications: [], pages: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(-1);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Notification state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const notifRef = useRef(null);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -67,32 +300,41 @@ export default function DashboardLayout() {
   const filteblueNav = navItems.filter(item => item.roles.includes(role));
 
   const currentApp = navItems.find(item => item.path === location.pathname)?.label ||
-                     navItems.find(item => item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))?.label ||
-                     'Dashboard';
+    navItems.find(item => item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))?.label ||
+    'Dashboard';
 
   // Global Search logic
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
-      setSearchResults({ users: [], projects: [], notices: [] });
+      setSearchResults({ users: [], projects: [], notices: [], teams: [], applications: [], pages: [] });
       setShowSearchDropdown(false);
       return;
     }
-    
+
     const fetchResults = async () => {
       setIsSearching(true);
       setShowSearchDropdown(true);
       try {
-        const [allUsers, allProjects, allNotices] = await Promise.all([
-          usersAPI.getAll().catch(()=>[]),
-          projectsAPI.getAll().catch(()=>[]),
-          announcementsAPI.getAll().catch(()=>[])
+        const [allUsers, allProjects, allNotices, allTeams, allApps] = await Promise.all([
+          usersAPI.getAll().catch(() => []),
+          projectsAPI.getAll().catch(() => []),
+          announcementsAPI.getAll().catch(() => []),
+          teamsAPI.getAll().catch(() => []),
+          applicationsAPI.getAll().catch(() => [])
         ]);
-        
+
         const q = searchQuery.toLowerCase();
         setSearchResults({
-          users: allUsers.filter(u => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)).slice(0,3),
-          projects: allProjects.filter(p => p.name?.toLowerCase().includes(q)).slice(0,3),
-          notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0,3)
+          users: allUsers.filter(u => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)).slice(0, 3),
+          projects: allProjects.filter(p => p.name?.toLowerCase().includes(q)).slice(0, 3),
+          notices: allNotices.filter(n => n.title?.toLowerCase().includes(q)).slice(0, 3),
+          teams: allTeams.filter(t => t.name?.toLowerCase().includes(q)).slice(0, 3),
+          applications: allApps.filter(a => a.name?.toLowerCase().includes(q) || a.email?.toLowerCase().includes(q)).slice(0, 3),
+          pages: navItems.filter(item => {
+            const label = item.label?.toLowerCase() || '';
+            const path = item.path?.toLowerCase() || '';
+            return label.includes(q) || path.includes(q);
+          }).slice(0, 6)
         });
       } catch (err) {
         console.error('Search failed', err);
@@ -100,28 +342,94 @@ export default function DashboardLayout() {
         setIsSearching(false);
       }
     };
-    
+
     const timeout = setTimeout(fetchResults, 400);
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
+  useEffect(() => {
+    if (!showLogoutConfirm) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowLogoutConfirm(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showLogoutConfirm]);
+
   const closeAll = () => {
     setShowSearchDropdown(false);
     setShowSearchMobile(false);
-    setSearchQuery('');
+    setShowNotifDropdown(false);
   };
 
-  const handleSearchNavigate = (path) => {
-    navigate(path);
+  // Fetch notifications on mount
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      setNotifLoading(true);
+      try {
+        const [data, countData] = await Promise.all([
+          notificationsAPI.getAll().catch(() => []),
+          notificationsAPI.getUnreadCount().catch(() => ({ count: 0 }))
+        ]);
+        setNotifications(Array.isArray(data) ? data : []);
+        setUnreadCount(countData?.count ?? 0);
+      } catch (err) {
+        console.error('Failed to fetch notifications', err);
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    if (!showNotifDropdown) return;
+    const handleOutsideClick = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showNotifDropdown]);
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
+  };
+
+  const handleSearchResultClick = (typeOrPath) => {
+    const routeMap = {
+      projects: '/dashboard/projects',
+      personnel: '/dashboard/team',
+      notices: '/dashboard/notices',
+      teams: '/dashboard/teams',
+      recruitment: '/dashboard/recruitment'
+    };
+
+    const route = typeof typeOrPath === 'string' && routeMap[typeOrPath]
+      ? routeMap[typeOrPath]
+      : typeOrPath || '/dashboard';
+    navigate(route);
     closeAll();
   };
 
   const SearchDropdown = () => (
     <AnimatePresence>
       {showSearchDropdown && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-          className="absolute top-full mt-2 left-0 right-0 bg-[#020617]/98 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 max-h-80 overflow-y-auto custom-scrollbar"
+          className="absolute top-full mt-2 left-0 right-0 bg-[#020617]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 z-50 max-h-80 overflow-y-auto custom-scrollbar"
         >
           {isSearching ? (
             <div className="p-4 text-center text-xs text-white/50 font-medium flex items-center justify-center gap-2">
@@ -130,68 +438,77 @@ export default function DashboardLayout() {
             </div>
           ) : (
             <div className="p-2">
+              {searchResults.pages.length > 0 && (
+                <div className="mb-2">
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Pages</span>
+                  {searchResults.pages.map(page => (
+                    <div
+                      key={page.path}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick(page.path);
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <p className="text-sm font-bold text-white truncate">{page.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               {searchResults.projects.length > 0 && (
                 <div className="mb-2">
-                  <span className="text-[9px] uppercase font-black text-[#00b4d8]/80 px-3 mb-1 block tracking-widest">📁 Projects</span>
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Projects</span>
                   {searchResults.projects.map(p => (
-                    <button
+                    <div
                       key={p.id}
-                      onClick={() => handleSearchNavigate('/dashboard/projects')}
-                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group flex items-center gap-3"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick('projects');
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
-                      <div className="w-6 h-6 rounded-lg bg-[#00b4d8]/10 border border-[#00b4d8]/20 flex items-center justify-center shrink-0">
-                        <span className="text-[8px] text-[#00b4d8] font-black">P</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-[#00b4d8] transition-colors">{p.name}</p>
-                        <p className="text-[9px] text-white/30 uppercase tracking-widest">{p.type || 'Project'} · {p.status}</p>
-                      </div>
-                    </button>
+                      <p className="text-sm font-bold text-white truncate">{p.name}</p>
+                    </div>
                   ))}
                 </div>
               )}
               {searchResults.users.length > 0 && (
                 <div className="mb-2">
-                  <span className="text-[9px] uppercase font-black text-[#00b4d8]/80 px-3 mb-1 block tracking-widest">👤 Personnel</span>
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Personnel</span>
                   {searchResults.users.map(u => (
-                    <button
+                    <div
                       key={u.id}
-                      onClick={() => handleSearchNavigate('/dashboard/team')}
-                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group flex items-center gap-3"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick('personnel');
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
-                      <div className="w-6 h-6 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/30 flex items-center justify-center shrink-0 text-[10px] font-black text-white">
-                        {(u.name || 'U').charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-[#00b4d8] transition-colors">{u.name}</p>
-                        <p className="text-[9px] text-white/30 truncate">{u.email} · {u.role}</p>
-                      </div>
-                    </button>
+                      <p className="text-sm font-bold text-white truncate">{u.name}</p>
+                      <p className="text-[10px] text-white/40 truncate">{u.email}</p>
+                    </div>
                   ))}
                 </div>
               )}
               {searchResults.notices.length > 0 && (
                 <div className="mb-2">
-                  <span className="text-[9px] uppercase font-black text-[#00b4d8]/80 px-3 mb-1 block tracking-widest">📢 Notices</span>
+                  <span className="text-[10px] uppercase font-bold text-[#00b4d8] px-3 mb-1 block">Notices</span>
                   {searchResults.notices.map(n => (
-                    <button
+                    <div
                       key={n.id}
-                      onClick={() => handleSearchNavigate('/dashboard/notices')}
-                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group flex items-center gap-3"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSearchResultClick('notices');
+                      }}
+                      className="px-3 py-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                     >
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                        <span className="text-[8px] text-amber-400 font-black">N</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-[#00b4d8] transition-colors">{n.title}</p>
-                        <p className="text-[9px] text-white/30 uppercase tracking-widest">Notice · {n.type || 'General'}</p>
-                      </div>
-                    </button>
+                      <p className="text-sm font-bold text-white truncate">{n.title}</p>
+                    </div>
                   ))}
                 </div>
               )}
-              {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.notices.length === 0 && (
-                <div className="p-4 text-center text-xs text-white/50 font-medium">No records found for "{searchQuery}"</div>
+              {searchResults.projects.length === 0 && searchResults.users.length === 0 && searchResults.pages.length === 0 && searchResults.notices.length === 0 && (
+                <div className="p-4 text-center text-xs text-white/50 font-medium">No records found.</div>
               )}
             </div>
           )}
@@ -241,8 +558,9 @@ export default function DashboardLayout() {
       {/* Logout at bottom for mobile convenience */}
       <div className="px-3 pb-5 shrink-0 border-t border-white/5 pt-4">
         <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 border border-transparent transition-all"
+          onClick={() => setShowLogoutConfirm(true)}
+          disabled={isLoggingOut}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 border border-transparent transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <LogOut className="w-5 h-5 shrink-0" />
           <span className="text-xs font-bold uppercase tracking-widest">Logout</span>
@@ -252,7 +570,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div 
+    <div
       className="flex h-screen w-full bg-[#020617] text-white selection:bg-[#00b4d8] selection:text-[#020617] font-sans relative overflow-hidden"
       onClick={closeAll}
     >
@@ -273,7 +591,13 @@ export default function DashboardLayout() {
 
       {/* ===== DESKTOP SIDEBAR (md+) ===== */}
       <aside className="hidden md:flex w-[260px] lg:w-[280px] h-full flex-col bg-white/[0.02] border-r border-white/10 relative z-20 shadow-[0_20px_40px_rgba(0,0,0,0.5)] shrink-0">
-        <SidebarContent onNavClick={undefined} />
+        <SidebarContent
+          onNavClick={undefined}
+          filteblueNav={filteblueNav}
+          showLogoutConfirm={showLogoutConfirm}
+          setShowLogoutConfirm={setShowLogoutConfirm}
+          isLoggingOut={isLoggingOut}
+        />
       </aside>
 
       {/* ===== MOBILE SIDEBAR OVERLAY ===== */}
@@ -304,7 +628,13 @@ export default function DashboardLayout() {
               >
                 <XIcon className="w-4 h-4" />
               </button>
-              <SidebarContent onNavClick={() => setMobileSidebarOpen(false)} />
+              <SidebarContent
+                onNavClick={() => setMobileSidebarOpen(false)}
+                filteblueNav={filteblueNav}
+                showLogoutConfirm={showLogoutConfirm}
+                setShowLogoutConfirm={setShowLogoutConfirm}
+                isLoggingOut={isLoggingOut}
+              />
             </motion.aside>
           </>
         )}
@@ -338,16 +668,22 @@ export default function DashboardLayout() {
             <div className="relative hidden lg:block" onClick={e => e.stopPropagation()}>
               <div className="relative flex items-center">
                 <Search className="absolute left-4 w-4 h-4 text-white/40" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Global Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
+                  //onKeyDown={handleSearchInputKeyDown}
                   className="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all w-56 xl:w-64 text-white placeholder:text-white/30"
                 />
               </div>
-              <SearchDropdown />
+              <SearchDropdown
+                showSearchDropdown={showSearchDropdown}
+                isSearching={isSearching}
+                searchResults={searchResults}
+                handleSearchResultClick={handleSearchResultClick}
+              />
             </div>
 
             {/* Mobile Search toggle */}
@@ -358,13 +694,110 @@ export default function DashboardLayout() {
               <Search className="w-4 h-4" />
             </button>
 
-            <button className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/5 hover:bg-[#00b4d8]/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-[#00b4d8] transition-all backdrop-blur-md relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-2 h-2 bg-[#00b4d8] rounded-full border-2 border-[#020617]"></span>
-            </button>
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef} onClick={e => e.stopPropagation()}>
+              <button
+                id="notification-bell-btn"
+                onClick={() => setShowNotifDropdown(v => !v)}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/5 hover:bg-[#00b4d8]/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-[#00b4d8] transition-all backdrop-blur-md relative"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-[#00b4d8] rounded-full border-2 border-[#020617] flex items-center justify-center text-[9px] font-black text-[#020617] px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifDropdown && (
+                  <motion.div
+                    id="notification-dropdown"
+                    initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full right-0 mt-3 w-80 bg-[#0a1020]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                      <span className="text-xs font-black uppercase tracking-widest text-white">Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold text-[#00b4d8] bg-[#00b4d8]/10 px-2 py-0.5 rounded-full">
+                          {unreadCount} unread
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Body */}
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar">
+                      {notifLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-8 text-xs text-white/40">
+                          <div className="w-3 h-3 border border-white/20 border-t-[#00b4d8] rounded-full animate-spin" />
+                          Loading...
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 gap-2">
+                          <Bell className="w-7 h-7 text-white/10" />
+                          <p className="text-xs text-white/30 font-medium">No notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={async () => {
+                              const route = getNotificationRoute(notif);
+
+                              if (!notif.is_read) {
+                                // Update UI immediately
+                                setNotifications(prev =>
+                                  prev.map(n =>
+                                    n.id === notif.id ? { ...n, is_read: true } : n
+                                  )
+                                );
+
+                                setUnreadCount(prev => Math.max(0, prev - 1));
+
+                                try {
+                                  await notificationsAPI.markAsRead(notif.id);
+                                } catch (err) {
+                                  console.error("Failed to mark notification as read", err);
+                                }
+                              }
+
+                              navigate(route);
+                              setShowNotifDropdown(false);
+                            }}
+                            className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${!notif.is_read ? 'bg-[#00b4d8]/5' : ''
+                              }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!notif.is_read && (
+                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#00b4d8] shrink-0" />
+                              )}
+                              <div className={!notif.is_read ? '' : 'ml-3.5'}>
+                                <p className="text-xs font-bold text-white truncate">{notif.title}</p>
+                                {notif.message && (
+                                  <p className="text-[11px] text-white/50 mt-0.5 line-clamp-2">{notif.message}</p>
+                                )}
+                                {notif.created_at && (
+                                  <p className="text-[10px] text-white/25 mt-1">
+                                    {formatNotificationDate(notif.created_at)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Profile Avatar */}
-            <div 
+            <div
               title={`${user?.name || 'Operator'} (${role} Access)`}
               className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#00b4d8]/20 border border-[#00b4d8]/50 flex items-center justify-center overflow-hidden backdrop-blur-md shrink-0"
             >
@@ -381,15 +814,6 @@ export default function DashboardLayout() {
               )}
             </div>
 
-            {/* Logout Button */}
-            <button 
-              onClick={logout} 
-              title="Logout / Disconnect Session"
-              className="hidden sm:flex w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 items-center justify-center text-white/50 hover:text-rose-400 transition-all backdrop-blur-md cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-
           </div>
         </header>
 
@@ -397,20 +821,21 @@ export default function DashboardLayout() {
         <AnimatePresence>
           {showSearchMobile && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden overflow-hidden bg-[#0a1020] border-b border-white/10 px-4 relative"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden bg-[#0a1020] border-b border-white/10 relative z-30"
               onClick={e => e.stopPropagation()}
             >
               <div className="py-3 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
+                  //onKeyDown={handleSearchInputKeyDown}
                   autoFocus
                   className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-[#00b4d8]/50 focus:bg-white/10 transition-all text-white placeholder:text-white/30"
                 />
@@ -427,13 +852,56 @@ export default function DashboardLayout() {
 
       </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,180,216,0.5); }
-      `}} />
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0a1020]/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-[0.2em] text-white">Confirm Logout</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    Are you sure you want to log out of your account?
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition-all hover:bg-white/10 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  disabled={isLoggingOut}
+                  className="rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

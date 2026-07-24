@@ -29,7 +29,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     role: Optional[str] = None
     image: Optional[str] = None
-    disabled: Optional[bool] = None
+    is_active: Optional[bool] = None
 
 @router.post("/developers", status_code=status.HTTP_210_CREATED if hasattr(status, "HTTP_210_CREATED") else 201)
 def create_developer(
@@ -63,7 +63,6 @@ def create_developer(
         passout_year=0,
         password_hash=security.get_password_hash(member_in.password),
         is_active=True,
-        disabled=False,
         created_at=created_at
     )
     db.add(user)
@@ -165,13 +164,13 @@ def disable_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    user.disabled = True
+    user.is_active = False
     db.add(user)
     
     # Also disable associated Member if it exists
     member = db.get(Member, userId)
     if member:
-        member.disabled = True
+        member.is_active = False
         db.add(member)
         
     db.commit()

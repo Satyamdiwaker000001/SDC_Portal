@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Target, Calendar, CheckCircle2, Clock, Package, 
@@ -53,7 +54,7 @@ const STATUS_COLORS = {
 // ==========================================
 // FOLDER COMPONENT (THE MAIN UI STAR)
 // ==========================================
-function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProject, role, isInline = false, onClose, onSelect }) {
+function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProject, onRefreshData, role, isInline = false, onClose, onSelect, isHighlighted = false }) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeFile, setActiveFile] = useState('report'); // report | sdlc | documents | team | feedback
@@ -261,7 +262,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
       setShowAddTaskModal(false);
       fetchTasks();
       fetchPhases(); // refresh progresses
-      fetchGlobalData(); // refresh project overall progress
+      onRefreshData?.(); // refresh project overall progress
     } catch (err) {
       alert("Failed to create task inside phase");
     } finally {
@@ -903,7 +904,12 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
       {/* 📁 macOS Style Folder Icon */}
       <motion.div 
         layoutId={`folder-container-${project.id}`}
-        className="flex flex-col items-center cursor-pointer mt-6 mx-auto group w-36"
+        id={`project-card-${project.id}`}
+        className={`flex flex-col items-center cursor-pointer mt-6 mx-auto group w-36 p-2 rounded-2xl transition-all duration-500 ${
+          isHighlighted
+            ? 'ring-4 ring-[#00b4d8] shadow-[0_0_35px_rgba(0,180,216,0.6)] scale-[1.05] bg-[#00b4d8]/10'
+            : ''
+        }`}
         onClick={() => onSelect && onSelect(project.id)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -1035,11 +1041,13 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
 // ==========================================
 export default function ProjectsView() {
   const { role, user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [projects, setProjects] = useState([]);
   const [teams, setTeams] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [userTeams, setUserTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [highlightedProjectId, setHighlightedProjectId] = useState(null);
 
   // Modal open for adding project
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1157,6 +1165,31 @@ export default function ProjectsView() {
     return t ? t.name : 'Unassigned';
   };
 
+  const targetProjectId = searchParams.get('id');
+
+  // Deep-link handling: scroll, highlight, and auto-open matching project details
+  useEffect(() => {
+    if (!loading && targetProjectId && Array.isArray(projects) && projects.length > 0) {
+      const target = projects.find(p => p && String(p.id) === String(targetProjectId));
+      if (target) {
+        setSelectedProjectId(target.id);
+        setHighlightedProjectId(target.id);
+        const timer = setTimeout(() => {
+          setHighlightedProjectId(null);
+        }, 4000);
+
+        setTimeout(() => {
+          const el = document.getElementById(`project-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading, targetProjectId, projects, searchParams]);
+
   return (
     <div className="h-full flex flex-col gap-6">
       
@@ -1194,6 +1227,7 @@ export default function ProjectsView() {
             allUsers={allUsers}
             onUpdateProject={handleUpdateProject}
             onDeleteProject={setDeletingProject}
+            onRefreshData={fetchGlobalData}
             role={role}
             isInline={true}
             onClose={() => setSelectedProjectId(null)}
@@ -1215,8 +1249,10 @@ export default function ProjectsView() {
                   allUsers={allUsers}
                   onUpdateProject={handleUpdateProject}
                   onDeleteProject={setDeletingProject}
+                  onRefreshData={fetchGlobalData}
                   role={role}
                   onSelect={setSelectedProjectId}
+                  isHighlighted={String(project.id) === String(highlightedProjectId)}
                 />
               ))}
             </AnimatePresence>
@@ -1235,7 +1271,7 @@ export default function ProjectsView() {
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl bg-[#020617] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-white"
+              className="relative w-full max-w-md bg-[#020617] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-white"
             >
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-sky-900/20 to-transparent flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -1361,12 +1397,6 @@ export default function ProjectsView() {
         )}
       </AnimatePresence>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 216, 0.4); }
-      `}} />
     </div>
   );
 }

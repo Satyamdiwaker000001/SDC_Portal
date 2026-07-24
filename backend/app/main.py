@@ -1,11 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
+from sqlmodel import Session, select
+from .api import deps
 from .api.v1.endpoints import auth, users, teams, projects, applications, announcements, notices, interactions, leaderboards, audit, settings as settings_endpoint, tasks
 from .db.session import init_db
 from .core.config import settings
+from .models.models import Notification, User
 from fastapi.staticfiles import StaticFiles
 import os
+
+print("MAIN.PY IS RUNNING")
 
 app = FastAPI(
     title=settings.PROJECT_NAME, 
@@ -52,6 +57,59 @@ def on_startup():
 @app.get("/health")
 def health_check():
     return {"status": "OPERATIONAL", "node": "SDC_CORE_V4"}
+
+@app.get("/notifications")
+@app.get(f"{settings.API_V1_STR}/notifications")
+def list_notifications(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    notifications = db.exec(
+        select(Notification)
+        .where(Notification.user_id == current_user.id)
+        .order_by(Notification.created_at.desc())
+    ).all()
+    return notifications
+
+@app.get("/notifications/unread-count")
+@app.get(f"{settings.API_V1_STR}/notifications/unread-count")
+def unread_notification_count(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    count = db.exec(
+        select(Notification)
+        .where(Notification.user_id == current_user.id)
+        .where(Notification.is_read == False)
+    ).all()
+    return {"count": len(count)}
+    
+    print("========== PATCH ROUTE LOADED ==========")
+
+@app.patch("/notifications/{notification_id}/read")
+@app.patch(f"{settings.API_V1_STR}/notifications/{{notification_id}}/read")
+def mark_notification_read(
+    notification_id: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    notif = db.exec(
+        select(Notification)
+        .where(Notification.id == notification_id)
+        .where(Notification.user_id == current_user.id)
+    ).first()
+
+    if not notif:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    if not notif.is_read:
+        notif.is_read = True
+        db.add(notif)
+        db.commit()
+        db.refresh(notif)
+
+    return notif
 
 # --- ROUTER_REGISTRATION ---
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])

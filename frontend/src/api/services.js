@@ -57,6 +57,11 @@ export const usersAPI = {
     );
     return data;
   },
+  getPublicRoster: async (role) => {
+    const url = role ? `/users/public/roster?role=${role}` : '/users/public/roster';
+    const { data } = await client.get(url);
+    return data;
+  },
 };
 
 export const teamsAPI = {
@@ -257,7 +262,14 @@ export const noticesAPI = {
     };
   },
   update: async (id, noticeData) => {
-    const { data } = await client.patch(`/notices/${id}`, noticeData);
+    const payload = {};
+    if (noticeData.title !== undefined) payload.title = noticeData.title;
+    if (noticeData.body !== undefined) payload.description = noticeData.body;
+    if (noticeData.priority !== undefined) payload.category = noticeData.priority === 'Normal' ? 'General' : noticeData.priority;
+    if (noticeData.is_global !== undefined) payload.audience_type = noticeData.is_global ? "ALL_USERS" : "SPECIFIC_TEAMS";
+    if (noticeData.team_ids !== undefined) payload.target_team_ids = noticeData.team_ids;
+    if (noticeData.pinned !== undefined) payload.is_pinned = noticeData.pinned;
+    const { data } = await client.patch(`/notices/${id}`, payload);
     return data;
   },
   delete: async (id) => {
@@ -289,7 +301,7 @@ export const settingsAPI = {
     return data;
   },
   update: async (key, value) => {
-    const { data } = await client.patch(`/settings/${key}?value=${value}`);
+    const { data } = await client.patch(`/settings/${key}?value=${encodeURIComponent(value)}`);
     return data;
   }
 };
@@ -308,6 +320,23 @@ export const leaderboardsAPI = {
 export const auditAPI = {
   getLogs: async () => {
     const { data } = await client.get('/audit/logs');
+    return data;
+  }
+};
+
+export const notificationsAPI = {
+  getAll: async () => {
+    const { data } = await client.get('/notifications');
+    return data;
+  },
+
+  getUnreadCount: async () => {
+    const { data } = await client.get('/notifications/unread-count');
+    return data;
+  },
+
+  markAsRead: async (id) => {
+    const { data } = await client.patch(`/notifications/${id}/read`);
     return data;
   }
 };

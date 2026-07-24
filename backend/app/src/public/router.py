@@ -4,7 +4,7 @@ from sqlmodel import Session, select, func, or_
 from typing import Any, List, Optional
 
 from ...api import deps
-from ...models.models import Project, User, Team, TeamMember, ProjectShowcase, RecruitmentDrive
+from ...models.models import Project, User, Team, TeamMember, SystemSetting
 
 router = APIRouter()
 
@@ -23,8 +23,7 @@ def get_home_metrics(
     """
     featured = db.exec(
         select(Project)
-        .join(ProjectShowcase, Project.id == ProjectShowcase.project_id)
-        .where(ProjectShowcase.is_featured == True)
+        .where(Project.is_featured == True)
         .limit(3)
     ).all()
     
@@ -56,8 +55,7 @@ def list_featured_projects(
     """
     return db.exec(
         select(Project)
-        .join(ProjectShowcase, Project.id == ProjectShowcase.project_id)
-        .where(ProjectShowcase.is_featured == True)
+        .where(Project.is_featured == True)
     ).all()
 
 @router.get("/projects/{projectId}")
@@ -69,10 +67,9 @@ def get_public_project_details(
     Get specific project showcase details
     """
     project = db.get(Project, projectId)
-    if not project or project.status != "LIVE":
-        raise HTTPException(status_code=404, detail="Project not found or not published")
-    showcase = db.exec(select(ProjectShowcase).where(ProjectShowcase.project_id == projectId)).first()
-    return {"project": project, "showcase": showcase}
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"project": project}
 
 @router.get("/projects/{projectId}/team")
 def get_public_project_team(
@@ -83,9 +80,9 @@ def get_public_project_team(
     Get development team detail assigned to the project
     """
     project = db.get(Project, projectId)
-    if not project or not project.teamId:
+    if not project or not project.team_id:
         raise HTTPException(status_code=404, detail="Project or team assignment not found")
-    team = db.get(Team, project.teamId)
+    team = db.get(Team, project.team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team details not found")
     
@@ -93,7 +90,7 @@ def get_public_project_team(
     members = db.exec(
         select(User)
         .join(TeamMember, User.id == TeamMember.user_id)
-        .where(TeamMember.team_id == project.teamId)
+        .where(TeamMember.team_id == project.team_id)
     ).all()
     
     return {"team": team, "members": members}
@@ -222,9 +219,13 @@ def list_public_recruitment_drives(
     db: Session = Depends(deps.get_db),
 ) -> Any:
     """
-    Get list of recruitment campaigns
+    Get recruitment status from system settings
     """
-    return db.exec(select(RecruitmentDrive).where(RecruitmentDrive.status == "ACTIVE")).all()
+    setting = db.exec(
+        select(SystemSetting).where(SystemSetting.key == "is_recruitment_live")
+    ).first()
+    is_active = setting is not None and setting.value.lower() == "true"
+    return {"is_active": is_active}
 
 @router.get("/recruitment/status")
 def get_public_recruitment_status(
@@ -233,8 +234,11 @@ def get_public_recruitment_status(
     """
     Checks if there is any active recruitment drive running
     """
-    active_drive = db.exec(select(RecruitmentDrive).where(RecruitmentDrive.status == "ACTIVE")).first()
-    return {"is_active": active_drive is not None, "drive": active_drive}
+    setting = db.exec(
+        select(SystemSetting).where(SystemSetting.key == "is_recruitment_live")
+    ).first()
+    is_active = setting is not None and setting.value.lower() == "true"
+    return {"is_active": is_active}
 
 @router.post("/contact")
 def submit_contact_form(
