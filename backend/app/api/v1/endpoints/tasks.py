@@ -197,18 +197,22 @@ def create_task(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if not project.team_id:
-        raise HTTPException(status_code=400, detail="No team assigned to this project yet")
+    # Verify current user is authorized (Team Leader, Team Member, Project Creator, Mentor, Admin)
+    is_authorized = False
+    if project.team_id:
+        member = db.exec(
+            select(TeamMember)
+            .where(TeamMember.team_id == project.team_id)
+            .where(TeamMember.user_id == current_user.id)
+        ).first()
+        if member:
+            is_authorized = True
 
-    # Verify current user is the Team Leader of this project's team
-    tl_member = db.exec(
-        select(TeamMember)
-        .where(TeamMember.team_id == project.team_id)
-        .where(TeamMember.user_id == current_user.id)
-        .where(TeamMember.designation == "lead")
-    ).first()
-    if not tl_member and current_user.role not in ["admin", "mentor"]:
-        raise HTTPException(status_code=403, detail="Only the Team Leader, Mentor, or Admin can create tasks")
+    if project.created_by == current_user.id or current_user.role in ["admin", "mentor"]:
+        is_authorized = True
+
+    if not is_authorized:
+        raise HTTPException(status_code=403, detail="Only the Team Leader, assigned members, or Admin can create tasks")
 
     # Verify phase is unlocked (SRS 3.7.2)
     phase = db.get(ProjectPhase, task_in.phase_id)
@@ -217,14 +221,10 @@ def create_task(
     if not phase.is_unlocked:
         raise HTTPException(status_code=400, detail="Cannot create tasks in a locked SDLC phase")
 
-    # Verify assignee belongs to the project team (BR-009)
-    assignee_member = db.exec(
-        select(TeamMember)
-        .where(TeamMember.team_id == project.team_id)
-        .where(TeamMember.user_id == task_in.assigned_to)
-    ).first()
-    if not assignee_member:
-        raise HTTPException(status_code=400, detail="Assigned developer must belong to the project team")
+    # Verify assigned user exists in DB
+    assignee_user = db.get(User, task_in.assigned_to)
+    if not assignee_user:
+        raise HTTPException(status_code=400, detail="Assigned user not found")
 
     task = Task(
         id=str(uuid.uuid4()),
@@ -275,11 +275,12 @@ def list_tasks(
     phase_id: Optional[str] = None,
     db: Session = Depends(deps.get_db),
 ) -> Any:
+    from sqlalchemy import func
     query = select(Task)
     if project_id:
         query = query.where(Task.project_id == project_id)
     if assigned_to:
-        query = query.where(Task.assigned_to == assigned_to)
+        query = query.where(func.lower(Task.assigned_to) == assigned_to.strip().lower())
     if status:
         query = query.where(Task.status == status.upper())
     if phase_id:
@@ -318,6 +319,7 @@ def update_task_status(
         )
 
     # Auth check
+    is_assignee = (str(task.assigned_to).strip().lower() == str(current_user.id).strip().lower())
     is_tl = False
     project = db.get(Project, task.project_id)
     if project and project.team_id:
@@ -325,11 +327,10 @@ def update_task_status(
             select(TeamMember)
             .where(TeamMember.team_id == project.team_id)
             .where(TeamMember.user_id == current_user.id)
-            .where(TeamMember.designation == "lead")
         ).first()
         is_tl = tl is not None
 
-    if task.assigned_to != current_user.id and current_user.role != "admin" and not is_tl:
+    if not is_assignee and current_user.role not in ["admin", "mentor"] and not is_tl:
         raise HTTPException(status_code=403, detail="Not authorised to update this task's status")
 
     old_status = task.status
@@ -368,8 +369,9 @@ def submit_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task.assigned_to != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the assigned developer can submit")
+    is_assignee = (str(task.assigned_to).strip().lower() == str(current_user.id).strip().lower())
+    if not is_assignee and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only the assigned user or admin can submit")
 
     task.status = "PENDING_VERIFICATION"
     task.submission_url = submission.submission_url

@@ -200,8 +200,8 @@ def update_application_status(
         raise HTTPException(status_code=404, detail="Application not found")
 
     new_status = status_update.upper()
-    if new_status not in ["ACCEPTED", "APPROVED", "REJECTED"]:
-        raise HTTPException(status_code=400, detail="Invalid status. Use ACCEPTED or REJECTED.")
+    if new_status not in ["PENDING", "SHORTLISTED", "ACCEPTED", "APPROVED", "REJECTED"]:
+        raise HTTPException(status_code=400, detail="Invalid status. Use PENDING, SHORTLISTED, ACCEPTED, or REJECTED.")
 
     # Normalise APPROVED → ACCEPTED
     if new_status == "APPROVED":

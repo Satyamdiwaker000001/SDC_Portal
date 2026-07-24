@@ -130,20 +130,25 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
     status: project.status
   });
 
-  // Check if current user is Team Leader of this project's team
+  // Check if current user is Team Leader of this project's team or project creator
   const isTeamLeader = useMemo(() => {
-    if (!project.team_id || !user) return false;
-    const member = teamMembers.find(m => m.user_id === user.id);
-    return member && member.designation === 'lead';
-  }, [teamMembers, project.team_id, user]);
+    if (!user) return false;
+    if (role === 'admin' || role === 'mentor') return true;
+    if (project.created_by && String(project.created_by).trim().toLowerCase() === String(user.id).trim().toLowerCase()) return true;
+    if (!project.team_id) return false;
+    const uid = String(user.id).trim().toLowerCase();
+    const member = teamMembers.find(m => m && m.user_id && String(m.user_id).trim().toLowerCase() === uid);
+    return Boolean(member && (member.designation === 'lead' || member.designation === 'leader' || member.designation === 'Team Leader'));
+  }, [teamMembers, project.team_id, project.created_by, user, role]);
 
   // Check if current user is assigned Mentor or has mentor role
   const isMentor = useMemo(() => {
     if (!user) return false;
     if (user.role === 'mentor' || user.role === 'admin') return true;
     if (!project.team_id) return false;
-    const member = teamMembers.find(m => m.user_id === user.id);
-    return member && member.designation === 'mentor';
+    const uid = String(user.id).trim().toLowerCase();
+    const member = teamMembers.find(m => m && m.user_id && String(m.user_id).trim().toLowerCase() === uid);
+    return Boolean(member && member.designation === 'mentor');
   }, [teamMembers, project.team_id, user]);
 
   // Load team roster
@@ -393,10 +398,19 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
     }
   };
 
-  // Filter developers for task assignments dropdown
+  // Filter developers/members for task assignments dropdown (including TL and allUsers fallback)
   const teamDevelopers = useMemo(() => {
-    return teamMembers.filter(m => m.designation !== 'mentor');
-  }, [teamMembers]);
+    if (Array.isArray(teamMembers) && teamMembers.length > 0) {
+      return teamMembers.map(m => ({
+        user_id: m.user_id,
+        name: m.name + (m.designation === 'lead' ? ' 👑 (Leader / You)' : '')
+      }));
+    }
+    return allUsers.map(u => ({
+      user_id: u.id,
+      name: u.name + (user && u.id === user.id ? ' (You)' : '')
+    }));
+  }, [teamMembers, allUsers, user]);
 
   // Tasks belonging to currently selected phase
   const phaseTasks = useMemo(() => {
@@ -715,10 +729,11 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                           <h3 className="text-sm font-black text-white uppercase tracking-wide">Phase {selectedPhase.sequence}: {selectedPhase.name}</h3>
                           <p className="text-[10px] text-white/50 mt-0.5 uppercase tracking-widest font-bold">Tasks in this phase contribute to phase completion</p>
                         </div>
-                        {(isTeamLeader || isMentor || role === 'admin') && selectedPhase.is_unlocked && (
+                        {(isTeamLeader || isMentor || role === 'admin' || role === 'developer') && (selectedPhase.is_unlocked || selectedPhase.sequence === 1 || role === 'admin') && (
                           <button 
+                            type="button"
                             onClick={() => setShowAddTaskModal(true)}
-                            className="px-3.5 py-2 bg-[#00b4d8] text-black hover:bg-[#00c8f0] rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-md shadow-[#00b4d8]/20"
+                            className="px-3.5 py-2 bg-[#00b4d8] text-black hover:bg-[#00c8f0] rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-md shadow-[#00b4d8]/20 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Assign Task
                           </button>
@@ -731,7 +746,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                         ) : (
                           phaseTasks.map(t => {
                             const assignee = allUsers.find(u => u.id === t.assigned_to);
-                            const isAssignee = user && user.id === t.assigned_to;
+                            const isAssignee = Boolean(user?.id && t.assigned_to && String(user.id).trim().toLowerCase() === String(t.assigned_to).trim().toLowerCase());
 
                             return (
                               <div key={t.id} className="p-4 bg-white/[0.02] border border-white/10 rounded-2xl shadow-sm hover:border-[#00b4d8]/30 transition-all space-y-3">
@@ -1103,6 +1118,237 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
           </div>
         )}
 
+        {/* Team Leader Add Task Modal Dialog */}
+        {showAddTaskModal && selectedPhase && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[120]">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-md space-y-6 shadow-2xl text-white border border-white/10">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-white/40 tracking-widest">Phase {selectedPhase.sequence} Deployment</span>
+                <h3 className="text-base font-black text-white uppercase mt-1">Assign Task: {selectedPhase.name}</h3>
+                <p className="text-[11px] text-white/50">Assign a work package to team personnel.</p>
+              </div>
+              
+              <form onSubmit={handleCreateTaskSubmit} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Task Title *</label>
+                  <input 
+                    type="text" required
+                    placeholder="e.g. Implement routing"
+                    value={newTask.title}
+                    onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Description / Action Items</label>
+                  <textarea 
+                    rows="2"
+                    placeholder="Details regarding outputs..."
+                    value={newTask.description}
+                    onChange={e => setNewTask({ ...newTask, description: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Assign Developer *</label>
+                    <select 
+                      required
+                      value={newTask.assigned_to}
+                      onChange={e => setNewTask({ ...newTask, assigned_to: e.target.value })}
+                      className="w-full bg-[#1c222b] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] cursor-pointer"
+                    >
+                      <option value="" className="bg-[#0f172a]">-- Choose member --</option>
+                      {teamDevelopers.map(d => (
+                        <option key={d.user_id} value={d.user_id} className="bg-[#0f172a]">{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Due Date</label>
+                    <input 
+                      type="date"
+                      value={newTask.due_date}
+                      onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
+                      onClick={e => e.target.showPicker && e.target.showPicker()}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAddTaskModal(false)}
+                    className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
+                  >Cancel</button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingTask}
+                    className="px-5 py-2 bg-[#00b4d8] hover:bg-[#00c8f0] text-black font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50"
+                  >
+                    {isSubmittingTask ? 'Processing...' : 'Create Task'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Developer Task Submission Modal Dialog */}
+        {submitTask && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[130]">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-lg space-y-6 shadow-2xl text-white border border-white/10">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-[#00b4d8] tracking-widest">Developer Workspace Handshake</span>
+                <h3 className="text-base font-black text-white uppercase mt-1">Submit Work Output</h3>
+                <p className="text-[11px] text-white/50">Deliver repository code link and demonstration resources for: <strong>{submitTask.title}</strong></p>
+              </div>
+              
+              <form onSubmit={handleSubmitTaskOutput} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">GitHub Repository / PR Link *</label>
+                  <input 
+                    type="url" required
+                    placeholder="https://github.com/org/repo/pull/12"
+                    value={submissionUrls.url}
+                    onChange={e => setSubmissionUrls({ ...submissionUrls, url: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Hosted Demo Link (Optional)</label>
+                  <input 
+                    type="url"
+                    placeholder="https://my-app.vercel.app"
+                    value={submissionUrls.demo}
+                    onChange={e => setSubmissionUrls({ ...submissionUrls, demo: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setSubmitTask(null)}
+                    className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
+                  >Cancel</button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingCode}
+                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50 shadow-md shadow-emerald-500/20"
+                  >
+                    {isSubmittingCode ? 'Transmitting Output...' : 'Transmit Link'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Mentor & Admin Task Review & Verification Modal Dialog */}
+        {reviewTask && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[130]">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-lg space-y-6 shadow-2xl text-white border border-white/10">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-widest">Mentor Verification Suite</span>
+                <h3 className="text-base font-black text-white uppercase mt-1">Review Task Submission</h3>
+                <p className="text-[11px] text-white/50">Evaluate developer submission for work package: <strong>{reviewTask.title}</strong></p>
+              </div>
+
+              {/* Display submitted links */}
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2">
+                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest block">Submitted Deliverables</span>
+                {reviewTask.submission_url ? (
+                  <a href={reviewTask.submission_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white transition-colors">
+                    <span className="flex items-center gap-2 truncate">
+                      <Github className="w-4 h-4 text-[#00b4d8] shrink-0" />
+                      <span className="truncate">{reviewTask.submission_url}</span>
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                  </a>
+                ) : (
+                  <div className="text-xs text-white/30 italic">No code link attached</div>
+                )}
+
+                {reviewTask.submission_demo_url && (
+                  <a href={reviewTask.submission_demo_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 text-xs font-bold text-emerald-400 transition-colors">
+                    <span className="flex items-center gap-2 truncate">
+                      <Globe className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{reviewTask.submission_demo_url}</span>
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                  </a>
+                )}
+              </div>
+
+              <form onSubmit={handleVerifyOrReject} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Verification Decision</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReviewDecision('VERIFY')}
+                      className={`py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                        reviewDecision === 'VERIFY'
+                          ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/20'
+                          : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Approve (Verify)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewDecision('REJECT')}
+                      className={`py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                        reviewDecision === 'REJECT'
+                          ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/20'
+                          : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      <AlertTriangle className="w-4 h-4" /> Return for fixes
+                    </button>
+                  </div>
+                </div>
+
+                {reviewDecision === 'REJECT' && (
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-rose-400 uppercase tracking-wider block">Feedback / Rejection Remarks *</label>
+                    <textarea 
+                      rows="3" required
+                      placeholder="Specify code improvements or fixes required..."
+                      value={reviewRemarks}
+                      onChange={e => setReviewRemarks(e.target.value)}
+                      className="w-full bg-white/5 border border-rose-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-rose-400 resize-none"
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-2 justify-end pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setReviewTask(null)}
+                    className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
+                  >Cancel</button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingReview}
+                    className={`px-5 py-2 font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50 ${
+                      reviewDecision === 'VERIFY'
+                        ? 'bg-emerald-400 text-black hover:bg-emerald-300'
+                        : 'bg-rose-500 text-white hover:bg-rose-400'
+                    }`}
+                  >
+                    {isSubmittingReview ? 'Transmitting Decision...' : reviewDecision === 'VERIFY' ? 'Confirm Verification' : 'Transmit Rejection'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -1173,238 +1419,6 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
            </div>
         )}
       </AnimatePresence>
-
-      {/* Team Leader Add Task Modal Dialog */}
-      {showAddTaskModal && selectedPhase && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[120]">
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-md space-y-6 shadow-2xl text-white border border-white/10">
-            <div>
-              <span className="text-[9px] uppercase font-bold text-white/40 tracking-widest">Phase {selectedPhase.sequence} Deployment</span>
-              <h3 className="text-base font-black text-white uppercase mt-1">Assign Task: {selectedPhase.name}</h3>
-              <p className="text-[11px] text-white/50">Assign a work package to team personnel.</p>
-            </div>
-            
-            <form onSubmit={handleCreateTaskSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Task Title *</label>
-                <input 
-                  type="text" required
-                  placeholder="e.g. Implement routing"
-                  value={newTask.title}
-                  onChange={e => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Description / Action Items</label>
-                <textarea 
-                  rows="2"
-                  placeholder="Details regarding outputs..."
-                  value={newTask.description}
-                  onChange={e => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Assign Developer *</label>
-                  <select 
-                    required
-                    value={newTask.assigned_to}
-                    onChange={e => setNewTask({ ...newTask, assigned_to: e.target.value })}
-                    className="w-full bg-[#1c222b] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] cursor-pointer"
-                  >
-                    <option value="" className="bg-[#0f172a]">-- Choose member --</option>
-                    {teamDevelopers.map(d => (
-                      <option key={d.user_id} value={d.user_id} className="bg-[#0f172a]">{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Due Date</label>
-                  <input 
-                    type="date"
-                    value={newTask.due_date}
-                    onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
-                    onClick={e => e.target.showPicker && e.target.showPicker()}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowAddTaskModal(false)}
-                  className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
-                >Cancel</button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmittingTask}
-                  className="px-5 py-2 bg-[#00b4d8] hover:bg-[#00c8f0] text-black font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50"
-                >
-                  {isSubmittingTask ? 'Processing...' : 'Create Task'}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Developer Task Submission Modal Dialog */}
-      {submitTask && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[130]">
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-lg space-y-6 shadow-2xl text-white border border-white/10">
-            <div>
-              <span className="text-[9px] uppercase font-bold text-[#00b4d8] tracking-widest">Developer Workspace Handshake</span>
-              <h3 className="text-base font-black text-white uppercase mt-1">Submit Work Output</h3>
-              <p className="text-[11px] text-white/50">Deliver repository code link and demonstration resources for: <strong>{submitTask.title}</strong></p>
-            </div>
-            
-            <form onSubmit={handleSubmitTaskOutput} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">GitHub Repository / PR Link *</label>
-                <input 
-                  type="url" required
-                  placeholder="https://github.com/org/repo/pull/12"
-                  value={submissionUrls.url}
-                  onChange={e => setSubmissionUrls({ ...submissionUrls, url: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Hosted Demo Link (Optional)</label>
-                <input 
-                  type="url"
-                  placeholder="https://my-app.vercel.app"
-                  value={submissionUrls.demo}
-                  onChange={e => setSubmissionUrls({ ...submissionUrls, demo: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setSubmitTask(null)}
-                  className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
-                >Cancel</button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmittingCode}
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50 shadow-md shadow-emerald-500/20"
-                >
-                  {isSubmittingCode ? 'Transmitting Output...' : 'Transmit Link'}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Mentor & Admin Task Review & Verification Modal Dialog */}
-      {reviewTask && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 z-[130]">
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0f172a] rounded-3xl p-8 w-full max-w-lg space-y-6 shadow-2xl text-white border border-white/10">
-            <div>
-              <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-widest">Mentor Verification Suite</span>
-              <h3 className="text-base font-black text-white uppercase mt-1">Review Task Submission</h3>
-              <p className="text-[11px] text-white/50">Evaluate developer submission for work package: <strong>{reviewTask.title}</strong></p>
-            </div>
-
-            {/* Display submitted links */}
-            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2">
-              <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest block">Submitted Deliverables</span>
-              {reviewTask.submission_url ? (
-                <a href={reviewTask.submission_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white transition-colors">
-                  <span className="flex items-center gap-2 truncate">
-                    <Github className="w-4 h-4 text-[#00b4d8] shrink-0" />
-                    <span className="truncate">{reviewTask.submission_url}</span>
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
-                </a>
-              ) : (
-                <div className="text-xs text-white/30 italic">No code link attached</div>
-              )}
-
-              {reviewTask.submission_demo_url && (
-                <a href={reviewTask.submission_demo_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 text-xs font-bold text-emerald-400 transition-colors">
-                  <span className="flex items-center gap-2 truncate">
-                    <Globe className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{reviewTask.submission_demo_url}</span>
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                </a>
-              )}
-            </div>
-
-            <form onSubmit={handleVerifyOrReject} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Verification Decision</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setReviewDecision('VERIFY')}
-                    className={`py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                      reviewDecision === 'VERIFY'
-                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/20'
-                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-4 h-4" /> Approve (Verify)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReviewDecision('REJECT')}
-                    className={`py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                      reviewDecision === 'REJECT'
-                        ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/20'
-                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
-                    }`}
-                  >
-                    <AlertTriangle className="w-4 h-4" /> Return for fixes
-                  </button>
-                </div>
-              </div>
-
-              {reviewDecision === 'REJECT' && (
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-rose-400 uppercase tracking-wider block">Feedback / Rejection Remarks *</label>
-                  <textarea 
-                    rows="3" required
-                    placeholder="Specify code improvements or fixes required..."
-                    value={reviewRemarks}
-                    onChange={e => setReviewRemarks(e.target.value)}
-                    className="w-full bg-white/5 border border-rose-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-rose-400 resize-none"
-                  />
-                </div>
-              )}
-
-              <div className="flex gap-2 justify-end pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setReviewTask(null)}
-                  className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/50 hover:bg-white/5"
-                >Cancel</button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmittingReview}
-                  className={`px-5 py-2 font-black text-[10px] uppercase tracking-wider rounded-xl disabled:opacity-50 ${
-                    reviewDecision === 'VERIFY'
-                      ? 'bg-emerald-400 text-black hover:bg-emerald-300'
-                      : 'bg-rose-500 text-white hover:bg-rose-400'
-                  }`}
-                >
-                  {isSubmittingReview ? 'Transmitting Decision...' : reviewDecision === 'VERIFY' ? 'Confirm Verification' : 'Transmit Rejection'}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
     </>
   );
 }
@@ -1419,7 +1433,9 @@ export default function ProjectsView() {
   const [teams, setTeams] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [userTeams, setUserTeams] = useState([]);
+  const [allTasks, setAllTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [projectScopeFilter, setProjectScopeFilter] = useState('ASSIGNED'); // 'ASSIGNED' | 'ALL'
   const [highlightedProjectId, setHighlightedProjectId] = useState(null);
 
   // Modal open for adding project
@@ -1440,10 +1456,11 @@ export default function ProjectsView() {
   const fetchGlobalData = async () => {
     setLoading(true);
     try {
-      const [pList, tList, uList] = await Promise.all([
+      const [pList, tList, uList, taskList] = await Promise.all([
         projectsAPI.getAll().catch(() => []),
         teamsAPI.getAll().catch(() => []),
-        usersAPI.getAll().catch(() => [])
+        usersAPI.getAll().catch(() => []),
+        tasksAPI.getAll().catch(() => [])
       ]);
       
       const teamMembersList = await Promise.all(
@@ -1457,6 +1474,7 @@ export default function ProjectsView() {
       setProjects(pList);
       setTeams(tList);
       setAllUsers(uList);
+      setAllTasks(taskList);
     } catch (e) {
       console.error(e);
     } finally {
@@ -1514,17 +1532,33 @@ export default function ProjectsView() {
   };
 
   const myTeamIds = useMemo(() => {
-    if (role === 'admin') return [];
-    return userTeams.filter(ut => ut.members.some(m => m.user_id === currentUser?.id)).map(ut => ut.teamId);
-  }, [userTeams, currentUser, role]);
+    if (!currentUser?.id) return [];
+    const uid = String(currentUser.id).trim().toLowerCase();
+    return userTeams
+      .filter(ut => Array.isArray(ut.members) && ut.members.some(m => m && m.user_id && String(m.user_id).trim().toLowerCase() === uid))
+      .map(ut => ut.teamId);
+  }, [userTeams, currentUser]);
+
+  const myTaskProjectIds = useMemo(() => {
+    if (!currentUser?.id || !Array.isArray(allTasks)) return [];
+    const uid = String(currentUser.id).trim().toLowerCase();
+    return allTasks
+      .filter(t => t && t.assigned_to && String(t.assigned_to).trim().toLowerCase() === uid)
+      .map(t => t.project_id);
+  }, [allTasks, currentUser]);
 
   const filteredProjects = useMemo(() => {
     let list = projects;
-    if (role !== 'admin') {
-      list = list.filter(p => myTeamIds.includes(p.team_id) || p.created_by === currentUser?.id);
+    if (role !== 'admin' && projectScopeFilter === 'ASSIGNED') {
+      const uid = currentUser?.id ? String(currentUser.id).trim().toLowerCase() : '';
+      list = list.filter(p => 
+        (p.team_id && myTeamIds.includes(p.team_id)) ||
+        myTaskProjectIds.includes(p.id) ||
+        (p.created_by && String(p.created_by).trim().toLowerCase() === uid)
+      );
     }
     return list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-  }, [projects, search, myTeamIds, role, currentUser]);
+  }, [projects, search, myTeamIds, myTaskProjectIds, role, currentUser, projectScopeFilter]);
 
   const activeProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
 
@@ -1568,15 +1602,34 @@ export default function ProjectsView() {
       
       {/* Search and control Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.02] border border-white/5 p-6 rounded-[2rem] backdrop-blur-md shrink-0">
-        <div className="relative flex items-center w-full sm:w-80">
-          <Search className="absolute left-4 w-4 h-4 text-white/40" />
-          <input 
-            type="text" 
-            placeholder="Filter projects by name..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
-          />
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto flex-1">
+          <div className="relative flex items-center w-full sm:w-72">
+            <Search className="absolute left-4 w-4 h-4 text-white/40" />
+            <input 
+              type="text" 
+              placeholder="Filter projects by name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+            />
+          </div>
+
+          {role !== 'admin' && (
+            <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
+              <button
+                onClick={() => setProjectScopeFilter('ASSIGNED')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${projectScopeFilter === 'ASSIGNED' ? 'bg-[#00b4d8] text-black shadow-md' : 'text-white/40 hover:text-white'}`}
+              >
+                📌 My Projects
+              </button>
+              <button
+                onClick={() => setProjectScopeFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${projectScopeFilter === 'ALL' ? 'bg-[#00b4d8] text-black shadow-md' : 'text-white/40 hover:text-white'}`}
+              >
+                🌐 All Projects
+              </button>
+            </div>
+          )}
         </div>
 
         {role === 'admin' && (
