@@ -715,7 +715,7 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                           <h3 className="text-sm font-black text-white uppercase tracking-wide">Phase {selectedPhase.sequence}: {selectedPhase.name}</h3>
                           <p className="text-[10px] text-white/50 mt-0.5 uppercase tracking-widest font-bold">Tasks in this phase contribute to phase completion</p>
                         </div>
-                        {(isTeamLeader || role === 'admin') && selectedPhase.is_unlocked && (
+                        {(isTeamLeader || isMentor || role === 'admin') && selectedPhase.is_unlocked && (
                           <button 
                             onClick={() => setShowAddTaskModal(true)}
                             className="px-3.5 py-2 bg-[#00b4d8] text-black hover:bg-[#00c8f0] rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-md shadow-[#00b4d8]/20"
@@ -1228,7 +1228,8 @@ function ProjectFolder({ project, teams, allUsers, onUpdateProject, onDeleteProj
                     type="date"
                     value={newTask.due_date}
                     onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8]"
+                    onClick={e => e.target.showPicker && e.target.showPicker()}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#00b4d8] cursor-pointer"
                   />
                 </div>
               </div>
@@ -1578,7 +1579,7 @@ export default function ProjectsView() {
           />
         </div>
 
-        {(role === 'admin' || role === 'developer') && (
+        {role === 'admin' && (
           <button 
             onClick={() => setIsModalOpen(true)}
             className="w-full sm:w-auto px-5 py-3 bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,180,216,0.15)]"
@@ -1695,7 +1696,8 @@ export default function ProjectsView() {
                         type="date" required
                         value={newProject.deadline}
                         onChange={e => setNewProject({...newProject, deadline: e.target.value})}
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] text-xs"
+                        onClick={e => e.target.showPicker && e.target.showPicker()}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] text-xs cursor-pointer"
                       />
                     </div>
                   </div>

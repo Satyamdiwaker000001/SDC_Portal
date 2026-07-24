@@ -55,6 +55,41 @@
     font-family: var(--font-sans);
     overflow-x: hidden;
   }
+
+  html, body, #root {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+
+  /* Custom Calendar / Date Picker Styling */
+  input[type="date"] {
+    color-scheme: dark;
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.8) sepia(100%) saturate(1000%) hue-rotate(165deg);
+    opacity: 0.85;
+    padding: 2px;
+    border-radius: 4px;
+    transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    transform: scale(1.15);
+    background-color: rgba(0, 180, 216, 0.2);
+  }
   
   h1, h2, h3, h4, h5, h6 {
     color: #ffffff;

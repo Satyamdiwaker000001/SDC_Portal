@@ -852,20 +852,52 @@ export default function TeamView() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Admission Year</label>
-                      <input required type="number" min="1990" max="2100" value={newUser.admissionYear} onChange={e => setNewUser({...newUser, admissionYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2023" />
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Admission Date / Year</label>
+                      <input 
+                        required 
+                        type="date" 
+                        value={newUser.admissionDate || (newUser.admissionYear ? `${newUser.admissionYear}-08-01` : '')} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          const yr = val ? new Date(val).getFullYear() : newUser.admissionYear;
+                          setNewUser({...newUser, admissionDate: val, admissionYear: yr});
+                        }} 
+                        onClick={e => e.target.showPicker && e.target.showPicker()} 
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
+                      />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Passout Year</label>
-                      <input type="number" min="1990" max="2100" value={newUser.passoutYear || ''} onChange={e => setNewUser({...newUser, passoutYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2027" />
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Passout Date / Year</label>
+                      <input 
+                        type="date" 
+                        value={newUser.passoutDate || (newUser.passoutYear ? `${newUser.passoutYear}-06-30` : '')} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          const yr = val ? new Date(val).getFullYear() : newUser.passoutYear;
+                          setNewUser({...newUser, passoutDate: val, passoutYear: yr});
+                        }} 
+                        onClick={e => e.target.showPicker && e.target.showPicker()} 
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
+                      />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">SDC Joining Year</label>
-                      <input required type="number" min="1990" max="2100" value={newUser.sdcJoiningYear} onChange={e => setNewUser({...newUser, sdcJoiningYear: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. 2025" />
+                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">SDC Joining Date / Year</label>
+                      <input 
+                        required 
+                        type="date" 
+                        value={newUser.sdcJoiningDate || (newUser.sdcJoiningYear ? `${newUser.sdcJoiningYear}-01-15` : '')} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          const yr = val ? new Date(val).getFullYear() : newUser.sdcJoiningYear;
+                          setNewUser({...newUser, sdcJoiningDate: val, sdcJoiningYear: yr});
+                        }} 
+                        onClick={e => e.target.showPicker && e.target.showPicker()} 
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
+                      />
                     </div>
 
                     <div className="space-y-1.5">
