@@ -207,8 +207,8 @@ def create_task(
         .where(TeamMember.user_id == current_user.id)
         .where(TeamMember.designation == "lead")
     ).first()
-    if not tl_member and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only the Team Leader can create tasks (BR-008)")
+    if not tl_member and current_user.role not in ["admin", "mentor"]:
+        raise HTTPException(status_code=403, detail="Only the Team Leader, Mentor, or Admin can create tasks")
 
     # Verify phase is unlocked (SRS 3.7.2)
     phase = db.get(ProjectPhase, task_in.phase_id)

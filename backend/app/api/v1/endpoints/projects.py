@@ -9,7 +9,7 @@ import shutil
 from datetime import datetime, date
 
 from ....api import deps
-from ....models.models import Project, User, ProjectPhase, ProjectDocument, TeamMember, File as DBFile, AuditLog, Notification
+from ....models.models import Project, User, ProjectPhase, ProjectDocument, Task, TeamMember, File as DBFile, AuditLog, Notification
 from ....core.config import settings
 
 router = APIRouter()
@@ -342,52 +342,57 @@ def update_project(
 def delete_project(
     id: str,
     db: Session = Depends(deps.get_db),
-    current_admin: User = Depends(deps.get_current_active_admin),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    """
+    Delete a project and all associated tasks, phases, and documents (Admin only).
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only Admin can delete projects")
+
     project = db.get(Project, id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
         
     try:
-        from ....models.models import Task, ProjectPhase, ProjectDocument
-        
-        # Delete tasks
+        # Delete associated tasks
         tasks = db.exec(select(Task).where(Task.project_id == id)).all()
         for task in tasks:
             db.delete(task)
             
-        # Delete phases
+        # Delete associated project phases
         phases = db.exec(select(ProjectPhase).where(ProjectPhase.project_id == id)).all()
         for phase in phases:
             db.delete(phase)
             
-        # Delete documents
+        # Delete associated project documents
         docs = db.exec(select(ProjectDocument).where(ProjectDocument.project_id == id)).all()
         for doc in docs:
             db.delete(doc)
 
-        # Force SQLAlchemy to execute child deletes first
+        # Force SQLAlchemy to execute child deletes before parent project delete
         db.flush()
             
         db.delete(project)
         
         db.add(AuditLog(
             id=str(uuid.uuid4()),
-        event_type="PROJECT_DELETED",
-        description=f"Project '{id}' deleted by admin.",
-        performed_by=current_admin.id,
-        user_role="admin",
-        related_module="project",
-        related_entity_id=id,
-    ))
+            event_type="PROJECT_DELETED",
+            description=f"Project '{project.name}' was deleted.",
+            performed_by=current_user.id,
+            user_role=current_user.role,
+            related_module="project",
+            related_entity_id=id,
+        ))
         
         db.commit()
-        return {"status": "SUCCESS", "message": "Project and its components deleted successfully"}
+        return {"status": "SUCCESS", "ok": True, "message": "Project deleted successfully"}
     except Exception as e:
         db.rollback()
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Failed to delete project: {str(e)}")
+
 
 # --- SDLC PHASES ENDPOINTS ---
 
@@ -578,3 +583,4 @@ def download_document(
         media_type=db_file.mime_type,
         headers={"Content-Disposition": f'attachment; filename="{db_file.original_name}"'}
     )
+
