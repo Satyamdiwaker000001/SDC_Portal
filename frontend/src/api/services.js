@@ -62,6 +62,10 @@ export const usersAPI = {
     const { data } = await client.get(url);
     return data;
   },
+  getPortfolio: async (userId) => {
+    const { data } = await client.get(`/users/public/portfolio/${userId}`);
+    return data;
+  },
 };
 
 export const teamsAPI = {

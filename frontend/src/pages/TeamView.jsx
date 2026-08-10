@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera, Key } from 'lucide-react';
+import { Users, Mail, Shield, X, Code, Star, MoreVertical, Plus, Briefcase, Award, Phone, Trash2, GraduationCap, UserPlus, Upload, FileText, Fingerprint, Terminal, User, Edit3, Image, Camera, Key, Crown } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../api/services';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -390,17 +390,46 @@ export default function TeamView() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+
+    // Validate college email (@rbmi.in)
+    const emailLower = (newUser.email || "").trim().toLowerCase();
+    const validDomains = ["@rbmi.in", "@sdc.edu"];
+    if (!validDomains.some(domain => emailLower.endsWith(domain))) {
+      alert("Please enter a valid college email ending with @rbmi.in (e.g. cs23satyam@rbmi.in).");
+      return;
+    }
+
+    // Validate positive admission and passout years
+    const admYear = Number(newUser.admissionYear);
+    const passYear = Number(newUser.passoutYear);
+    if (newUser.role === 'developer') {
+      if (isNaN(admYear) || admYear <= 1990 || admYear > 2100) {
+        alert("Please enter a valid positive admission year (e.g. 2023).");
+        return;
+      }
+      if (isNaN(passYear) || passYear <= 1990 || passYear > 2100) {
+        alert("Please enter a valid positive passout year (e.g. 2027).");
+        return;
+      }
+      if (passYear < admYear) {
+        alert("Passout year cannot be earlier than admission year.");
+        return;
+      }
+    }
+
     setModalStatus('Adding member...');
     try {
       const payload = {
         name: newUser.name,
-        email: newUser.email,
+        email: emailLower,
         password: newUser.password,
         role: newUser.role,
         admission_year: parseInt(newUser.admissionYear) || 0,
         passout_year: parseInt(newUser.passoutYear) || 0,
         sdc_joining_year: parseInt(newUser.sdcJoiningYear) || new Date().getFullYear(),
-        branch: newUser.branch?.trim() || "N/A"
+        branch: newUser.branch?.trim() || "N/A",
+        image: newUser.profile_image || null,
+        profile_image: newUser.profile_image || null
       };
       const createdUser = await usersAPI.create(payload);
       setUsers([{ ...createdUser, isPassout: createdUser.membership_status === 'alumni' }, ...users]);
@@ -415,6 +444,7 @@ export default function TeamView() {
         passoutYear: new Date().getFullYear() + 3, 
         sdcJoiningYear: new Date().getFullYear(),
         branch: '', 
+        profile_image: '',
         joiningClass: '1st Year' 
       });
     } catch (e) {
@@ -604,15 +634,28 @@ export default function TeamView() {
         {role === 'admin' && (
           <div className="flex flex-wrap items-center gap-3">
             <button 
+              onClick={() => {
+                setNewUser(prev => ({ ...prev, role: 'founder' }));
+                setIsModalOpen(true);
+              }}
+              className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer"
+            >
+              <Award className="w-4 h-4 text-amber-400" />
+              Add Head / Founder
+            </button>
+            <button 
               onClick={() => setIsBulkModalOpen(true)}
-              className="bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+              className="bg-white/[0.05] hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer"
             >
               <Upload className="w-4 h-4" />
               Bulk Upload
             </button>
             <button 
-              onClick={() => setIsModalOpen(true)}
-              className="bg-[#00b4d8] hover:bg-[#00c8f0] text-[#020617] px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] flex items-center gap-2"
+              onClick={() => {
+                setNewUser(prev => ({ ...prev, role: 'developer' }));
+                setIsModalOpen(true);
+              }}
+              className="bg-[#00b4d8] hover:bg-[#00c8f0] text-[#020617] px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Add Member
@@ -643,10 +686,25 @@ export default function TeamView() {
           <div className="mt-10 pt-8 border-t border-white/5">
             <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-6">
               <Shield className="w-4 h-4 text-white/40" />
-              <h3 className="text-xs font-bold text-white/60 uppercase tracking-widest">Team Roster Categories</h3>
+              <h3 className="text-xs font-bold text-white/60 uppercase tracking-widest">Leadership & Roster</h3>
             </div>
             
             <div className="grid grid-cols-2 gap-3">
+              {/* Heads Stat */}
+              <div 
+                onClick={() => setActiveCategory(activeCategory === 'heads' ? 'all' : 'heads')}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
+                  activeCategory === 'heads'
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                    : 'bg-[#1c222b] border-amber-500/20 hover:border-amber-400/40 text-amber-400'
+                }`}
+              >
+                <span className="text-2xl font-black mb-0.5">{users.filter(u => (u.role || '').toLowerCase() === 'head').length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Crown className="w-3 h-3" /> SDC Heads
+                </span>
+              </div>
+
               {/* Founder Stat */}
               <div 
                 onClick={() => setActiveCategory(activeCategory === 'founders' ? 'all' : 'founders')}
@@ -691,21 +749,6 @@ export default function TeamView() {
                   <Star className="w-3 h-3" /> Mentors
                 </span>
               </div>
-
-              {/* Alumni Stat */}
-              <div 
-                onClick={() => setActiveCategory(activeCategory === 'alumni' ? 'all' : 'alumni')}
-                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center text-center ${
-                  activeCategory === 'alumni'
-                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
-                    : 'bg-[#1c222b] border-cyan-500/20 hover:border-cyan-400/40 text-cyan-400'
-                }`}
-              >
-                <span className="text-2xl font-black mb-0.5">{users.filter(u => u.membership_status === 'alumni').length}</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
-                  <GraduationCap className="w-3 h-3" /> Alumni
-                </span>
-              </div>
             </div>
           </div>
         </motion.div>
@@ -716,11 +759,12 @@ export default function TeamView() {
           {/* Filter Pills Bar */}
           <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#1c222b] border border-white/10 rounded-2xl">
             {[
-              { id: 'all', label: 'All Members', count: users.filter(u => (u.role || '').toLowerCase() !== 'admin').length },
-              { id: 'founders', label: 'Founders', count: users.filter(u => (u.role || '').toLowerCase() === 'founder').length },
-              { id: 'developers', label: 'Active Developers', count: users.filter(u => (u.role || '').toLowerCase() === 'developer' && u.membership_status === 'active').length },
-              { id: 'mentors', label: 'Mentors', count: users.filter(u => (u.role || '').toLowerCase() === 'mentor' && u.membership_status === 'active').length },
-              { id: 'alumni', label: 'Alumni Network', count: users.filter(u => u.membership_status === 'alumni').length }
+              { id: 'all', label: 'All Roster', count: users.filter(u => (u.role || '').toLowerCase() !== 'admin').length },
+              { id: 'heads', label: '👑 Heads of SDC', count: users.filter(u => (u.role || '').toLowerCase() === 'head').length },
+              { id: 'founders', label: '💡 Founders', count: users.filter(u => (u.role || '').toLowerCase() === 'founder').length },
+              { id: 'developers', label: '💻 Active Developers', count: users.filter(u => (u.role || '').toLowerCase() === 'developer' && u.membership_status === 'active').length },
+              { id: 'mentors', label: '🎓 Mentors', count: users.filter(u => (u.role || '').toLowerCase() === 'mentor' && u.membership_status === 'active').length },
+              { id: 'alumni', label: '🏛️ Alumni Network', count: users.filter(u => u.membership_status === 'alumni').length }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -744,6 +788,7 @@ export default function TeamView() {
             const displayedUsers = users.filter(u => {
               const uRole = (u.role || '').toLowerCase();
               if (uRole === 'admin') return false;
+              if (activeCategory === 'heads') return uRole === 'head';
               if (activeCategory === 'founders') return uRole === 'founder';
               if (activeCategory === 'developers') return uRole === 'developer' && u.membership_status === 'active';
               if (activeCategory === 'mentors') return uRole === 'mentor' && u.membership_status === 'active';
@@ -850,61 +895,66 @@ export default function TeamView() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Admission Date / Year</label>
-                      <input 
-                        required 
-                        type="date" 
-                        value={newUser.admissionDate || (newUser.admissionYear ? `${newUser.admissionYear}-08-01` : '')} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          const yr = val ? new Date(val).getFullYear() : newUser.admissionYear;
-                          setNewUser({...newUser, admissionDate: val, admissionYear: yr});
-                        }} 
-                        onClick={e => e.target.showPicker && e.target.showPicker()} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
-                      />
-                    </div>
+                  {/* Show College & Joining Dates and Branch ONLY for Developer Role */}
+                  {newUser.role === 'developer' && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Admission Date / Year</label>
+                          <input 
+                            required={newUser.role === 'developer'} 
+                            type="date" 
+                            value={newUser.admissionDate || (newUser.admissionYear ? `${newUser.admissionYear}-08-01` : '')} 
+                            onChange={e => {
+                              const val = e.target.value;
+                              const yr = val ? new Date(val).getFullYear() : newUser.admissionYear;
+                              setNewUser({...newUser, admissionDate: val, admissionYear: yr});
+                            }} 
+                            onClick={e => e.target.showPicker && e.target.showPicker()} 
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
+                          />
+                        </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Passout Date / Year</label>
-                      <input 
-                        type="date" 
-                        value={newUser.passoutDate || (newUser.passoutYear ? `${newUser.passoutYear}-06-30` : '')} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          const yr = val ? new Date(val).getFullYear() : newUser.passoutYear;
-                          setNewUser({...newUser, passoutDate: val, passoutYear: yr});
-                        }} 
-                        onClick={e => e.target.showPicker && e.target.showPicker()} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
-                      />
-                    </div>
-                  </div>
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">College Passout Date / Year</label>
+                          <input 
+                            type="date" 
+                            value={newUser.passoutDate || (newUser.passoutYear ? `${newUser.passoutYear}-06-30` : '')} 
+                            onChange={e => {
+                              const val = e.target.value;
+                              const yr = val ? new Date(val).getFullYear() : newUser.passoutYear;
+                              setNewUser({...newUser, passoutDate: val, passoutYear: yr});
+                            }} 
+                            onClick={e => e.target.showPicker && e.target.showPicker()} 
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
+                          />
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">SDC Joining Date / Year</label>
-                      <input 
-                        required 
-                        type="date" 
-                        value={newUser.sdcJoiningDate || (newUser.sdcJoiningYear ? `${newUser.sdcJoiningYear}-01-15` : '')} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          const yr = val ? new Date(val).getFullYear() : newUser.sdcJoiningYear;
-                          setNewUser({...newUser, sdcJoiningDate: val, sdcJoiningYear: yr});
-                        }} 
-                        onClick={e => e.target.showPicker && e.target.showPicker()} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
-                      />
-                    </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">SDC Joining Date / Year</label>
+                          <input 
+                            required={newUser.role === 'developer'}
+                            type="date" 
+                            value={newUser.sdcJoiningDate || (newUser.sdcJoiningYear ? `${newUser.sdcJoiningYear}-01-15` : '')} 
+                            onChange={e => {
+                              const val = e.target.value;
+                              const yr = val ? new Date(val).getFullYear() : newUser.sdcJoiningYear;
+                              setNewUser({...newUser, sdcJoiningDate: val, sdcJoiningYear: yr});
+                            }} 
+                            onClick={e => e.target.showPicker && e.target.showPicker()} 
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none cursor-pointer" 
+                          />
+                        </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Branch / Division</label>
-                      <input type="text" value={newUser.branch || ''} onChange={e => setNewUser({...newUser, branch: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. CSE, IT" />
-                    </div>
-                  </div>
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Branch / Division</label>
+                          <input type="text" value={newUser.branch || ''} onChange={e => setNewUser({...newUser, branch: e.target.value})} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all outline-none" placeholder="e.g. CSE, IT" />
+                        </div>
+                      </div>
+                    </>
+                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5 md:col-span-2">
@@ -912,14 +962,68 @@ export default function TeamView() {
                       <div className="relative">
                         <select required value={newUser.role} onChange={e => {
                           const nextRole = e.target.value;
-                          setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder') ? '' : '1st Year'});
+                          setNewUser({...newUser, role: nextRole, joiningClass: (nextRole === 'mentor' || nextRole === 'founder' || nextRole === 'head') ? '' : '1st Year'});
                         }} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] focus:shadow-[0_0_15px_rgba(0,180,216,0.2)] transition-all appearance-none cursor-pointer outline-none">
                           <option value="developer" className="bg-[#0a0a0a]">Developer</option>
                           <option value="mentor" className="bg-[#0a0a0a]">Mentor</option>
                           <option value="founder" className="bg-[#0a0a0a]">Founder</option>
+                          <option value="head" className="bg-[#0a0a0a]">Head of SDC</option>
                         </select>
                         <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/40">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dual Profile Photo Input — Upload File OR Paste Cloudinary URL */}
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">
+                      Profile Photo (Direct Upload OR Paste Cloudinary URL)
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-3 items-center bg-white/[0.02] p-3 rounded-2xl border border-white/10">
+                      <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center">
+                        {newUser.profile_image ? (
+                          <img src={newUser.profile_image} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-6 h-6 text-white/40" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2 w-full">
+                        <input
+                          type="url"
+                          value={newUser.profile_image || ''}
+                          onChange={e => setNewUser({...newUser, profile_image: e.target.value})}
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-[#00b4d8]/50 focus:bg-white/[0.05] transition-all outline-none"
+                          placeholder="Paste Cloudinary URL (https://res.cloudinary.com/...)"
+                        />
+                        <div className="flex items-center gap-2">
+                          <label className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 cursor-pointer transition-all flex items-center gap-1.5">
+                            <Upload className="w-3.5 h-3.5 text-[#00b4d8]" />
+                            <span>Upload Image</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                try {
+                                  setModalStatus('Uploading image to Cloudinary...');
+                                  const formData = new FormData();
+                                  formData.append('file', file);
+                                  const res = await usersAPI.uploadAvatar('temp', formData);
+                                  if (res && res.url) {
+                                    setNewUser({...newUser, profile_image: res.url});
+                                    setModalStatus('Photo uploaded successfully!');
+                                  }
+                                } catch(err) {
+                                  setModalStatus('Upload error. You can paste Cloudinary URL above.');
+                                }
+                              }}
+                            />
+                          </label>
+                          <span className="text-[10px] text-white/40">JPG, PNG, WEBP (Max 5MB)</span>
                         </div>
                       </div>
                     </div>
@@ -1095,6 +1199,8 @@ export default function TeamView() {
                            <option value="developer" className="bg-[#0f172a]">Developer</option>
                            <option value="mentor" className="bg-[#0f172a]">Mentor</option>
                            <option value="founder" className="bg-[#0f172a]">Founder</option>
+                           <option value="head" className="bg-[#0f172a]">Head of SDC</option>
+                           <option value="admin" className="bg-[#0f172a]">System Administrator</option>
                          </select>
                       </div>
 
@@ -1109,38 +1215,40 @@ export default function TeamView() {
                          />
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
-                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission</label>
-                            <input 
-                              type="number"
-                              placeholder="2023"
-                              value={editUserData.admission_year || ''}
-                              onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
-                              className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                            />
+                      {editUserData.role === 'developer' && (
+                        <div className="grid grid-cols-3 gap-2">
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Admission</label>
+                              <input 
+                                type="number"
+                                placeholder="2023"
+                                value={editUserData.admission_year || ''}
+                                onChange={e => setEditUserData({...editUserData, admission_year: e.target.value})}
+                                className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout</label>
+                              <input 
+                                type="number"
+                                placeholder="2027"
+                                value={editUserData.passout_year || ''}
+                                onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
+                                className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Joined SDC</label>
+                              <input 
+                                type="number"
+                                placeholder="2025"
+                                value={editUserData.sdc_joining_year || ''}
+                                onChange={e => setEditUserData({...editUserData, sdc_joining_year: e.target.value})}
+                                className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                              />
+                           </div>
                          </div>
-                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Passout</label>
-                            <input 
-                              type="number"
-                              placeholder="2027"
-                              value={editUserData.passout_year || ''}
-                              onChange={e => setEditUserData({...editUserData, passout_year: e.target.value})}
-                              className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                            />
-                         </div>
-                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Joined SDC</label>
-                            <input 
-                              type="number"
-                              placeholder="2025"
-                              value={editUserData.sdc_joining_year || ''}
-                              onChange={e => setEditUserData({...editUserData, sdc_joining_year: e.target.value})}
-                              className="w-full px-3.5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
-                            />
-                         </div>
-                       </div>
+                      )}
 
                       <div className="space-y-2">
                          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Tech Stack (comma-separated)</label>
@@ -1204,18 +1312,28 @@ export default function TeamView() {
                            )}
                          </button>
                        </div>
-                       <div className="flex-1 min-w-0">
-                         <p className="text-[11px] text-white/50 mb-2">Upload a photo</p>
-                         <button
-                           type="button"
-                           onClick={() => avatarInputRef.current?.click()}
-                           disabled={avatarUploading}
-                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
-                         >
-                           <Upload className="w-3 h-3" />
-                           {avatarUploading ? 'Uploading...' : 'Upload Image'}
-                         </button>
-                       </div>
+                       <div className="flex-1 min-w-0 space-y-2">
+                          <p className="text-[11px] text-white/50">Upload photo OR paste Cloudinary URL</p>
+                          <input
+                            type="url"
+                            placeholder="https://res.cloudinary.com/... or image URL"
+                            value={editUserData.profile_image || ''}
+                            onChange={e => {
+                              setEditUserData({...editUserData, profile_image: e.target.value});
+                              setAvatarPreview(e.target.value);
+                            }}
+                            className="w-full px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => avatarInputRef.current?.click()}
+                            disabled={avatarUploading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
+                          >
+                            <Upload className="w-3 h-3 text-[#00b4d8]" />
+                            {avatarUploading ? 'Uploading...' : 'Upload Image File'}
+                          </button>
+                        </div>
                        {/* Hidden file input */}
                        <input
                          ref={avatarInputRef}
@@ -1233,7 +1351,7 @@ export default function TeamView() {
                              setAvatarPreview(res.url);
                              setEditUserData(prev => ({ ...prev, profile_image: res.url }));
                            } catch (err) {
-                             alert('Image upload failed.');
+                             alert('Image upload failed. You can paste the direct image URL instead.');
                            } finally {
                              setAvatarUploading(false);
                              e.target.value = '';

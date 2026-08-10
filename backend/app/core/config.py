@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./sdc_portal.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "mysql+pymysql://3gRC4rrn2ZMaUyg.root:KvgMsWSamrqY9Q1a@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/sdc_portal"
+    )
     DB_CA_PATH: Optional[str] = os.getenv("DB_CA_PATH")
     ALLOWED_ORIGINS: str = os.getenv(
         "ALLOWED_ORIGINS",
@@ -22,9 +25,9 @@ class Settings(BaseSettings):
     )
     
     # Cloudinary Config
-    CLOUDINARY_CLOUD_NAME: Optional[str] = os.getenv("CLOUDINARY_CLOUD_NAME")
-    CLOUDINARY_API_KEY: Optional[str] = os.getenv("CLOUDINARY_API_KEY")
-    CLOUDINARY_API_SECRET: Optional[str] = os.getenv("CLOUDINARY_API_SECRET")
+    CLOUDINARY_CLOUD_NAME: Optional[str] = os.getenv("CLOUDINARY_CLOUD_NAME", "mzw4uphd")
+    CLOUDINARY_API_KEY: Optional[str] = os.getenv("CLOUDINARY_API_KEY", "773597744456378")
+    CLOUDINARY_API_SECRET: Optional[str] = os.getenv("CLOUDINARY_API_SECRET", "-kGSFQ6dgAPu3lN9Et72m9Pi5iU")
 
     class Config:
         case_sensitive = True

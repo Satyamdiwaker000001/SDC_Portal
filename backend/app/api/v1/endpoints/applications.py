@@ -46,10 +46,14 @@ def _create_notification_if_missing(
 #  Schemas                                                                     #
 # --------------------------------------------------------------------------- #
 
+from pydantic import BaseModel, EmailStr, field_validator
+
+ALLOWED_EMAIL_DOMAINS = ("@rbmi.in", "@sdc.edu")
+
 class ApplicationCreate(BaseModel):
     """SRS 3.4.1 — all mandatory fields for the public recruitment form."""
     name: str
-    email: str
+    email: EmailStr
     mobile_number: str                                    # SRS 3.4.1 (required)
     branch: str
     admission_year: int
@@ -61,6 +65,29 @@ class ApplicationCreate(BaseModel):
     linkedin_url: Optional[str] = None
     github_url: Optional[str] = None
     resume_file_id: Optional[str] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_college_email(cls, v: EmailStr) -> EmailStr:
+        email_str = str(v).lower().strip()
+        if not any(email_str.endswith(domain) for domain in ALLOWED_EMAIL_DOMAINS):
+            raise ValueError("Email must be a valid college email ending with @rbmi.in (e.g. cs23satyam@rbmi.in).")
+        return email_str
+
+    @field_validator('admission_year', 'passout_year')
+    @classmethod
+    def validate_positive_years(cls, v: int) -> int:
+        if v < 1990 or v > 2100:
+            raise ValueError("Year must be a valid positive 4-digit year between 1990 and 2100.")
+        return v
+
+    @field_validator('passout_year')
+    @classmethod
+    def validate_passout_after_admission(cls, v: int, info) -> int:
+        admission = info.data.get('admission_year')
+        if admission and v < admission:
+            raise ValueError("Passout year cannot be earlier than admission year.")
+        return v
 
 
 class ApplicationOut(BaseModel):

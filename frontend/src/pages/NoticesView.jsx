@@ -255,68 +255,71 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-sm bg-[#0f172a] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 flex flex-col overflow-hidden z-10"
+            className="relative w-full max-w-xl bg-[#0f172a] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 flex flex-col overflow-hidden z-10 max-h-[90vh]"
           >
             <div className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-[#00b4d8]/20 to-transparent flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/20 flex items-center justify-center border border-[#00b4d8]/30">
                   <Megaphone className="w-5 h-5 text-[#00b4d8]" />
                 </div>
-                <h2 className="text-lg font-black text-white tracking-widest uppercase">
-                  {activeTab === 'notices' ? 'Broadcast Notice' : 'Post Announcement'}
-                </h2>
+                <div>
+                  <h2 className="text-lg font-black text-white tracking-widest uppercase">
+                    {activeTab === 'notices' ? 'Broadcast Notice' : 'Post Announcement'}
+                  </h2>
+                  <p className="text-[10px] text-white/50 uppercase tracking-widest font-medium">Publish official updates to cell members</p>
+                </div>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[80vh] custom-scrollbar flex-1">
-              <form id="post-form" onSubmit={handleSubmit} className="space-y-5">
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar flex-1">
+              <form id="post-form" onSubmit={handleSubmit} className="space-y-4">
                 {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold rounded-xl">{error}</div>}
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Title</label>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Notice Title</label>
                   <input
-                    type="text" required placeholder="Title..."
+                    type="text" required placeholder="Enter announcement or notice title..."
                     value={newNotice.title} onChange={e => setNewNotice({ ...newNotice, title: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm placeholder:text-white/30"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Priority</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Priority Level</label>
                     <select
                       value={newNotice.priority} onChange={e => setNewNotice({ ...newNotice, priority: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm cursor-pointer"
                     >
-                      <option value="Normal" className="bg-[#0f172a]">Normal</option>
+                      <option value="Normal" className="bg-[#0f172a]">Normal Priority</option>
                       <option value="Important" className="bg-[#0f172a]">Important</option>
-                      <option value="Urgent" className="bg-[#0f172a]">Urgent</option>
+                      <option value="Urgent" className="bg-[#0f172a]">Urgent Priority</option>
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Audience</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Target Audience</label>
                     <select
                       value={newNotice.is_global ? "global" : "team"}
                       onChange={e => setNewNotice({ ...newNotice, is_global: e.target.value === 'global' })}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm cursor-pointer"
                     >
-                      <option value="global" className="bg-[#0f172a]">Global Broadcast</option>
-                      <option value="team" className="bg-[#0f172a]">Targeted Team</option>
+                      <option value="global" className="bg-[#0f172a]">Global Broadcast (All Members)</option>
+                      <option value="team" className="bg-[#0f172a]">Targeted Squad / Team</option>
                     </select>
                   </div>
                 </div>
 
                 {!newNotice.is_global && (
                   <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-3">
-                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Select Teams</p>
+                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Select Destination Teams</p>
                     <div className="flex flex-wrap gap-2">
                       {teams.map(t => (
                         <button type="button" key={t.id} onClick={() => toggleTeam(t.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${newNotice.team_ids.includes(t.id) ? 'bg-[#00b4d8]/20 text-[#00b4d8] border-[#00b4d8]/30' : 'bg-white/5 text-white/50 border-white/5 hover:text-white hover:bg-white/10'}`}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${newNotice.team_ids.includes(t.id) ? 'bg-[#00b4d8]/20 text-[#00b4d8] border-[#00b4d8]/40 shadow-[0_0_10px_rgba(0,180,216,0.2)]' : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:bg-white/10'}`}
                         >
                           {t.name}
                         </button>
@@ -325,23 +328,23 @@ function PostNoticeModal({ isOpen, onClose, onSubmit, teams, activeTab }) {
                   </div>
                 )}
 
-                <div className="space-y-2 pt-2">
-                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1">Message Body</label>
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Notice Description / Message</label>
                   <textarea
-                    required rows="6" placeholder="Write your message here..."
+                    required rows="5" placeholder="Write notice details and detailed message instructions here..."
                     value={newNotice.body} onChange={e => setNewNotice({ ...newNotice, body: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00b4d8] focus:bg-white/10 transition-all font-medium text-sm resize-none custom-scrollbar placeholder:text-white/30"
                   />
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-white/10">
-                  <button type="button" onClick={onClose} className="px-5 py-2.5 mr-3 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-wider">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                  <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer">
                     Cancel
                   </button>
                   <button type="submit" disabled={isSubmitting}
-                    className="px-5 py-2.5 rounded-xl bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all text-sm font-black uppercase tracking-widest disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl bg-[#00b4d8] text-[#020617] hover:bg-[#00c8f0] transition-all text-xs font-black uppercase tracking-widest disabled:opacity-50 flex items-center gap-2 shadow-[0_0_15px_rgba(0,180,216,0.3)] hover:shadow-[0_0_25px_rgba(0,180,216,0.5)] cursor-pointer"
                   >
-                    <Megaphone className="w-4 h-4" /> {isSubmitting ? 'Posting...' : 'Post'}
+                    <Megaphone className="w-4 h-4" /> {isSubmitting ? 'Posting...' : 'Publish Notice'}
                   </button>
                 </div>
               </form>

@@ -15,6 +15,8 @@ router = APIRouter()
 #  Schemas                                                                     #
 # --------------------------------------------------------------------------- #
 
+from pydantic import field_validator
+
 class TaskCreate(BaseModel):
     project_id: str
     phase_id: str        # BR-009: required
@@ -22,6 +24,14 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
     due_date: Optional[date] = None
+
+    @field_validator('due_date')
+    @classmethod
+    def validate_positive_date(cls, v: Optional[date]) -> Optional[date]:
+        if v is not None:
+            if v.year < 2020 or v.year > 2100:
+                raise ValueError("Due date year must be a valid 4-digit positive year (e.g. 2026).")
+        return v
 
 
 class TaskOut(BaseModel):

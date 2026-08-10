@@ -37,14 +37,14 @@ const GithubIcon = () => (
   </svg>
 );
 
-// Profile Card Component (ID Badge Flip Card)
-const ProfileCard = ({ name, role, image, linkedin, github }) => {
+// Profile Card Component (ID Badge Flip Card with Portfolio Link)
+const ProfileCard = ({ id, name, role, image, linkedin, github, projectsCount, onOpenPortfolio }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
     <motion.div
       variants={fadeInUp}
-      className="relative w-full max-w-[280px] mx-auto aspect-[5/8] cursor-pointer group my-8"
+      className="relative w-full max-w-[280px] mx-auto aspect-[5/8.5] cursor-pointer group my-8"
       style={{ perspective: '1200px' }}
       onClick={() => setIsFlipped(!isFlipped)}
     >
@@ -80,23 +80,41 @@ const ProfileCard = ({ name, role, image, linkedin, github }) => {
           {/* Middle Section (Name & Role) */}
           <div className="flex-1 mt-12 px-6 flex flex-col relative">
             <div className="absolute right-6 top-2 text-white/20 text-4xl font-light">↘</div>
-            <h3 className="text-3xl font-extrabold text-white leading-[1.1] mb-4 tracking-tight">
+            <h3 className="text-3xl font-extrabold text-white leading-[1.1] mb-3 tracking-tight">
               {name.split(' ')[0]}<br />
               <span className="text-white/90">{name.split(' ').slice(1).join(' ')}</span>
             </h3>
-            <div className="bg-[#00b4d8] text-white text-[11px] font-bold uppercase tracking-widest py-1.5 px-4 rounded-full self-start mb-4 shadow-lg shadow-[#00b4d8]/20">
-              {role}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="bg-[#00b4d8] text-white text-[11px] font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-lg shadow-[#00b4d8]/20">
+                {role}
+              </div>
+              {projectsCount !== undefined && (
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
+                  {projectsCount} {projectsCount === 1 ? 'Project' : 'Projects'}
+                </span>
+              )}
             </div>
-            <p className="text-white/40 text-[10px] leading-relaxed pr-4">
-              Official member of the cell. Access granted to all SDC technical operations.
-            </p>
+
+            {/* View Portfolio Button */}
+            {id && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenPortfolio(id);
+                }}
+                className="mt-1 bg-white/10 hover:bg-[#00b4d8] text-white text-[10px] font-mono uppercase font-bold tracking-widest py-2 px-4 rounded-xl border border-white/20 hover:border-transparent transition-all flex items-center justify-center gap-1.5 shadow-md group/btn"
+              >
+                <span>⚡ View Portfolio</span>
+                <span className="group-hover/btn:translate-x-1 transition-transform">&rarr;</span>
+              </button>
+            )}
           </div>
 
           {/* Bottom Section (Contacts) */}
-          <div className="h-20 border-t border-white/5 mx-6 flex items-center justify-between pb-2">
+          <div className="h-16 border-t border-white/5 mx-6 flex items-center justify-between pb-2">
             <div className="flex flex-col">
-              <span className="text-[#00b4d8] text-[9px] font-bold uppercase tracking-widest mb-1">Contact</span>
-              <span className="text-white/50 text-[10px]">Click card to flip &rarr;</span>
+              <span className="text-[#00b4d8] text-[9px] font-bold uppercase tracking-widest mb-0.5">Contact</span>
+              <span className="text-white/50 text-[9px]">Click card to flip &rarr;</span>
             </div>
             <div className="flex gap-4">
               {linkedin && (
@@ -142,18 +160,206 @@ const ProfileCard = ({ name, role, image, linkedin, github }) => {
           </div>
 
           {/* Bottom Teal Curve */}
-          <div className="absolute bottom-0 right-0 w-full h-[25%] bg-[#00b4d8] rounded-tl-[3rem] p-6 flex items-center gap-5 z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
-            <div className="w-10 h-10 border-2 border-white/50 flex items-center justify-center shrink-0">
-              <div className="w-4 h-4 bg-white/80"></div>
-            </div>
+          <div className="absolute bottom-0 right-0 w-full h-[25%] bg-[#00b4d8] rounded-tl-[3rem] p-6 flex flex-col justify-center gap-2 z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
             <p className="text-white/90 text-[9px] leading-relaxed font-medium">
-              Authorized badge holder. Committed to bridging the gap between academia and industry.
+              Authorized badge holder. Committed to bridging academia and software engineering.
             </p>
+            {id && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenPortfolio(id);
+                }}
+                className="bg-white/20 hover:bg-white text-gray-900 hover:text-black font-bold text-[9px] uppercase tracking-widest py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
+              >
+                Open Full Portfolio
+              </button>
+            )}
           </div>
         </div>
 
       </div>
     </motion.div>
+  );
+};
+
+// Member Portfolio Showcase Modal Component
+const MemberPortfolioModal = ({ userId, onClose }) => {
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const loadPortfolio = async () => {
+      setLoading(true);
+      try {
+        const data = await usersAPI.getPortfolio(userId);
+        setPortfolioData(data);
+      } catch (err) {
+        console.error("Failed to load developer portfolio", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPortfolio();
+  }, [userId]);
+
+  if (!userId) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative w-full max-w-3xl bg-[#1c222b] border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden my-8"
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 flex items-center justify-center transition-colors text-lg font-bold z-20"
+        >
+          ✕
+        </button>
+
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center">
+            <div className="w-10 h-10 border-4 border-[#00b4d8] border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-white/60 text-xs tracking-widest uppercase font-mono">Retrieving Member Telemetry...</p>
+          </div>
+        ) : portfolioData ? (
+          <div>
+            {/* Top Header Card */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-white/10 pb-6 mb-6">
+              <img
+                src={portfolioData.user.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                alt={portfolioData.user.name}
+                className="w-24 h-24 rounded-2xl object-cover border-2 border-[#00b4d8] shadow-xl shrink-0"
+              />
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-2">
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{portfolioData.user.name}</h2>
+                  <span className="bg-[#00b4d8]/20 border border-[#00b4d8]/50 text-[#00b4d8] text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                    {portfolioData.user.role}
+                  </span>
+                </div>
+                <p className="text-white/50 text-xs font-mono mb-4">
+                  {portfolioData.user.branch || "Engineering"} • Batch {portfolioData.user.admission_year || "2023"}–{portfolioData.user.passout_year || "2027"}
+                </p>
+
+                {/* Tech Stack Pills */}
+                {portfolioData.user.tech_stack && portfolioData.user.tech_stack.length > 0 && (
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-4">
+                    {portfolioData.user.tech_stack.map((tech, idx) => (
+                      <span key={idx} className="bg-white/5 border border-white/10 text-white/80 text-[9px] font-mono uppercase px-2 py-0.5 rounded">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Social Links */}
+                <div className="flex items-center justify-center sm:justify-start gap-4">
+                  {portfolioData.user.github_url && (
+                    <a href={portfolioData.user.github_url} target="_blank" rel="noreferrer" className="text-white/70 hover:text-[#00b4d8] text-xs font-mono flex items-center gap-1.5 transition-colors">
+                      <GithubIcon /> GitHub Profile
+                    </a>
+                  )}
+                  {portfolioData.user.linkedin_url && (
+                    <a href={portfolioData.user.linkedin_url} target="_blank" rel="noreferrer" className="text-white/70 hover:text-[#00b4d8] text-xs font-mono flex items-center gap-1.5 transition-colors">
+                      <LinkedInIcon /> LinkedIn Profile
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Telemetry Stats Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-center">
+                <span className="text-2xl font-extrabold text-white">{portfolioData.stats.total_projects}</span>
+                <p className="text-[10px] text-white/50 uppercase tracking-widest font-mono mt-1">Total Projects</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-center">
+                <span className="text-2xl font-extrabold text-emerald-400">{portfolioData.stats.live_projects}</span>
+                <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-mono mt-1">Live Projects</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-center">
+                <span className="text-2xl font-extrabold text-[#00b4d8]">{portfolioData.user.performance_score} XP</span>
+                <p className="text-[10px] text-[#00b4d8]/80 uppercase tracking-widest font-mono mt-1">XP Score</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-center">
+                <span className="text-2xl font-extrabold text-cyan-400">{portfolioData.stats.completed_tasks}</span>
+                <p className="text-[10px] text-cyan-400/80 uppercase tracking-widest font-mono mt-1">Tasks Completed</p>
+              </div>
+            </div>
+
+            {/* Projects Portfolio Section */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#00b4d8]" /> Member Projects & Hosted Work
+              </h3>
+
+              {portfolioData.projects && portfolioData.projects.length > 0 ? (
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                  {portfolioData.projects.map((p) => (
+                    <div key={p.id} className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 hover:border-[#00b4d8]/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="text-base font-bold text-white">{p.name}</h4>
+                          <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded uppercase ${
+                            p.is_live ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                          }`}>
+                            {p.is_live ? '🟢 LIVE SITE' : p.status}
+                          </span>
+                        </div>
+                        <p className="text-white/60 text-xs leading-relaxed mb-3">{p.short_description || p.full_description || "Software Development Cell Project"}</p>
+                        
+                        {/* Progress Bar */}
+                        <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mb-1.5">
+                          <div className="bg-gradient-to-r from-[#00b4d8] to-cyan-400 h-full rounded-full" style={{ width: `${p.progress || 0}%` }} />
+                        </div>
+                        <span className="text-white/40 text-[9px] font-mono">SDLC Progress: {p.progress || 0}%</span>
+                      </div>
+
+                      {/* Links Column */}
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2.5 shrink-0 border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0">
+                        {p.is_live && p.live_url && (
+                          <a
+                            href={p.live_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-2"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" /> 🌐 Live Hosted Link
+                          </a>
+                        )}
+                        {p.github_repo && (
+                          <a
+                            href={p.github_repo}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-white/10 hover:bg-white/20 text-white font-medium text-xs px-3 py-1.5 rounded-xl border border-white/15 transition-all flex items-center gap-1.5"
+                          >
+                            <GithubIcon /> Repository Code
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 bg-white/[0.02] border border-white/5 rounded-2xl">
+                  <p className="text-white/40 text-xs font-mono uppercase tracking-widest">No active project assignments recorded yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="py-12 text-center text-white/50 text-xs font-mono">Failed to load member portfolio telemetry.</div>
+        )}
+      </motion.div>
+    </div>
   );
 };
 
@@ -222,12 +428,15 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedProjects, setCompletedProjects] = useState([]);
   const [founders, setFounders] = useState([]);
+  const [dbHeads, setDbHeads] = useState([]);
   const [dbDevelopers, setDbDevelopers] = useState([]);
   const [activeDevelopers, setActiveDevelopers] = useState([]);
   const [alumniDevelopers, setAlumniDevelopers] = useState([]);
+  const [inactiveMembers, setInactiveMembers] = useState([]);
   const [dbMentors, setDbMentors] = useState([]);
   const [totalMembers, setTotalMembers] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [selectedPortfolioUserId, setSelectedPortfolioUserId] = useState(null);
 
   // Recruitment Form State
   const [isLive, setIsLive] = useState(false);
@@ -252,7 +461,7 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchInitData = async () => {
       try {
-        const [projData, settingsData, settingsTargetData, statsData, developerData, mentorData, founderData, allUsersData] = await Promise.all([
+        const [projData, settingsData, settingsTargetData, statsData, developerData, mentorData, founderData, headData, allUsersData] = await Promise.all([
           projectsAPI.getAll().catch(() => []),
           settingsAPI.get('is_recruitment_live').catch(() => null),
           settingsAPI.get('recruitment_open_for').catch(() => null),
@@ -260,6 +469,7 @@ export default function LandingPage() {
           usersAPI.getPublicRoster('developer').catch(() => []),
           usersAPI.getPublicRoster('mentor').catch(() => []),
           usersAPI.getPublicRoster('founder').catch(() => []),
+          usersAPI.getPublicRoster('head').catch(() => []),
           usersAPI.getPublicRoster().catch(() => []),
         ]);
 
@@ -277,13 +487,17 @@ export default function LandingPage() {
         const stats = statsData?.data || {};
         setTotalMembers(stats.members || 0);
 
-        // Active developers only (role=developer, membership_status=active)
-        setActiveDevelopers(developerData.filter(u => u.membership_status === 'active'));
+        // Active developers only (role=developer, membership_status=active, is_active=true)
+        setActiveDevelopers(developerData.filter(u => u.membership_status === 'active' && u.is_active !== false));
         setDbDevelopers(developerData);
         setDbMentors(mentorData);
         setFounders(founderData);
-        // Alumni = any role, membership_status === 'alumni'
-        setAlumniDevelopers(allUsersData.filter(u => u.membership_status === 'alumni'));
+        setDbHeads(headData);
+
+        // Alumni & Inactive members (membership_status === 'alumni' || is_active === false)
+        const inactiveOrAlumni = allUsersData.filter(u => u.membership_status === 'alumni' || u.is_active === false);
+        setAlumniDevelopers(inactiveOrAlumni);
+        setInactiveMembers(inactiveOrAlumni);
       } catch (err) {
         console.error("Failed to fetch initial data", err);
       }
@@ -294,14 +508,48 @@ export default function LandingPage() {
   const handleApply = async (e) => {
     e.preventDefault();
     if (!isLive) return;
+
+    // Validate college email domain (@rbmi.in)
+    const emailLower = (formData.email || "").trim().toLowerCase();
+    const validDomains = ["@rbmi.in", "@sdc.edu"];
+    if (!validDomains.some(domain => emailLower.endsWith(domain))) {
+      alert("Please enter a valid college email ending with @rbmi.in (e.g. cs23satyam@rbmi.in).");
+      return;
+    }
+
+    // Validate positive admission and passout years
+    const admYear = Number(formData.admission_year);
+    const passYear = Number(formData.passout_year);
+    if (isNaN(admYear) || admYear <= 1990 || admYear > 2100) {
+      alert("Please enter a valid positive admission year (e.g. 2023).");
+      return;
+    }
+    if (isNaN(passYear) || passYear <= 1990 || passYear > 2100) {
+      alert("Please enter a valid positive passout year (e.g. 2027).");
+      return;
+    }
+    if (passYear < admYear) {
+      alert("Passout year cannot be earlier than admission year.");
+      return;
+    }
+
+    // Validate mobile number
+    const cleanMobile = (formData.mobile_number || "").replace(/\D/g, '');
+    if (cleanMobile.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await applicationsAPI.create(formData);
+      await applicationsAPI.create({ ...formData, email: emailLower });
       setSubmitSuccess(true);
       setTimeout(() => setIsFormOpen(false), 3000);
     } catch (e) {
       console.error(e);
-      alert('Failed to submit application.');
+      const detail = e.response?.data?.detail;
+      const errorMsg = Array.isArray(detail) ? detail.map(d => d.msg).join('\n') : (detail || 'Failed to submit application.');
+      alert(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -716,185 +964,179 @@ export default function LandingPage() {
 
 
           {/* 2. Heads of SDC */}
-          <section className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
-            <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
-              <div className="text-center mb-20 flex flex-col items-center">
-                <span className="border border-white/20 text-white/60 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-medium">The Visionaries</span>
-                <h2 className="text-5xl font-medium mt-8 tracking-tight leading-tight text-center">Heads of SDC</h2>
-              </div>
+          {dbHeads.length > 0 && (
+            <section className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
+              <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
+                <div className="text-center mb-20 flex flex-col items-center">
+                  <span className="border border-white/20 text-white/60 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-medium">The Visionaries</span>
+                  <h2 className="text-5xl font-medium mt-8 tracking-tight leading-tight text-center">Heads of SDC</h2>
+                </div>
 
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 gap-16 w-full place-items-center">
-                {/* Heads (With Github) */}
-                <ProfileCard
-                  name="Dr. Rahul Rastogi" role="Head of SDC"
-                  image={head1}
-                  linkedin="https://www.linkedin.com/in/dr-rahul-rastogi-a1413439/"
-                />
-                <ProfileCard
-                  name="Mr. Prateek Agrawal" role="Co-Head of SDC"
-                  image={head2}
-                  linkedin="https://www.linkedin.com/in/erprateek/"
-                />
-              </motion.div>
-            </div>
-          </section>
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 gap-16 w-full place-items-center">
+                  {dbHeads.map(head => (
+                    <ProfileCard
+                      key={head.id}
+                      id={head.id}
+                      name={head.name}
+                      role={head.role === 'head' ? 'Head of SDC' : head.role}
+                      image={head.profile_image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80"}
+                      linkedin={head.linkedin_url || "#"}
+                      github={head.github_url || "#"}
+                      projectsCount={head.projects_count}
+                      onOpenPortfolio={(id) => setSelectedPortfolioUserId(id)}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            </section>
+          )}
 
           {/* 3. Founders */}
-          <section id="founders" className="py-24 px-6 lg:px-24 bg-[#0a192f]/30 border-y border-white/5 flex flex-col items-center justify-center min-h-[80vh] w-full">
-            <div className="w-full max-w-[1400px] mx-auto flex flex-col items-center">
-              <div className="text-center mb-20 flex flex-col items-center">
-                <span className="border border-white/20 text-white/60 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-medium">The Origin</span>
-                <h2 className="text-5xl font-medium mt-8 tracking-tight leading-tight text-center">Founders</h2>
-              </div>
+          {founders.length > 0 && (
+            <section id="founders" className="py-24 px-6 lg:px-24 bg-[#0a192f]/30 border-y border-white/5 flex flex-col items-center justify-center min-h-[80vh] w-full">
+              <div className="w-full max-w-[1400px] mx-auto flex flex-col items-center">
+                <div className="text-center mb-20 flex flex-col items-center">
+                  <span className="border border-white/20 text-white/60 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-medium">The Origin</span>
+                  <h2 className="text-5xl font-medium mt-8 tracking-tight leading-tight text-center">Founders</h2>
+                </div>
 
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="flex flex-wrap justify-center gap-8 w-full">
-                {founders.length > 0 ? (
-                  founders.map(founder => (
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="flex flex-wrap justify-center gap-8 w-full">
+                  {founders.map(founder => (
                     <ProfileCard
                       key={founder.id}
+                      id={founder.id}
                       name={founder.name}
                       role="Founder"
                       image={founder.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
                       linkedin={founder.linkedin_url || "#"}
                       github={founder.github_url || "#"}
+                      projectsCount={founder.projects_count}
+                      onOpenPortfolio={(id) => setSelectedPortfolioUserId(id)}
                     />
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
-                    No founders registered in roster yet.
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          </section>
+                  ))}
+                </motion.div>
+              </div>
+            </section>
+          )}
 
           {/* 4. Developers (Divisions) — Active & Alumni */}
-          <section className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
-            <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
-              <div className="text-center mb-20 flex flex-col items-center">
-                <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">The Engine</span>
-                <h2 className="text-5xl font-medium tracking-tight text-center">Developers</h2>
-              </div>
-
-              {/* Active Developers */}
-              {activeDevelopers.length > 0 && (
-                <>
-                  <div className="w-full mb-8">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Active Developers</span>
-                    </div>
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-                      {activeDevelopers.map(dev => (
-                        <ProfileCard
-                          key={dev.id}
-                          name={dev.name}
-                          role={dev.role === 'developer' ? 'Active Developer' : dev.role}
-                          image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
-                          linkedin={dev.linkedin_url || "#"}
-                          github={dev.github_url || "#"}
-                        />
-                      ))}
-                    </motion.div>
-                  </div>
-                </>
-              )}
-
-
-              {activeDevelopers.length === 0 && alumniDevelopers.length === 0 && (
-                <div className="col-span-3 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
-                  No developers in roster yet.
+          {activeDevelopers.length > 0 && (
+            <section className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
+              <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
+                <div className="text-center mb-20 flex flex-col items-center">
+                  <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">The Engine</span>
+                  <h2 className="text-5xl font-medium tracking-tight text-center">Developers</h2>
                 </div>
-              )}
-            </div>
-          </section>
+
+                <div className="w-full mb-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Active Developers</span>
+                  </div>
+                  <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
+                    {activeDevelopers.map(dev => (
+                      <ProfileCard
+                        key={dev.id}
+                        id={dev.id}
+                        name={dev.name}
+                        role={dev.role === 'developer' ? 'Active Developer' : dev.role}
+                        image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
+                        linkedin={dev.linkedin_url || "#"}
+                        github={dev.github_url || "#"}
+                        projectsCount={dev.projects_count}
+                        onOpenPortfolio={(id) => setSelectedPortfolioUserId(id)}
+                      />
+                    ))}
+                  </motion.div>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* 5. Mentors */}
-          <section id="mentors" className="py-24 px-6 lg:px-24 bg-[#0a192f]/30 border-y border-white/5 flex flex-col items-center justify-center min-h-[80vh] w-full">
-            <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
-              <div className="flex flex-col items-center text-center mb-20 w-full">
-                <h2 className="text-5xl font-medium tracking-tight mb-4">Our Mentors</h2>
-                <p className="text-xl text-white/50 font-light mb-12">Guiding the next generation of engineers.</p>
-                <div className="flex gap-12 items-center justify-center">
-                  <div className="text-center">
-                    <h4 className="text-4xl font-medium text-white">{dbMentors.length}</h4>
-                    <p className="text-[#00e5ff] text-xs uppercase tracking-widest mt-2">Active Mentors</p>
-                  </div>
-                  <div className="w-px h-16 bg-white/20"></div>
-                  <div className="text-center">
-                    <h4 className="text-4xl font-medium text-white">1:1</h4>
-                    <p className="text-[#00e5ff] text-xs uppercase tracking-widest mt-2">Guidance Ratio</p>
+          {dbMentors.length > 0 && (
+            <section id="mentors" className="py-24 px-6 lg:px-24 bg-[#0a192f]/30 border-y border-white/5 flex flex-col items-center justify-center min-h-[80vh] w-full">
+              <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
+                <div className="flex flex-col items-center text-center mb-20 w-full">
+                  <h2 className="text-5xl font-medium tracking-tight mb-4">Our Mentors</h2>
+                  <p className="text-xl text-white/50 font-light mb-12">Guiding the next generation of engineers.</p>
+                  <div className="flex gap-12 items-center justify-center">
+                    <div className="text-center">
+                      <h4 className="text-4xl font-medium text-white">{dbMentors.length}</h4>
+                      <p className="text-[#00e5ff] text-xs uppercase tracking-widest mt-2">Active Mentors</p>
+                    </div>
+                    <div className="w-px h-16 bg-white/20"></div>
+                    <div className="text-center">
+                      <h4 className="text-4xl font-medium text-white">1:1</h4>
+                      <p className="text-[#00e5ff] text-xs uppercase tracking-widest mt-2">Guidance Ratio</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full place-items-center">
-                {dbMentors.length > 0 ? (
-                  dbMentors.map(mentor => (
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full place-items-center">
+                  {dbMentors.map(mentor => (
                     <ProfileCard
                       key={mentor.id}
+                      id={mentor.id}
                       name={mentor.name}
                       role="SDC Mentor"
                       image={mentor.profile_image || "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&q=80"}
                       linkedin={mentor.linkedin_url || "#"}
+                      projectsCount={mentor.projects_count}
+                      onOpenPortfolio={(id) => setSelectedPortfolioUserId(id)}
                     />
-                  ))
-                ) : (
-                  <div className="col-span-4 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
-                    No mentors registered yet.
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          </section>
+                  ))}
+                </motion.div>
+              </div>
+            </section>
+          )}
 
           {/* 6. Alumni */}
-          <section id="alumni" className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
-            <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
-              <div className="text-center mb-20 flex flex-col items-center">
-                <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">The Legacy</span>
-                <h2 className="text-5xl font-medium tracking-tight text-center">Alumni</h2>
-              </div>
-
-              <div className="w-full mb-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-sm font-bold text-cyan-400 uppercase tracking-widest">Passout Developers (Alumni)</span>
+          {alumniDevelopers.length > 0 && (
+            <section id="alumni" className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
+              <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
+                <div className="text-center mb-20 flex flex-col items-center">
+                  <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">The Legacy</span>
+                  <h2 className="text-5xl font-medium tracking-tight text-center">Alumni & Non-Active Members</h2>
                 </div>
-              </div>
 
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-                {alumniDevelopers.length > 0 ? (
-                  alumniDevelopers.map(dev => (
+                <div className="w-full mb-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="text-sm font-bold text-cyan-400 uppercase tracking-widest">Alumni & Non-Active Roster</span>
+                  </div>
+                </div>
+
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
+                  {alumniDevelopers.map(dev => (
                     <ProfileCard
                       key={dev.id}
+                      id={dev.id}
                       name={dev.name}
-                      role="SDC Alumni"
+                      role={dev.membership_status === 'alumni' ? 'SDC Alumni' : 'Inactive Member'}
                       image={dev.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80"}
                       linkedin={dev.linkedin_url || "#"}
                       github={dev.github_url || "#"}
+                      projectsCount={dev.projects_count}
+                      onOpenPortfolio={(id) => setSelectedPortfolioUserId(id)}
                     />
-                  ))
-                ) : (
-                  <div className="col-span-3 text-center py-12 text-white/40 font-bold uppercase tracking-widest text-sm">
-                    No alumni registered yet.
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          </section>
+                  ))}
+                </motion.div>
+              </div>
+            </section>
+          )}
 
           {/* 7. Projects */}
-          <section id="projects" className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
-            <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
-              <div className="text-center mb-20 flex flex-col items-center">
-                <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">Output</span>
-                <h2 className="text-5xl font-medium tracking-tight text-center">Flagship Projects</h2>
-              </div>
+          {completedProjects.length > 0 && (
+            <section id="projects" className="py-24 px-6 lg:px-24 flex flex-col items-center justify-center min-h-[80vh] w-full">
+              <div className="w-full max-w-7xl mx-auto flex flex-col items-center">
+                <div className="text-center mb-20 flex flex-col items-center">
+                  <span className="text-[#00e5ff] tracking-widest text-sm font-medium uppercase mb-4 block">Output</span>
+                  <h2 className="text-5xl font-medium tracking-tight text-center">Flagship Projects</h2>
+                </div>
 
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
-                {completedProjects.length > 0 ? (
-                  completedProjects.map(p => (
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full place-items-center">
+                  {completedProjects.map(p => (
                     <ProjectCard
                       key={p.id}
                       title={p.name}
@@ -903,15 +1145,11 @@ export default function LandingPage() {
                       tags={[p.type ? p.type.replace('_', ' ') : "Web App"]}
                       link={p.live_url || "#"}
                     />
-                  ))
-                ) : (
-                  <div className="col-span-3 text-center py-16 text-white/30 font-bold uppercase tracking-widest text-sm">
-                    No flagship projects published yet.
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          </section>
+                  ))}
+                </motion.div>
+              </div>
+            </section>
+          )}
 
           {/* 6. Recruitment Form */}
 
@@ -1228,6 +1466,14 @@ export default function LandingPage() {
               </div>
             </div>
           </footer>
+
+          {/* Developer Portfolio Showcase Modal */}
+          {selectedPortfolioUserId && (
+            <MemberPortfolioModal
+              userId={selectedPortfolioUserId}
+              onClose={() => setSelectedPortfolioUserId(null)}
+            />
+          )}
 
         </motion.div>
       )}

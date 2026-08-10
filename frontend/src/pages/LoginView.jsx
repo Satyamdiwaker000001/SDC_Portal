@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Lock, Mail, Command, Terminal, User, Eye, EyeOff } from 'lucide-react';
 import Barcode from 'react-barcode';
 import sdcLogo from '../assets/sdc_logo.png';
@@ -16,6 +16,13 @@ export default function LoginView() {
   const [showPassword, setShowPassword] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('reason') === 'timeout') {
+      setError("Session Expired: System has automatically logged out the user due to inactivity. Please log in again to continue.");
+    }
+  }, [searchParams]);
 
   // Terminal typing effect
   const fullText = "initiating secure handshake...\nauthenticating credentials...\naccess granted.";
@@ -235,7 +242,7 @@ export default function LoginView() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#00e5ff]/50 focus:bg-white/[0.06] focus:shadow-[0_0_20px_rgba(0,229,255,0.15)] transition-all duration-300"
-                      placeholder="developer@sdc.com"
+                      placeholder="cs23satyam@rbmi.in or admin@sdc.edu"
                     />
                   </div>
                 </div>
