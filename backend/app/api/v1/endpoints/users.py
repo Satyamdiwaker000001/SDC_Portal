@@ -154,27 +154,116 @@ def public_roster(
     role: Optional[str] = None,
     db: Session = Depends(deps.get_db),
 ) -> Any:
-    """Public roster for the landing page. Exposes only safe fields — no email or sensitive data."""
-    statement = (
-        select(User)
-        .where(User.is_active.is_(True))
-        .where(User.role != "admin")
-    )
+    """Public roster for the landing page. Exposes safe public fields & project telemetry."""
+    statement = select(User).where(User.role != "admin")
     if role:
         statement = statement.where(User.role == role)
     users = db.exec(statement).all()
-    return [
-        {
+
+    roster_list = []
+    from ....models.models import TeamMember, Project
+    for u in users:
+        # Find user's teams & projects
+        member_links = db.exec(select(TeamMember).where(TeamMember.user_id == u.id)).all()
+        team_ids = [m.team_id for m in member_links]
+        user_projects = []
+        if team_ids:
+            user_projects = db.exec(select(Project).where(Project.team_id.in_(team_ids))).all()
+        
+        roster_list.append({
             "id": u.id,
             "name": u.name,
             "role": u.role,
+            "branch": u.branch,
+            "admission_year": u.admission_year,
+            "passout_year": u.passout_year,
             "profile_image": u.profile_image,
             "linkedin_url": u.linkedin_url,
             "github_url": u.github_url,
             "membership_status": u.membership_status,
-        }
-        for u in users
-    ]
+            "is_active": u.is_active,
+            "tech_stack": u.tech_stack or [],
+            "performance_score": u.performance_score or 0.0,
+            "projects_count": len(user_projects),
+        })
+    return roster_list
+
+
+@router.get("/public/portfolio/{user_id}")
+def public_user_portfolio(
+    user_id: str,
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """Public detailed developer portfolio showcase endpoint."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Member portfolio not found")
+
+    from ....models.models import TeamMember, Team, Project, Task
+    member_links = db.exec(select(TeamMember).where(TeamMember.user_id == user.id)).all()
+    team_ids = [m.team_id for m in member_links]
+    
+    teams = []
+    if team_ids:
+        teams = db.exec(select(Team).where(Team.id.in_(team_ids))).all()
+
+    projects = []
+    if team_ids:
+        projects = db.exec(select(Project).where(Project.team_id.in_(team_ids))).all()
+
+    # Also include projects created by user
+    created_projects = db.exec(select(Project).where(Project.created_by == user.id)).all()
+    all_proj_dict = {p.id: p for p in (projects + created_projects)}
+    all_projects = list(all_proj_dict.values())
+
+    completed_tasks_count = len(db.exec(
+        select(Task).where(Task.assigned_to == user.id).where(Task.status == "COMPLETED")
+    ).all())
+
+    project_telemetry = []
+    for p in all_projects:
+        project_telemetry.append({
+            "id": p.id,
+            "name": p.name,
+            "short_description": p.short_description,
+            "full_description": p.full_description,
+            "status": p.status,
+            "type": p.type,
+            "progress": p.progress,
+            "github_repo": p.github_repo,
+            "live_url": p.live_url,
+            "is_live": bool(p.live_url and p.live_url.strip() != ""),
+            "image_url": p.image_url,
+            "academic_year": p.academic_year,
+            "created_at": p.created_at,
+        })
+
+    return {
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "role": user.role,
+            "branch": user.branch,
+            "admission_year": user.admission_year,
+            "passout_year": user.passout_year,
+            "membership_status": user.membership_status,
+            "is_active": user.is_active,
+            "tech_stack": user.tech_stack or [],
+            "profile_image": user.profile_image,
+            "github_url": user.github_url,
+            "linkedin_url": user.linkedin_url,
+            "performance_score": user.performance_score or 0.0,
+            "created_at": user.created_at,
+        },
+        "stats": {
+            "total_projects": len(all_projects),
+            "live_projects": len([p for p in project_telemetry if p["is_live"]]),
+            "completed_tasks": completed_tasks_count,
+            "teams_count": len(teams),
+        },
+        "teams": [{"id": t.id, "name": t.name, "description": t.description} for t in teams],
+        "projects": project_telemetry,
+    }
 
 
 @router.get("/", response_model=List[UserOut])
@@ -488,6 +577,7 @@ async def bulk_upload_users(
         branch = cleaned.get("branch", "N/A")
         admission_year = cleaned.get("admission year", "0")
         passout_year = cleaned.get("passout year", "0")
+        profile_img = cleaned.get("profile image", cleaned.get("profile_image", cleaned.get("photo", cleaned.get("image", ""))))
 
         if not email or not name or not password or email in existing_emails:
             skipped += 1
@@ -507,10 +597,11 @@ async def bulk_upload_users(
             name=name,
             email=email,
             password_hash=security.get_password_hash(password),
-            role=role if role in ["admin", "developer", "mentor"] else "developer",
+            role=role if role in ["admin", "developer", "mentor", "founder", "head"] else "developer",
             branch=branch,
             admission_year=adm_yr,
             passout_year=pass_yr,
+            profile_image=profile_img if profile_img else None,
             membership_status="active",
         )
         users_to_add.append(new_user)
@@ -575,9 +666,55 @@ def toggle_user_membership(
     ))
 
     db.commit()
+@router.patch("/{id}/status", response_model=UserOut)
+def toggle_user_active_status(
+    id: str,
+    is_active: bool,
+    db: Session = Depends(deps.get_db),
+    current_admin: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """Toggle user active status (FR-027 activate / deactivate member account)."""
+    user = db.get(User, id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = is_active
+    user.updated_at = datetime.utcnow()
+    db.add(user)
+    db.add(AuditLog(
+        id=str(uuid.uuid4()),
+        event_type="USER_STATUS_TOGGLED",
+        description=f"User '{user.name}' active status set to {is_active}.",
+        performed_by=current_admin.id,
+        user_role="admin",
+        related_module="user",
+        related_entity_id=id,
+    ))
+    db.commit()
     db.refresh(user)
     return user
 
+
+@router.get("/public/stats")
+def get_public_stats(db: Session = Depends(deps.get_db)) -> Any:
+    members = db.exec(select(User).where(User.membership_status == "active")).all()
+    projects = db.exec(select(Project)).all()
+    teams = db.exec(select(Team)).all()
+    return {
+        "members": len(members),
+        "projects": len(projects),
+        "teams": len(teams)
+    }
+
+@router.get("/public/roster", response_model=List[UserOut])
+def get_public_roster(
+    role: Optional[str] = None,
+    db: Session = Depends(deps.get_db)
+) -> Any:
+    query = select(User).where(User.is_active == True)
+    if role:
+        query = query.where(User.role == role)
+    users = db.exec(query).all()
+    return users
 
 @router.post("/alumni/auto-convert")
 def run_automatic_alumni_conversion(

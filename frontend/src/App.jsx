@@ -11,6 +11,7 @@ import TelemetryView from './pages/TelemetryView';
 import LoginView from './pages/LoginView';
 import LandingPage from './pages/LandingPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SessionTimeoutGuard } from './components/SessionTimeoutGuard';
 
 // Global Protection Component for Back/Forward Navigation & Copy Prevention
 const GlobalProtection = () => {
@@ -74,6 +75,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <GlobalProtection />
+        <SessionTimeoutGuard />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
